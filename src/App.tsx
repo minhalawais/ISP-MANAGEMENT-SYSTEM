@@ -29,6 +29,7 @@ import EmployeeServicePlanManagement from './pages/employee_portal/crud_pages/se
 import EmployeePaymentManagement from './pages/employee_portal/crud_pages/paymentCrud.tsx';
 import EmployeeInventoryManagement from './pages/employee_portal/crud_pages/inventoryCrud.tsx';
 import EmployeeInvoiceManagement from './pages/employee_portal/crud_pages/invoiceCrud.tsx';
+import './styles/toastStyles.css';
 const PrivateRoute: React.FC<{ element: React.ReactElement }> = ({ element }) => {
   const isAuthenticated = !!localStorage.getItem('token');
   return isAuthenticated ? element : <Navigate to="/login" />;

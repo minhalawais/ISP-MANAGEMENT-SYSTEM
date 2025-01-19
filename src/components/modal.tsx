@@ -5,9 +5,10 @@ interface ModalProps {
   onClose: () => void;
   title: string;
   children: React.ReactNode;
+  isLoading?: boolean;
 }
 
-export function Modal({ isVisible, onClose, title, children }: ModalProps) {
+export function Modal({ isVisible, onClose, title, children, isLoading }: ModalProps) {
   if (!isVisible) return null;
 
   return (
@@ -55,12 +56,16 @@ export function Modal({ isVisible, onClose, title, children }: ModalProps) {
                 </svg>
               </button>
             </div>
-            <div className="space-y-4">
-              {children}
-            </div>
+            {React.Children.map(children, child => {
+              if (React.isValidElement(child) && child.type === 'form') {
+                return React.cloneElement(child, { isLoading });
+              }
+              return child;
+            })}
           </div>
         </div>
       </div>
     </div>
   );
 }
+

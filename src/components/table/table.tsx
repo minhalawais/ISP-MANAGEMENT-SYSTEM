@@ -30,6 +30,7 @@ interface TableProps<T> {
   selectedRows?: string[];
   setSelectedRows?: (rows: string[]) => void;
   handleToggleStatus?: (id: string, currentStatus: boolean) => void;
+  isLoading?: boolean; // Add this line
 }
 
 export function Table<T>({ 
@@ -37,7 +38,8 @@ export function Table<T>({
   columns,
   selectedRows: externalSelectedRows,
   setSelectedRows: setExternalSelectedRows,
-  handleToggleStatus 
+  handleToggleStatus,
+  isLoading = false // Add this line
 }: TableProps<T>) {
   const [globalFilter, setGlobalFilter] = useState('');
   const [columnFilters, setColumnFilters] = useState<Record<string, string>>({});
@@ -251,34 +253,56 @@ export function Table<T>({
             ))}
           </thead>
           <tbody className="bg-[#F1F0E8] divide-y divide-[#E5E1DA]">
-            {paddingTop > 0 && (
+            {isLoading ? (
               <tr>
-                <td style={{ height: `${paddingTop}px` }} />
+                <td colSpan={columns.length + 1} className="px-6 py-4 whitespace-nowrap text-center">
+                  <div className="flex justify-center items-center">
+                    <div className="relative">
+                      <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-[#89A8B2]"></div>
+                      <div className="absolute top-0 left-0 h-12 w-12 rounded-full border-t-4 border-b-4 border-transparent border-opacity-50"></div>
+                    </div>
+                    <span className="ml-4 text-[#89A8B2] font-semibold text-lg">Loading...</span>
+                  </div>
+                </td>
               </tr>
-            )}
-            {virtualRows.map((virtualRow) => {
-              const row = rows[virtualRow.index];
-              return (
-                <tr key={row.id}>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <input
-                      type="checkbox"
-                      checked={row.getIsSelected()}
-                      onChange={row.getToggleSelectedHandler()}
-                    />
-                  </td>
-                  {row.getVisibleCells().map((cell) => (
-                    <td key={cell.id} className="px-6 py-4 whitespace-nowrap text-[#89A8B2]">
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </td>
-                  ))}
-                </tr>
-              );
-            })}
-            {paddingBottom > 0 && (
+            ) : data.length === 0 ? (
               <tr>
-                <td style={{ height: `${paddingBottom}px` }} />
+                <td colSpan={columns.length + 1} className="px-6 py-4 whitespace-nowrap text-center text-[#89A8B2]">
+                  No data to display
+                </td>
               </tr>
+            ) : (
+              <>
+                {paddingTop > 0 && (
+                  <tr>
+                    <td style={{ height: `${paddingTop}px` }} />
+                  </tr>
+                )}
+                {virtualRows.map((virtualRow) => {
+                  const row = rows[virtualRow.index];
+                  return (
+                    <tr key={row.id}>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <input
+                          type="checkbox"
+                          checked={row.getIsSelected()}
+                          onChange={row.getToggleSelectedHandler()}
+                        />
+                      </td>
+                      {row.getVisibleCells().map((cell) => (
+                        <td key={cell.id} className="px-6 py-4 whitespace-nowrap text-[#89A8B2]">
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </td>
+                      ))}
+                    </tr>
+                  );
+                })}
+                {paddingBottom > 0 && (
+                  <tr>
+                    <td style={{ height: `${paddingBottom}px` }} />
+                  </tr>
+                )}
+              </>
             )}
           </tbody>
         </table>
@@ -338,3 +362,4 @@ export function Table<T>({
     </div>
   );
 }
+

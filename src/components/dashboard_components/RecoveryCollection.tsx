@@ -63,7 +63,7 @@ export const RecoveryCollections: React.FC = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await axiosInstance.get('http://127.0.0.1:5000/api/dashboard/recovery-collections', {
+        const response = await axiosInstance.get('http://147.93.53.119/api/dashboard/recovery-collections', {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
           }

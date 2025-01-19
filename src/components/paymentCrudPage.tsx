@@ -7,7 +7,8 @@ import { Modal } from './modal.tsx';
 import { Topbar } from './topNavbar.tsx';
 import { Sidebar } from './sideNavbar.tsx';
 import { getToken } from '../utils/auth.ts';
-import { toast } from 'react-toastify';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import axiosInstance from '../utils/axiosConfig.ts';
 
 interface CRUDPageProps<T> {
@@ -38,11 +39,12 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
   const [formData, setFormData] = useState<Partial<T>>({});
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
   const fetchData = async () => {
     try {
       const token = getToken();
-      const response = await axiosInstance.get(`http://127.0.0.1:5000/${endpoint}/list`, {
+      const response = await axiosInstance.get(`http://147.93.53.119/api/${endpoint}/list`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setData(response.data);
@@ -51,7 +53,9 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
       }
     } catch (error) {
       console.error(`Failed to fetch ${title}`, error);
-      toast.error(`Failed to fetch ${title}`);
+      toast.error(`Failed to fetch ${title}`, {
+        style: { background: '#F1F0E8', color: '#B3C8CF' },
+      });
     }
   };
 
@@ -62,15 +66,19 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
   const handleToggleStatus = async (id: string, currentStatus: boolean) => {
     try {
       const token = getToken();
-      await axiosInstance.put(`http://127.0.0.1:5000/${endpoint}/update/${id}`, 
+      await axiosInstance.put(`http://147.93.53.119/api/${endpoint}/update/${id}`, 
         { is_active: !currentStatus },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      toast.success(`${title} status updated successfully`);
+      toast.success(`${title} status updated successfully`, {
+        style: { background: '#E5E1DA', color: '#89A8B2' },
+      });
       await fetchData();
     } catch (error) {
       console.error(`Failed to update ${title} status`, error);
-      toast.error(`Failed to update ${title} status`);
+      toast.error(`Failed to update ${title} status`, {
+        style: { background: '#F1F0E8', color: '#B3C8CF' },
+      });
     }
   };
 
@@ -78,17 +86,21 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
     try {
       const token = getToken();
       await Promise.all(selectedRows.map(id => 
-        axiosInstance.put(`http://127.0.0.1:5000/${endpoint}/update/${id}`, 
+        axiosInstance.put(`http://147.93.53.119/api/${endpoint}/update/${id}`, 
           { is_active: newStatus },
           { headers: { Authorization: `Bearer ${token}` } }
         )
       ));
-      toast.success(`${title} status updated successfully`);
+      toast.success(`${title} status updated successfully`, {
+        style: { background: '#E5E1DA', color: '#89A8B2' },
+      });
       await fetchData();
       setSelectedRows([]);
     } catch (error) {
       console.error(`Failed to update ${title} status`, error);
-      toast.error(`Failed to update ${title} status`);
+      toast.error(`Failed to update ${title} status`, {
+        style: { background: '#F1F0E8', color: '#B3C8CF' },
+      });
     }
   };
 
@@ -107,6 +119,7 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoading(true);
     try {
       const token = getToken();
       const formDataToSend = new FormData();
@@ -129,7 +142,7 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
 
       if (editingItem) {
         await axiosInstance.put(
-          `http://127.0.0.1:5000/${endpoint}/update/${editingItem.id}`, 
+          `http://147.93.53.119/api/${endpoint}/update/${editingItem.id}`, 
           formDataToSend,
           {
             headers: { 
@@ -138,10 +151,12 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
             }
           }
         );
-        toast.success(`${title} updated successfully`);
+        toast.success(`${title} updated successfully`, {
+          style: { background: '#E5E1DA', color: '#89A8B2' },
+        });
       } else {
         await axiosInstance.post(
-          `http://127.0.0.1:5000/${endpoint}/add`,
+          `http://147.93.53.119/api/${endpoint}/add`,
           formDataToSend,
           {
             headers: { 
@@ -150,13 +165,19 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
             }
           }
         );
-        toast.success(`${title} added successfully`);
+        toast.success(`${title} added successfully`, {
+          style: { background: '#E5E1DA', color: '#89A8B2' },
+        });
       }
       fetchData();
       handleCancel();
     } catch (error) {
       console.error('Operation failed', error);
-      toast.error('Operation failed');
+      toast.error('Operation failed', {
+        style: { background: '#F1F0E8', color: '#B3C8CF' },
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -164,14 +185,18 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
     if (window.confirm(`Are you sure you want to delete this ${title.toLowerCase()}?`)) {
       try {
         const token = getToken();
-        await axiosInstance.delete(`http://127.0.0.1:5000/${endpoint}/delete/${id}`, {
+        await axiosInstance.delete(`http://147.93.53.119/api/${endpoint}/delete/${id}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
-        toast.success(`${title} deleted successfully`);
+        toast.success(`${title} deleted successfully`, {
+          style: { background: '#E5E1DA', color: '#89A8B2' },
+        });
         await fetchData();
       } catch (error) {
         console.error('Delete operation failed', error);
-        toast.error('Delete operation failed');
+        toast.error('Delete operation failed', {
+          style: { background: '#F1F0E8', color: '#B3C8CF' },
+        });
       }
     }
   };
@@ -266,6 +291,7 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
         isVisible={isModalVisible}
         onClose={handleCancel}
         title={editingItem ? `Edit ${title}` : `Add New ${title}`}
+        isLoading={isLoading}
       >
         <form onSubmit={handleSubmit}>
           <FormComponent
@@ -276,13 +302,37 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
           <div className="mt-4 flex justify-end">
             <button
               type="submit"
-              className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-[#8b5cf6] text-base font-medium text-white hover:bg-[#7c3aed] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#8b5cf6] sm:ml-3 sm:w-auto sm:text-sm"
+              disabled={isLoading}
+              className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-[#8b5cf6] text-base font-medium text-white hover:bg-[#7c3aed] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#8b5cf6] sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50"
             >
-              {editingItem ? 'Update' : 'Add'}
+              {isLoading ? (
+                <>
+                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Processing...
+                </>
+              ) : (
+                editingItem ? 'Update' : 'Add'
+              )}
             </button>
           </div>
         </form>
       </Modal>
+      <ToastContainer
+        position="top-right"
+        autoClose={5000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
+      />
     </div>
   );
 }
+

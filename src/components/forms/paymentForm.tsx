@@ -73,7 +73,7 @@ export function PaymentForm({ formData, handleInputChange, handleSubmit, isEditi
   const fetchInvoices = async () => {
     try {
       const token = getToken();
-      const response = await axiosInstance.get('http://127.0.0.1:5000/invoices/list', {
+      const response = await axiosInstance.get('http://147.93.53.119/api/invoices/list', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setInvoices(response.data.map((invoice: any) => ({ 
@@ -90,7 +90,7 @@ export function PaymentForm({ formData, handleInputChange, handleSubmit, isEditi
   const fetchEmployees = async () => {
     try {
       const token = getToken();
-      const response = await axiosInstance.get('http://127.0.0.1:5000/employees/list', {
+      const response = await axiosInstance.get('http://147.93.53.119/api/employees/list', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setEmployees(response.data.map((employee: any) => ({ 
