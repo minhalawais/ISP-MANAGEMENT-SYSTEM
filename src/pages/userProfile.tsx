@@ -20,7 +20,7 @@ const UserProfile: React.FC = () => {
   const fetchUserData = async () => {
     try {
       const token = getToken();
-      const response = await axiosInstance.get('http://127.0.0.1:5000/user/profile', {
+      const response = await axiosInstance.get('http://147.93.53.119/api/user/profile', {
         headers: {
           Authorization: `Bearer ${token}`
         }

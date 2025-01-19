@@ -22,7 +22,7 @@ const ResetPasswordPage: React.FC = () => {
     setError('');
 
     try {
-      const response = await axiosInstance.post(`http://localhost:5000/api/reset-password/${token}`, { password });
+      const response = await axiosInstance.post(`http://147.93.53.119/api/reset-password/${token}`, { password });
       setMessage(response.data.message);
       setTimeout(() => navigate('/login'), 3000);
     } catch (err) {

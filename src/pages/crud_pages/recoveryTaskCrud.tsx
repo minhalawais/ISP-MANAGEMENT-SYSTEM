@@ -36,12 +36,12 @@ const RecoveryTaskManagement: React.FC = () => {
     const fetchData = async () => {
       const token = getToken();
       try {
-        const invoicesResponse = await axiosInstance.get('http://127.0.0.1:5000/invoices/list', {
+        const invoicesResponse = await axiosInstance.get('http://147.93.53.119/api/invoices/list', {
           headers: { Authorization: `Bearer ${token}` }
         });
         setInvoices(invoicesResponse.data);
 
-        const employeesResponse = await axiosInstance.get('http://127.0.0.1:5000/employees/list', {
+        const employeesResponse = await axiosInstance.get('http://147.93.53.119/api/employees/list', {
           headers: { Authorization: `Bearer ${token}` }
         });
         setEmployees(employeesResponse.data);

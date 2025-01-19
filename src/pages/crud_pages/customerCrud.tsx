@@ -52,7 +52,7 @@ const CustomerManagement: React.FC = () => {
           <button
             onClick={() => {
               const token = getToken(); // Assuming getToken() retrieves the Bearer token
-              fetch(`http://127.0.0.1:5000/customers/cnic-image/${info.row.original.id}`, {
+              fetch(`http://147.93.53.119/api/customers/cnic-image/${info.row.original.id}`, {
                 method: 'GET',
                 headers: {
                   'Authorization': `Bearer ${token}`
