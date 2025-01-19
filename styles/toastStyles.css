@@ -1,0 +1,17 @@
+.Toastify__toast {
+  border-radius: 8px;
+  font-family: "Arial", sans-serif;
+}
+
+.Toastify__toast--success {
+  border-left: 4px solid #89a8b2;
+}
+
+.Toastify__toast--error {
+  border-left: 4px solid #b3c8cf;
+}
+
+.Toastify__progress-bar {
+  background: #89a8b2;
+}
+
