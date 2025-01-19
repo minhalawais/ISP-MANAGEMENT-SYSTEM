@@ -74,7 +74,7 @@ def add_employee(data, user_role, current_user_id, ip_address, user_agent):
             {k: v for k, v in data.items() if k != 'password'},
                         ip_address,
             user_agent,
-            company_id
+            data['company_id']
 )
 
         return new_employee

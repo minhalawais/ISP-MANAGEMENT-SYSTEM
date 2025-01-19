@@ -327,3 +327,4 @@ Supplier.inventory_items = relationship('InventoryItem', back_populates='supplie
 Customer.inventory_assignments = relationship('InventoryAssignment', back_populates='customer')
 User.inventory_assignments = relationship('InventoryAssignment', back_populates='employee')
 User.transactions = relationship('InventoryTransaction', back_populates='performed_by')
+
