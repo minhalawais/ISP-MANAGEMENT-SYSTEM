@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo,useEffect } from 'react';
 import { ColumnDef } from '@tanstack/react-table';
 import { CRUDPage } from '../../components/crudPage.tsx';
 import { ComplaintForm } from '../../components/forms/complaintForm.tsx';
@@ -24,6 +24,9 @@ interface Complaint {
 }
 
 const ComplaintManagement: React.FC = () => {
+  useEffect(() => {
+    document.title = "MBA NET - Complaint Management";
+  }, []);
   const columns = useMemo<ColumnDef<Complaint>[]>(
     () => [
       {

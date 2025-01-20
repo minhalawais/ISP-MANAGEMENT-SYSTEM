@@ -33,6 +33,7 @@ const RecoveryTaskManagement: React.FC = () => {
   const [employees, setEmployees] = useState<Employee[]>([]);
 
   useEffect(() => {
+    document.title = "MBA NET - Recovery Task Management";
     const fetchData = async () => {
       const token = getToken();
       try {

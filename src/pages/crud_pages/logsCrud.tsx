@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo,useEffect } from 'react';
 import { ColumnDef } from '@tanstack/react-table';
 import { CRUDPage } from '../../components/crudPage.tsx';
 import { LogForm } from '../../components/forms/logForm.tsx';
@@ -18,6 +18,9 @@ interface Log {
 }
 
 const LogManagement: React.FC = () => {
+  useEffect(() => {
+    document.title = "MBA NET - Logs Management";
+  }, []);
   const columns = useMemo<ColumnDef<Log>[]>(
     () => [
       {

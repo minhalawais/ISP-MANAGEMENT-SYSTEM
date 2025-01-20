@@ -1,123 +1,141 @@
-// InvoiceGenerationPage.tsx
-import React, { useEffect, useState, useRef } from 'react';
-import { useParams } from 'react-router-dom';
-import { getToken } from '../utils/auth.ts';
-import { useReactToPrint } from 'react-to-print';
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
-import axiosInstance from '../utils/axiosConfig.ts';
-import { Sidebar } from '../components/sideNavbar.tsx';
-import { Topbar } from '../components/topNavbar.tsx';
-import MBALogo from '../assets/mba_logo.tsx';
+import type React from "react"
+import { useEffect, useState, useRef } from "react"
+import { useParams } from "react-router-dom"
+import { getToken } from "../utils/auth.ts"
+import { useReactToPrint } from "react-to-print"
+import jsPDF from "jspdf"
+import html2canvas from "html2canvas"
+import axiosInstance from "../utils/axiosConfig.ts"
+import { Sidebar } from "../components/sideNavbar.tsx"
+import { Topbar } from "../components/topNavbar.tsx"
+import MBALogo from "../assets/mba_logo.tsx"
+
 interface InvoiceData {
-  id: string;
-  invoice_number: string;
-  customer_name: string;
-  customer_address: string;
-  billing_start_date: string;
-  billing_end_date: string;
-  due_date: string;
-  subtotal: number;
-  discount_percentage: number;
-  total_amount: number;
-  invoice_type: string;
-  notes: string;
-  status: string;
+  id: string
+  invoice_number: string
+  customer_name: string
+  customer_address: string
+  billing_start_date: string
+  billing_end_date: string
+  due_date: string
+  subtotal: number
+  discount_percentage: number
+  total_amount: number
+  invoice_type: string
+  notes: string
+  status: string
 }
 
 const InvoiceGenerationPage: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
-  const [invoiceData, setInvoiceData] = useState<InvoiceData | null>(null);
-  const [isPrinting, setIsPrinting] = useState(false);
-  const [isDownloading, setIsDownloading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const printRef = useRef<HTMLDivElement>(null);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const { id } = useParams<{ id: string }>()
+  const [invoiceData, setInvoiceData] = useState<InvoiceData | null>(null)
+  const [isPrinting, setIsPrinting] = useState(false)
+  const [isDownloading, setIsDownloading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const printRef = useRef<HTMLDivElement>(null)
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
 
   useEffect(() => {
-    fetchInvoiceData();
-  }, [id]);
+    document.title = "MBA NET - Invoice Details"
+    fetchInvoiceData()
+  }, [id])
+
+  useEffect(() => {
+    if (error) {
+      console.error("Print error:", error)
+    }
+  }, [error])
 
   const toggleSidebar = () => {
-    setIsSidebarOpen(prev => !prev);
-  };
+    setIsSidebarOpen((prev) => !prev)
+  }
 
   const fetchInvoiceData = async () => {
     try {
-      const token = getToken();
+      const token = getToken()
       const response = await axiosInstance.get(`http://147.93.53.119/api/invoices/${id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setInvoiceData(response.data);
-      setError(null);
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      setInvoiceData(response.data)
+      setError(null)
     } catch (error) {
-      console.error('Failed to fetch invoice data', error);
-      setError('Failed to load invoice data. Please try again.');
+      console.error("Failed to fetch invoice data", error)
+      setError("Failed to load invoice data. Please try again.")
     }
-  };
+  }
 
   const handlePrint = useReactToPrint({
     content: () => printRef.current,
     documentTitle: `Invoice-${invoiceData?.invoice_number}`,
     onBeforeGetContent: () => {
-      setIsPrinting(true);
+      setIsPrinting(true)
       return new Promise((resolve) => {
-        setTimeout(resolve, 100);
-      });
+        setTimeout(resolve, 100)
+      })
     },
     onAfterPrint: () => {
-      setIsPrinting(false);
+      setIsPrinting(false)
     },
     removeAfterPrint: true,
     onPrintError: (error) => {
-      console.error('Print failed:', error);
-      setError('Failed to print. Please try again.');
-      setIsPrinting(false);
+      console.error("Print failed:", error)
+      setError("Failed to print. Please try again.")
+      setIsPrinting(false)
+    },
+  })
+
+  const printInvoice = () => {
+    try {
+      handlePrint()
+    } catch (error) {
+      console.error("Error during print:", error)
+      setError("An unexpected error occurred while printing. Please try again.")
+      setIsPrinting(false)
     }
-  });
+  }
 
   const handleDownloadPDF = async () => {
-    if (!printRef.current) return;
-    
-    setIsDownloading(true);
-    setError(null);
-    
+    if (!printRef.current) return
+
+    setIsDownloading(true)
+    setError(null)
+
     try {
-      const element = printRef.current;
+      const element = printRef.current
       const canvas = await html2canvas(element, {
         scale: 2,
         logging: false,
-        useCORS: true
-      });
-      
-      const imgWidth = 210; // A4 width in mm
-      const pageHeight = 297; // A4 height in mm
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, imgWidth, imgHeight);
-      
-      pdf.save(`Invoice-${invoiceData?.invoice_number}.pdf`);
+        useCORS: true,
+      })
+
+      const imgWidth = 210 // A4 width in mm
+      const pageHeight = 297 // A4 height in mm
+      const imgHeight = (canvas.height * imgWidth) / canvas.width
+
+      const pdf = new jsPDF("p", "mm", "a4")
+      pdf.addImage(canvas.toDataURL("image/png"), "PNG", 0, 0, imgWidth, imgHeight)
+
+      pdf.save(`Invoice-${invoiceData?.invoice_number}.pdf`)
     } catch (error) {
-      console.error('PDF generation failed:', error);
-      setError('Failed to generate PDF. Please try again.');
+      console.error("PDF generation failed:", error)
+      setError("Failed to generate PDF. Please try again.")
     } finally {
-      setIsDownloading(false);
+      setIsDownloading(false)
     }
-  };
+  }
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
-      case 'paid':
-        return 'bg-purple-100 text-purple-800';
-      case 'pending':
-        return 'bg-[#B3C8CF] text-gray-800';
-      case 'overdue':
-        return 'bg-red-100 text-red-800';
+      case "paid":
+        return "bg-purple-100 text-purple-800"
+      case "pending":
+        return "bg-[#B3C8CF] text-gray-800"
+      case "overdue":
+        return "bg-red-100 text-red-800"
       default:
-        return 'bg-[#E5E1DA] text-gray-800';
+        return "bg-[#E5E1DA] text-gray-800"
     }
-  };
+  }
 
   if (!invoiceData && !error) {
     return (
@@ -127,7 +145,7 @@ const InvoiceGenerationPage: React.FC = () => {
           <div className="text-[#89A8B2]">Loading invoice details...</div>
         </div>
       </div>
-    );
+    )
   }
 
   if (error) {
@@ -143,7 +161,7 @@ const InvoiceGenerationPage: React.FC = () => {
           </button>
         </div>
       </div>
-    );
+    )
   }
 
   return (
@@ -151,30 +169,42 @@ const InvoiceGenerationPage: React.FC = () => {
       <Sidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} setIsOpen={setIsSidebarOpen} />
       <div className="flex-1 flex flex-col overflow-hidden">
         <Topbar toggleSidebar={toggleSidebar} />
-        <div className={`flex-1 overflow-x-hidden overflow-y-auto bg-[#F1F0E] p-6 pt-20 transition-all duration-300 ${isSidebarOpen ? 'ml-72' : 'ml-20'}`}>
+        <div
+          className={`flex-1 overflow-x-hidden overflow-y-auto bg-[#F1F0E] p-6 pt-20 transition-all duration-300 ${isSidebarOpen ? "ml-72" : "ml-20"}`}
+        >
           <div className="container mx-auto px-4 max-w-5xl">
             <div className="flex justify-between items-center mb-8">
               <h1 className="text-2xl font-bold text-[#8b5cf6]">Invoice Details</h1>
               <div className="flex gap-4">
-                <button 
-                  onClick={handlePrint}
+                <button
+                  onClick={printInvoice}
                   disabled={isPrinting}
-                  className={`flex items-center gap-2 px-6 py-3 bg-white text-[#89A8B2] rounded-lg shadow-sm hover:shadow-md transition-all duration-200 border border-[#B3C8CF] ${isPrinting ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  className={`flex items-center gap-2 px-6 py-3 bg-white text-[#89A8B2] rounded-lg shadow-sm hover:shadow-md transition-all duration-200 border border-[#B3C8CF] ${isPrinting ? "opacity-50 cursor-not-allowed" : ""}`}
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"
+                    />
                   </svg>
-                  {isPrinting ? 'Printing...' : 'Print'}
+                  {isPrinting ? "Printing..." : "Print"}
                 </button>
-                <button 
+                <button
                   onClick={handleDownloadPDF}
                   disabled={isDownloading}
-                  className={`flex items-center gap-2 px-6 py-3 bg-[#8b5cf6] text-white rounded-lg shadow-sm hover:bg-purple-700 transition-all duration-200 ${isDownloading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  className={`flex items-center gap-2 px-6 py-3 bg-[#8b5cf6] text-white rounded-lg shadow-sm hover:bg-purple-700 transition-all duration-200 ${isDownloading ? "opacity-50 cursor-not-allowed" : ""}`}
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                    />
                   </svg>
-                  {isDownloading ? 'Generating PDF...' : 'Download PDF'}
+                  {isDownloading ? "Generating PDF..." : "Download PDF"}
                 </button>
               </div>
             </div>
@@ -210,7 +240,9 @@ const InvoiceGenerationPage: React.FC = () => {
                     </div>
                     <div>
                       <h2 className="text-sm font-bold text-[#89A8B2] uppercase tracking-wider mb-3">Status</h2>
-                      <span className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold ${getStatusColor(invoiceData?.status || '')}`}>
+                      <span
+                        className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold ${getStatusColor(invoiceData?.status || "")}`}
+                      >
                         {invoiceData?.status}
                       </span>
                     </div>
@@ -220,7 +252,8 @@ const InvoiceGenerationPage: React.FC = () => {
                       <div>
                         <h2 className="text-sm font-bold text-[#89A8B2] uppercase tracking-wider mb-3">Invoice Date</h2>
                         <div className="text-[#89A8B2]">
-                          {invoiceData?.billing_start_date && new Date(invoiceData.billing_start_date).toLocaleDateString()}
+                          {invoiceData?.billing_start_date &&
+                            new Date(invoiceData.billing_start_date).toLocaleDateString()}
                         </div>
                       </div>
                       <div>
@@ -233,8 +266,9 @@ const InvoiceGenerationPage: React.FC = () => {
                     <div>
                       <h2 className="text-sm font-bold text-[#89A8B2] uppercase tracking-wider mb-3">Billing Period</h2>
                       <div className="text-[#89A8B2]">
-                        {invoiceData?.billing_start_date && new Date(invoiceData.billing_start_date).toLocaleDateString()} - 
-                        {invoiceData?.billing_end_date && new Date(invoiceData.billing_end_date).toLocaleDateString()}
+                        {invoiceData?.billing_start_date &&
+                          new Date(invoiceData.billing_start_date).toLocaleDateString()}{" "}
+                        -{invoiceData?.billing_end_date && new Date(invoiceData.billing_end_date).toLocaleDateString()}
                       </div>
                     </div>
                   </div>
@@ -245,8 +279,12 @@ const InvoiceGenerationPage: React.FC = () => {
                   <table className="w-full">
                     <thead>
                       <tr className="border-b border-[#B3C8CF]">
-                        <th className="text-left text-sm font-bold text-[#89A8B2] uppercase tracking-wider pb-6">Description</th>
-                        <th className="text-right text-sm font-bold text-[#89A8B2] uppercase tracking-wider pb-6">Amount</th>
+                        <th className="text-left text-sm font-bold text-[#89A8B2] uppercase tracking-wider pb-6">
+                          Description
+                        </th>
+                        <th className="text-right text-sm font-bold text-[#89A8B2] uppercase tracking-wider pb-6">
+                          Amount
+                        </th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-[#B3C8CF]">
@@ -254,8 +292,12 @@ const InvoiceGenerationPage: React.FC = () => {
                         <td className="py-6">
                           <div className="text-[#8b5cf6] font-medium">{invoiceData?.invoice_type}</div>
                           <div className="text-[#89A8B2] mt-1">
-                            Service Period: {invoiceData?.billing_start_date && new Date(invoiceData.billing_start_date).toLocaleDateString()} - 
-                            {invoiceData?.billing_end_date && new Date(invoiceData.billing_end_date).toLocaleDateString()}
+                            Service Period:{" "}
+                            {invoiceData?.billing_start_date &&
+                              new Date(invoiceData.billing_start_date).toLocaleDateString()}{" "}
+                            -
+                            {invoiceData?.billing_end_date &&
+                              new Date(invoiceData.billing_end_date).toLocaleDateString()}
                           </div>
                         </td>
                         <td className="py-6 text-right text-[#8b5cf6] font-medium">
@@ -274,7 +316,8 @@ const InvoiceGenerationPage: React.FC = () => {
                     </tbody>
                     <tfoot>
                       <tr className="border-t border-[#B3C8CF]">
-                        <td className="pt-6 text-right font-bold text-[#89A8B2] uppercase tracking-wider">Total Amount
+                        <td className="pt-6 text-right font-bold text-[#89A8B2] uppercase tracking-wider">
+                          Total Amount
                         </td>
                         <td className="pt-6 text-right">
                           <div className="text-3xl font-bold text-[#8b5cf6]">
@@ -290,9 +333,7 @@ const InvoiceGenerationPage: React.FC = () => {
                 {invoiceData?.notes && (
                   <div className="bg-[#F1F0E] rounded-lg p-6 mt-8">
                     <h2 className="text-sm font-bold text-[#89A8B2] uppercase tracking-wider mb-4">Additional Notes</h2>
-                    <div className="text-[#89A8B2] leading-relaxed">
-                      {invoiceData.notes}
-                    </div>
+                    <div className="text-[#89A8B2] leading-relaxed">{invoiceData.notes}</div>
                   </div>
                 )}
 
@@ -312,7 +353,8 @@ const InvoiceGenerationPage: React.FC = () => {
         </div>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default InvoiceGenerationPage;
+export default InvoiceGenerationPage
+

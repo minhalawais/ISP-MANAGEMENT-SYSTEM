@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo,useEffect } from 'react';
 import { ColumnDef } from '@tanstack/react-table';
 import { CRUDPage } from '../../components/customerCrudPage.tsx';
 import { CustomerForm } from '../../components/forms/customerForm.tsx';
@@ -19,6 +19,9 @@ interface Customer {
 }
 
 const CustomerManagement: React.FC = () => {
+  useEffect(() => {
+    document.title = "MBA NET - Customer Management";
+  }, []);
   const columns = useMemo<ColumnDef<Customer>[]>(
     () => [
       {

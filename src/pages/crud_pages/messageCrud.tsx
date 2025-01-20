@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo,useEffect } from 'react';
 import { ColumnDef } from '@tanstack/react-table';
 import { CRUDPage } from '../../components/crudPage.tsx';
 import { MessageForm } from '../../components/forms/messageForm.tsx';
@@ -15,6 +15,9 @@ interface Message {
 }
 
 const MessageManagement: React.FC = () => {
+  useEffect(() => {
+    document.title = "MBA NET - Message Management";
+  }, []);
   const columns = useMemo<ColumnDef<Message>[]>(
     () => [
       {

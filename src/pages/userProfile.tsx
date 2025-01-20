@@ -14,6 +14,7 @@ const UserProfile: React.FC = () => {
     setIsSidebarOpen(prev => !prev);
   };
   useEffect(() => {
+    document.title = "MBA NET - User Profile";
     fetchUserData();
   }, []);
 

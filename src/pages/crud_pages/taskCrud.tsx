@@ -34,6 +34,7 @@ const TaskManagement: React.FC = () => {
   const [employees, setEmployees] = useState<Employee[]>([]);
 
   useEffect(() => {
+    document.title = "MBA NET - Task Management";
     const fetchEmployees = async () => {
       try {
         const token = getToken();

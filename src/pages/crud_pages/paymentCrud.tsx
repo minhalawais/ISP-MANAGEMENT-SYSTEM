@@ -1,4 +1,4 @@
-import React from 'react';
+import React,{useEffect} from 'react';
 import { ColumnDef } from '@tanstack/react-table';
 import { CRUDPage } from '../../components/paymentCrudPage.tsx';
 import { PaymentForm } from '../../components/forms/paymentForm.tsx';
@@ -21,6 +21,9 @@ interface Payment {
 }
 
 const PaymentManagement: React.FC = () => {
+  useEffect(() => {
+    document.title = "MBA NET - Payment Management";
+  }, []);
   const columns = React.useMemo<ColumnDef<Payment>[]>(
     () => [
       {

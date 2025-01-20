@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo,useEffect } from 'react';
 import { ColumnDef } from '@tanstack/react-table';
 import { CRUDPage } from '../../components/crudPage.tsx';
 import { EmployeeForm } from '../../components/forms/employeeForm.tsx';
@@ -17,6 +17,9 @@ interface Employee {
 }
 
 const EmployeeManagement: React.FC = () => {
+  useEffect(() => {
+    document.title = "MBA NET - Employee Management";
+  }, []);
   const columns = useMemo<ColumnDef<Employee>[]>(
     () => [
       {
