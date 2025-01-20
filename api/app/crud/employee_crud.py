@@ -4,6 +4,7 @@ from app.utils.logging_utils import log_action
 import uuid
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError, DatabaseError
 import logging
+from app.utils.email_utils import send_email
 
 logger = logging.getLogger(__name__)
 
@@ -72,12 +73,36 @@ def add_employee(data, user_role, current_user_id, ip_address, user_agent):
             new_employee.id,
             None,
             {k: v for k, v in data.items() if k != 'password'},
-                        ip_address,
+            ip_address,
             user_agent,
             data['company_id']
-)
+        )
 
-        return new_employee
+        # Send email to the new employee
+    #    send_email(
+     #       to=new_employee.email,
+      #      subject="Your New Account Credentials",
+       #     template="new_employee_credentials",
+        #    username=new_employee.username,
+         #   password=data['password']
+        #)
+
+        # Send email to the current user
+       # current_user = User.query.get(current_user_id)
+        #if current_user:
+         #   send_email(
+          #      to=current_user.email,
+           #     subject="New Employee Account Created",
+            #    template="new_employee_notification",
+             #   employee_name=f"{new_employee.first_name} {new_employee.last_name}",
+              #  employee_email=new_employee.email
+           # )
+
+        return new_employee, {
+            'username': new_employee.username,
+            'password': data['password'],
+            'email': new_employee.email
+        }
     except IntegrityError as e:
         logger.error(f"Integrity error adding employee: {str(e)}")
         db.session.rollback()

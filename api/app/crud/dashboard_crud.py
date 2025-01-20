@@ -5,13 +5,12 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 import logging
 from pytz import UTC
+from sqlalchemy.exc import SQLAlchemyError
+from pytz import UTC  # Ensures consistent timezone handling
 
 logger = logging.getLogger(__name__)
 
 def get_executive_summary_data(company_id):
-    from sqlalchemy.exc import SQLAlchemyError
-    from pytz import UTC  # Ensures consistent timezone handling
-
     if not company_id:
         return {'error': 'Invalid company_id. Please provide a valid company ID.'}
 
@@ -91,7 +90,7 @@ def get_customer_analytics_data(company_id):
         last_month = today - timedelta(days=30)
 
         # Ensure valid company_id
-        if not company_id or not isinstance(company_id, int):
+        if not company_id:
             raise ValueError("Invalid company_id provided.")
 
         # Calculate acquisition and churn rates
@@ -171,7 +170,7 @@ def get_financial_analytics_data(company_id):
         six_months_ago = today - timedelta(days=180)
 
         # Ensure valid company_id
-        if not company_id or not isinstance(company_id, int):
+        if not company_id:
             raise ValueError("Invalid company_id provided.")
 
         # Calculate monthly revenue for the last 6 months

@@ -24,8 +24,12 @@ def add_new_employee():
     user_agent = request.headers.get('User-Agent')
     data = request.json
     data['company_id'] = company_id
-    new_employee = employee_crud.add_employee(data, user_role, current_user_id, ip_address, user_agent)
-    return jsonify({'message': 'Employee added successfully', 'id': str(new_employee.id)}), 201
+    new_employee, credentials = employee_crud.add_employee(data, user_role, current_user_id, ip_address, user_agent)
+    return jsonify({
+        'message': 'Employee added successfully',
+        'id': str(new_employee.id),
+        'credentials': credentials
+    }), 201
 
 @main.route('/employees/update/<string:id>', methods=['PUT'])
 @jwt_required()
