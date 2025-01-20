@@ -41,7 +41,7 @@ export const InventoryManagement: React.FC = () => {
   useEffect(() => {
     const fetchInventoryData = async () => {
       try {
-        const response = await axiosInstance.get('/api/dashboard/inventory-management', {
+        const response = await axiosInstance.get('/dashboard/inventory-management', {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
           }

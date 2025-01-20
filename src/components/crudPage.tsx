@@ -9,6 +9,7 @@ import { Sidebar } from './sideNavbar.tsx';
 import { getToken } from '../utils/auth.ts';
 import { toast } from 'react-toastify';
 import axiosInstance from '../utils/axiosConfig.ts';
+import { CredentialsModal } from "./modals/CredentialsModal.tsx";
 
 interface CRUDPageProps<T> {
   title: string;
@@ -39,6 +40,12 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false); // Added isLoading state
+  const [showCredentialsModal, setShowCredentialsModal] = useState(false)
+  const [newEmployeeCredentials, setNewEmployeeCredentials] = useState<{
+    username: string
+    password: string
+    email: string
+  } | null>(null)
 
   const fetchData = async () => {
     setIsLoading(true); // Add this line
@@ -135,20 +142,26 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
     setIsLoading(true); // Added setIsLoading(true)
     try {
       const token = getToken();
+      let response;
       if (editingItem) {
-        await axiosInstance.put(`http://147.93.53.119/api/${endpoint}/update/${editingItem.id}`, formData, {
+        response = await axiosInstance.put(`http://147.93.53.119/api/${endpoint}/update/${editingItem.id}`, formData, {
           headers: { Authorization: `Bearer ${token}` }
         });
         toast.success(`${title} updated successfully`, {
           style: { background: '#E5E1DA', color: '#89A8B2' },
         });
       } else {
-        await axiosInstance.post(`http://147.93.53.119/api/${endpoint}/add`, formData, {
+        response = await axiosInstance.post(`http://147.93.53.119/api/${endpoint}/add`, formData, {
           headers: { Authorization: `Bearer ${token}` }
         });
         toast.success(`${title} added successfully`, {
           style: { background: '#E5E1DA', color: '#89A8B2' },
         });
+        console.log('response', response.data);
+        if (response.data.credentials) {
+          setNewEmployeeCredentials(response.data.credentials)
+          setShowCredentialsModal(true)
+        }
       }
       await fetchData();
       handleCancel();
@@ -302,6 +315,13 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
           </div>
         </form>
       </Modal>
+      {newEmployeeCredentials && (
+        <CredentialsModal
+          isVisible={showCredentialsModal}
+          onClose={() => setShowCredentialsModal(false)}
+          credentials={newEmployeeCredentials}
+        />
+      )}
     </div>
   );
 }

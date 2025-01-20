@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState,useEffect } from 'react';
 import { ExecutiveSummary } from './ExecutiveDashboard.tsx';
 import { CustomerAnalytics } from './CustomerAnalysis.tsx';
 import { FinancialAnalytics } from './FinancialAnalysis.tsx';
@@ -25,6 +25,9 @@ const sections = [
 ];
 
 const Dashboard = () => {
+  useEffect(() => {
+    document.title = 'MBA NET - Reporting & Analytics';
+  }, []);
   const [filters, setFilters] = useState({
     dateRange: { start: new Date(new Date().getFullYear(), 0, 1), end: new Date() },
     company: 'all',

@@ -79,12 +79,6 @@ export const menuItems = [
     path: '/reporting-analytics'
   },
   { 
-    title: 'Company Settings', 
-    icon: Settings,
-    description: 'Configure system-wide settings and preferences',
-    path: '/company-settings'
-  },
-  { 
     title: 'Area/Zone Management', 
     icon: Map,
     description: 'Define and manage operational zones',
@@ -95,12 +89,6 @@ export const menuItems = [
     icon: UserCheck,
     description: 'Monitor and track recovery-related tasks',
     path: '/recovery-task-management'
-  },
-  { 
-    title: 'Audit Log Viewer', 
-    icon: FileText,
-    description: 'Review comprehensive system activity logs',
-    path: '/audit-log-viewer'
   },
   { 
     title: 'Messaging', 

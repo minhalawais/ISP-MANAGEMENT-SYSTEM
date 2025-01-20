@@ -208,7 +208,7 @@ export function EmployeeForm({ formData, handleInputChange, isEditing }: Employe
         <option value="">Select Role</option>
         <option value="auditor">Auditor</option>
         <option value="employee">Employee</option>
-        <option value="admin">Admin</option>
+        <option value="company_owner">Admin</option>
       </select>
     </div>
   );
