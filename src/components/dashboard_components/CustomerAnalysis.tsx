@@ -38,7 +38,7 @@ export const CustomerAnalytics: React.FC = () => {
   useEffect(() => {
     const fetchAnalyticsData = async () => {
       try {
-        const response = await axiosInstance.get('http://147.93.53.119/api/dashboard/customer-analytics', {
+        const response = await axiosInstance.get('http://147.93.53.119:5000/dashboard/customer-analytics', {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
           }

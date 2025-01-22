@@ -51,7 +51,7 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
     setIsLoading(true); // Add this line
     try {
       const token = getToken();
-      const response = await axiosInstance.get(`http://147.93.53.119/api/${endpoint}/list`, {
+      const response = await axiosInstance.get(`http://147.93.53.119:5000/${endpoint}/list`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setData(response.data);
@@ -75,7 +75,7 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
   const handleToggleStatus = async (id: string, currentStatus: boolean) => {
     try {
       const token = getToken();
-      await axiosInstance.put(`http://147.93.53.119/api/${endpoint}/update/${id}`, 
+      await axiosInstance.put(`http://147.93.53.119:5000/${endpoint}/update/${id}`, 
         { is_active: !currentStatus },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -95,7 +95,7 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
     try {
       const token = getToken();
       await Promise.all(selectedRows.map(id => 
-        axiosInstance.put(`http://147.93.53.119/api/${endpoint}/update/${id}`, 
+        axiosInstance.put(`http://147.93.53.119:5000/${endpoint}/update/${id}`, 
           { is_active: newStatus },
           { headers: { Authorization: `Bearer ${token}` } }
         )
@@ -144,14 +144,14 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
       const token = getToken();
       let response;
       if (editingItem) {
-        response = await axiosInstance.put(`http://147.93.53.119/api/${endpoint}/update/${editingItem.id}`, formData, {
+        response = await axiosInstance.put(`http://147.93.53.119:5000/${endpoint}/update/${editingItem.id}`, formData, {
           headers: { Authorization: `Bearer ${token}` }
         });
         toast.success(`${title} updated successfully`, {
           style: { background: '#E5E1DA', color: '#89A8B2' },
         });
       } else {
-        response = await axiosInstance.post(`http://147.93.53.119/api/${endpoint}/add`, formData, {
+        response = await axiosInstance.post(`http://147.93.53.119:5000/${endpoint}/add`, formData, {
           headers: { Authorization: `Bearer ${token}` }
         });
         toast.success(`${title} added successfully`, {
@@ -179,7 +179,7 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
     if (window.confirm(`Are you sure you want to delete this ${title.toLowerCase()}?`)) {
       try {
         const token = getToken();
-        await axiosInstance.delete(`http://147.93.53.119/api/${endpoint}/delete/${id}`, {
+        await axiosInstance.delete(`http://147.93.53.119:5000/${endpoint}/delete/${id}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         toast.success(`${title} deleted successfully`, {

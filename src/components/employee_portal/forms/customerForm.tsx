@@ -30,10 +30,10 @@ export function CustomerForm({ formData, handleInputChange, handleFileChange, ha
       const token = getToken();
       try {
         const [areasResponse, servicePlansResponse] = await Promise.all([
-          axiosInstance.get('http://147.93.53.119/api/areas/list', {
+          axiosInstance.get('http://147.93.53.119:5000/areas/list', {
             headers: { Authorization: `Bearer ${token}` }
           }),
-          axiosInstance.get('http://147.93.53.119/api/service-plans/list', {
+          axiosInstance.get('http://147.93.53.119:5000/service-plans/list', {
             headers: { Authorization: `Bearer ${token}` }
           })
         ]);

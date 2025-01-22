@@ -19,7 +19,7 @@ export default function CustomersTab() {
   const [data, setData] = useState<CustomersData | null>(null)
 
   useEffect(() => {
-    fetch('http://147.93.53.119/api/dashboard/customers')
+    fetch('http://147.93.53.119:5000/dashboard/customers')
       .then(response => response.json())
       .then(data => setData(data))
   }, [])
