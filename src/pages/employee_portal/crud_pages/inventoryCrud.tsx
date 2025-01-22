@@ -23,7 +23,7 @@ const EmployeeInventoryManagement: React.FC = () => {
     const fetchSuppliers = async () => {
       try {
         const token = getToken();
-        const response = await axiosInstance.get('http://147.93.53.119:5000/suppliers/list', {
+        const response = await axiosInstance.get('https://mbanet.com.pk/api/suppliers/list', {
           headers: { Authorization: `Bearer ${token}` }
         });
         setSuppliers(response.data);

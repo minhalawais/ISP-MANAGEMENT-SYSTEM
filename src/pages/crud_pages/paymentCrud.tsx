@@ -59,7 +59,7 @@ const PaymentManagement: React.FC = () => {
           <button
             onClick={() => {
               const token = getToken(); // Assuming getToken() retrieves the Bearer token
-              fetch(`http://147.93.53.119:5000/payments/proof-image/${info.row.original.id}`, {
+              fetch(`https://mbanet.com.pk/api/payments/proof-image/${info.row.original.id}`, {
                 method: 'GET',
                 headers: {
                   'Authorization': `Bearer ${token}`
