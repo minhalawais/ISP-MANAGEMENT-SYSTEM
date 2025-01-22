@@ -41,7 +41,7 @@ export function CRUDPage<T extends { id: string }>({ title, endpoint, columns, F
   const fetchData = async () => {
     try {
       const token = getToken();
-      const response = await axios.get(`http://147.93.53.119:5000/${endpoint}/list`, {
+      const response = await axios.get(`https://mbanet.com.pk/api/${endpoint}/list`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setData(response.data);
@@ -89,7 +89,7 @@ export function CRUDPage<T extends { id: string }>({ title, endpoint, columns, F
 
       if (editingItem) {
         await axiosInstance.put(
-          `http://147.93.53.119:5000/${endpoint}/update/${editingItem.id}`, 
+          `https://mbanet.com.pk/api/${endpoint}/update/${editingItem.id}`, 
           formDataToSend,
           {
             headers: { 
@@ -103,7 +103,7 @@ export function CRUDPage<T extends { id: string }>({ title, endpoint, columns, F
         });
       } else {
         await axiosInstance.post(
-          `http://147.93.53.119:5000/${endpoint}/add`,
+          `https://mbanet.com.pk/api/${endpoint}/add`,
           formDataToSend,
           {
             headers: { 
@@ -132,7 +132,7 @@ export function CRUDPage<T extends { id: string }>({ title, endpoint, columns, F
     if (window.confirm(`Are you sure you want to delete this ${title.toLowerCase()}?`)) {
       try {
         const token = getToken();
-        await axiosInstance.delete(`http://147.93.53.119:5000/${endpoint}/delete/${id}`, {
+        await axiosInstance.delete(`https://mbanet.com.pk/api/${endpoint}/delete/${id}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         toast.success(`${title} deleted successfully`, {
@@ -151,7 +151,7 @@ export function CRUDPage<T extends { id: string }>({ title, endpoint, columns, F
   const handleToggleStatus = async (id: string, currentStatus: boolean) => {
     try {
       const token = getToken();
-      await axiosInstance.patch(`http://147.93.53.119:5000/${endpoint}/toggle-status/${id}`, {}, {
+      await axiosInstance.patch(`https://mbanet.com.pk/api/${endpoint}/toggle-status/${id}`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
       toast.success(`${title} status updated successfully`, {

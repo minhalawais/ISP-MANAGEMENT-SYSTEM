@@ -39,7 +39,7 @@ export function EmployeeForm({ formData, handleInputChange, isEditing }: Employe
     setUsernameStatus('loading');
     try {
       const token = getToken();
-      const response = await axiosInstance.post('http://147.93.53.119:5000/employees/verify-username', { username }, {
+      const response = await axiosInstance.post('https://mbanet.com.pk/api/employees/verify-username', { username }, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setUsernameStatus(response.data.available ? 'valid' : 'invalid');
@@ -57,7 +57,7 @@ export function EmployeeForm({ formData, handleInputChange, isEditing }: Employe
     setEmailStatus('loading');
     try {
       const token = getToken();
-      const response = await axiosInstance.post('http://147.93.53.119:5000/employees/verify-email', { email }, {
+      const response = await axiosInstance.post('https://mbanet.com.pk/api/employees/verify-email', { email }, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setEmailStatus(response.data.available ? 'valid' : 'invalid');

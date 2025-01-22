@@ -31,10 +31,10 @@ export function CustomerForm({ formData, handleInputChange, handleFileChange, ha
       const token = getToken();
       try {
         const [areasResponse, servicePlansResponse] = await Promise.all([
-          axiosInstance.get('http://147.93.53.119:5000/areas/list', {
+          axiosInstance.get('https://mbanet.com.pk/api/areas/list', {
             headers: { Authorization: `Bearer ${token}` }
           }),
-          axiosInstance.get('http://147.93.53.119:5000/service-plans/list', {
+          axiosInstance.get('https://mbanet.com.pk/api/service-plans/list', {
             headers: { Authorization: `Bearer ${token}` }
           })
         ]);
@@ -240,7 +240,7 @@ export function CustomerForm({ formData, handleInputChange, handleFileChange, ha
               <label className="block text-sm font-medium text-gray-700 mb-2">Current CNIC Image</label>
               <div className="relative w-full h-48 bg-gray-100 rounded-lg overflow-hidden">
                 <img
-                  src={`http://147.93.53.119:5000/customers/cnic-image/${formData.id}`}
+                  src={`https://mbanet.com.pk/api/customers/cnic-image/${formData.id}`}
                   alt="CNIC"
                   className="w-full h-full object-contain"
                 />
