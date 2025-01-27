@@ -41,12 +41,12 @@ const RecoveryTaskManagement: React.FC = () => {
     const fetchData = async () => {
       const token = getToken();
       try {
-        const invoicesResponse = await axiosInstance.get('http://127.0.0.1:5000/invoices/list', {
+        const invoicesResponse = await axiosInstance.get('https://mbanet.com.pk/api/invoices/list', {
           headers: { Authorization: `Bearer ${token}` }
         });
         setInvoices(invoicesResponse.data);
 
-        const employeesResponse = await axiosInstance.get('http://127.0.0.1:5000/employees/list', {
+        const employeesResponse = await axiosInstance.get('https://mbanet.com.pk/api/employees/list', {
           headers: { Authorization: `Bearer ${token}` }
         });
         setEmployees(employeesResponse.data);
@@ -72,7 +72,7 @@ const RecoveryTaskManagement: React.FC = () => {
       try {
         const token = getToken();
         await axiosInstance.put(
-          `http://127.0.0.1:5000/recovery-tasks/update/${selectedTask.id}`,
+          `https://mbanet.com.pk/api/recovery-tasks/update/${selectedTask.id}`,
           { status: 'in_progress' },
           {
             headers: {
@@ -95,7 +95,7 @@ const RecoveryTaskManagement: React.FC = () => {
       try {
         const token = getToken();
         await axiosInstance.put(
-          `http://127.0.0.1:5000/recovery-tasks/update/${selectedTask.id}`,
+          `https://mbanet.com.pk/api/recovery-tasks/update/${selectedTask.id}`,
           {
             status: 'completed',
             notes: data.notes,

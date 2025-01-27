@@ -53,7 +53,7 @@ const InvoiceGenerationPage: React.FC = () => {
   const fetchInvoiceData = async () => {
     try {
       const token = getToken()
-      const response = await axiosInstance.get(`http://127.0.0.1:5000/invoices/${id}`, {
+      const response = await axiosInstance.get(`https://mbanet.com.pk/api/invoices/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       })
       setInvoiceData(response.data)

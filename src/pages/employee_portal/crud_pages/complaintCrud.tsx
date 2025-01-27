@@ -52,7 +52,7 @@ const ComplaintManagement: React.FC = () => {
     try {
       const token = getToken();
       await axiosInstance.put(
-        `http://127.0.0.1:5000/complaints/update/${selectedComplaint?.id}`,
+        `https://mbanet.com.pk/api/complaints/update/${selectedComplaint?.id}`,
         { status: 'in_progress' },
         {
           headers: {
@@ -73,7 +73,7 @@ const ComplaintManagement: React.FC = () => {
     try {
       const token = getToken();
       await axiosInstance.put(
-        `http://127.0.0.1:5000/complaints/update/${selectedComplaint?.id}`,
+        `https://mbanet.com.pk/api/complaints/update/${selectedComplaint?.id}`,
         {
           status: 'resolved',
           resolution_proof: resolutionData.notes,

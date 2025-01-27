@@ -178,22 +178,22 @@ const CustomerDetail: React.FC = () => {
     const fetchCustomerData = async () => {
       try {
         const token = getToken()
-        const customerResponse = await axiosInstance.get(`/customers/${id}`, {
+        const customerResponse = await axiosInstance.get(`https://mbanet.com.pk/api/customers/${id}`, {
           headers: { Authorization: `Bearer ${token}` },
         })
         setCustomer(customerResponse.data)
 
-        const invoicesResponse = await axiosInstance.get(`/invoices/customer/${id}`, {
+        const invoicesResponse = await axiosInstance.get(`https://mbanet.com.pk/api/invoices/customer/${id}`, {
           headers: { Authorization: `Bearer ${token}` },
         })
         setInvoices(invoicesResponse.data)
 
-        const paymentsResponse = await axiosInstance.get(`/payments/customer/${id}`, {
+        const paymentsResponse = await axiosInstance.get(`https://mbanet.com.pk/api/payments/customer/${id}`, {
           headers: { Authorization: `Bearer ${token}` },
         })
         setPayments(paymentsResponse.data)
 
-        const complaintsResponse = await axiosInstance.get(`/complaints/customer/${id}`, {
+        const complaintsResponse = await axiosInstance.get(`https://mbanet.com.pk/api/complaints/customer/${id}`, {
           headers: { Authorization: `Bearer ${token}` },
         })
         setComplaints(complaintsResponse.data)
@@ -210,11 +210,11 @@ const CustomerDetail: React.FC = () => {
       if (customer && customer.cnic_front_image && customer.cnic_back_image) {
         try {
           const token = getToken()
-          const responseFront = await axiosInstance.get(`/customers/cnic-front-image/${id}`, {
+          const responseFront = await axiosInstance.get(`https://mbanet.com.pk/api/customers/cnic-front-image/${id}`, {
             headers: { Authorization: `Bearer ${token}` },
             responseType: "blob",
           })
-          const responseBack = await axiosInstance.get(`/customers/cnic-back-image/${id}`, {
+          const responseBack = await axiosInstance.get(`https://mbanet.com.pk/api/customers/cnic-back-image/${id}`, {
             headers: { Authorization: `Bearer ${token}` },
             responseType: "blob",
           })
