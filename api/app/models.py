@@ -90,9 +90,27 @@ class Customer(db.Model):
     created_at = db.Column(db.TIMESTAMP(timezone=True), server_default=db.func.current_timestamp())
     updated_at = db.Column(db.TIMESTAMP(timezone=True), server_default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())
     invoices = relationship("Invoice", back_populates="customer")
-    is_active = db.Column(db.Boolean, default=True)
     cnic = db.Column(db.String(15), unique=True)
-    cnic_image = db.Column(db.String(255))  # This will store the file path or URL of the image\
+    cnic_front_image = db.Column(db.String(255))
+    cnic_back_image = db.Column(db.String(255))
+    internet_id = db.Column(db.String(50), unique=True)
+    phone_1 = db.Column(db.String(20))
+    phone_2 = db.Column(db.String(20))
+    isp_id = db.Column(UUID(as_uuid=True), db.ForeignKey('isps.id'))
+    splitter_id = db.Column(UUID(as_uuid=True), db.ForeignKey('inventory_items.id'))
+    equipment_owned_by = db.Column(db.String(50))
+    connection_type = db.Column(db.String(50))
+    wire_length = db.Column(db.Float)
+    router_id = db.Column(UUID(as_uuid=True), db.ForeignKey('inventory_items.id'))
+    patch_cord_id = db.Column(UUID(as_uuid=True), db.ForeignKey('inventory_items.id'))
+    splicing_box_id = db.Column(UUID(as_uuid=True), db.ForeignKey('inventory_items.id'))
+    ethernet_cable_id = db.Column(UUID(as_uuid=True), db.ForeignKey('inventory_items.id'))
+    dish_id = db.Column(UUID(as_uuid=True), db.ForeignKey('inventory_items.id'))
+    tv_cable_type = db.Column(db.String(50))
+    node_id = db.Column(UUID(as_uuid=True), db.ForeignKey('inventory_items.id'))
+    stb_id = db.Column(UUID(as_uuid=True), db.ForeignKey('inventory_items.id'))
+    discount_amount = db.Column(db.Numeric(10, 2))
+    recharge_date = db.Column(db.Date)
 
 
 class Invoice(db.Model):
@@ -166,12 +184,20 @@ class InventoryItem(db.Model):
     name = db.Column(db.String(255), nullable=False)
     description = db.Column(db.Text)
     serial_number = db.Column(db.String(255), unique=True, nullable=False)
-    status = db.Column(db.String(50), nullable=False, default='available')  # available, assigned, maintenance, etc.
+    status = db.Column(db.String(50), nullable=False, default='available')
     supplier_id = db.Column(UUID(as_uuid=True), db.ForeignKey('suppliers.id'), nullable=False)
+    company_id = db.Column(UUID(as_uuid=True), db.ForeignKey('companies.id'), nullable=False)
     created_at = db.Column(db.TIMESTAMP(timezone=True), server_default=func.current_timestamp())
     updated_at = db.Column(db.TIMESTAMP(timezone=True), server_default=func.current_timestamp(), onupdate=func.current_timestamp())
     quantity = db.Column(db.Integer, default=1)
-    # Relationships
+    is_splitter = db.Column(db.Boolean, default=False)
+    splitter_number = db.Column(db.String(50))
+    splitter_type = db.Column(db.String(50))
+    port_count = db.Column(db.Integer)
+    item_type = db.Column(db.String(50))
+    unit_price = db.Column(db.Numeric(10, 2))
+    is_active = db.Column(db.Boolean, default=True)
+
     supplier = relationship('Supplier', back_populates='inventory_items')
     assignments = relationship('InventoryAssignment', back_populates='inventory_item')
     transactions = relationship('InventoryTransaction', back_populates='inventory_item')
@@ -184,11 +210,10 @@ class InventoryAssignment(db.Model):
     assigned_to_employee_id = db.Column(UUID(as_uuid=True), db.ForeignKey('users.id'), nullable=True)
     assigned_at = db.Column(db.TIMESTAMP(timezone=True), server_default=func.current_timestamp())
     returned_at = db.Column(db.TIMESTAMP(timezone=True), nullable=True)
-    status = db.Column(db.String(50), nullable=False, default='assigned')  # assigned, returned, etc.
+    status = db.Column(db.String(50), nullable=False, default='assigned')
     created_at = db.Column(db.TIMESTAMP(timezone=True), server_default=func.current_timestamp())
     updated_at = db.Column(db.TIMESTAMP(timezone=True), server_default=func.current_timestamp(), onupdate=func.current_timestamp())
 
-    # Relationships
     inventory_item = relationship('InventoryItem', back_populates='assignments')
     customer = relationship('Customer', back_populates='inventory_assignments')
     employee = relationship('User', back_populates='inventory_assignments')
@@ -197,15 +222,14 @@ class InventoryTransaction(db.Model):
     __tablename__ = 'inventory_transactions'
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     inventory_item_id = db.Column(UUID(as_uuid=True), db.ForeignKey('inventory_items.id'), nullable=False)
-    transaction_type = db.Column(db.String(50), nullable=False)  # assignment, return, maintenance, etc.
+    transaction_type = db.Column(db.String(50), nullable=False)
     performed_by_id = db.Column(UUID(as_uuid=True), db.ForeignKey('users.id'), nullable=False)
     performed_at = db.Column(db.TIMESTAMP(timezone=True), server_default=func.current_timestamp())
     notes = db.Column(db.Text)
     created_at = db.Column(db.TIMESTAMP(timezone=True), server_default=func.current_timestamp())
     updated_at = db.Column(db.TIMESTAMP(timezone=True), server_default=func.current_timestamp(), onupdate=func.current_timestamp())
-    unit_price = db.Column(db.Numeric(10, 2))  # Added unit_price column
+    unit_price = db.Column(db.Numeric(10, 2))
 
-    # Relationships
     inventory_item = relationship('InventoryItem', back_populates='transactions')
     performed_by = relationship('User', back_populates='transactions')
 
@@ -327,4 +351,17 @@ Supplier.inventory_items = relationship('InventoryItem', back_populates='supplie
 Customer.inventory_assignments = relationship('InventoryAssignment', back_populates='customer')
 User.inventory_assignments = relationship('InventoryAssignment', back_populates='employee')
 User.transactions = relationship('InventoryTransaction', back_populates='performed_by')
+
+class ISP(db.Model):
+    __tablename__ = 'isps'
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    company_id = db.Column(UUID(as_uuid=True), db.ForeignKey('companies.id'))
+    name = db.Column(db.String(255), nullable=False)
+    contact_person = db.Column(db.String(100))
+    email = db.Column(db.String(255))
+    phone = db.Column(db.String(20))
+    address = db.Column(db.Text)
+    created_at = db.Column(db.TIMESTAMP(timezone=True), server_default=db.func.current_timestamp())
+    updated_at = db.Column(db.TIMESTAMP(timezone=True), server_default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())
+    is_active = db.Column(db.Boolean, default=True)
 

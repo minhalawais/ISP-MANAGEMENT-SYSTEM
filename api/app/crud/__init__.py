@@ -13,6 +13,6 @@ from .message_crud import *
 from .dashboard_crud import *
 from .user_crud import *
 from .log_crud import *
-
+from .isp_crud import *
 
 from .employee_crud import *

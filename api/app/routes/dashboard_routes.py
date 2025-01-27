@@ -52,7 +52,15 @@ def get_inventory_management_data():
     claims = get_jwt()
     company_id = claims['company_id']
     
-    data = dashboard_crud.get_inventory_management_data(company_id)
+    stock_level_data = dashboard_crud.get_stock_level_data(company_id)
+    inventory_movement_data = dashboard_crud.get_inventory_movement_data(company_id)
+    inventory_metrics = dashboard_crud.get_inventory_metrics(company_id)
+    
+    data = {
+        'stock_level_data': stock_level_data,
+        'inventory_movement_data': inventory_movement_data,
+        'inventory_metrics': inventory_metrics
+    }
     return jsonify(data)
 
 @main.route('/dashboard/employee-analytics', methods=['GET'])

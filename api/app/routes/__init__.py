@@ -17,6 +17,6 @@ from . import message_routes
 from . import dashboard_routes
 from . import user_routes
 from . import log_routes
-
+from . import isp_routes
 
 from .employee_portal import *

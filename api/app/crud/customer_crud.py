@@ -1,10 +1,11 @@
 from app import db
-from app.models import Customer, Invoice, Payment, Complaint, Area, ServicePlan, RecoveryTask
+from app.models import Customer, Invoice, Payment, Complaint, Area, ServicePlan, RecoveryTask,ISP,InventoryItem
 from app.utils.logging_utils import log_action
 import uuid
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 import logging
 from datetime import datetime
+from flask import jsonify
 
 logger = logging.getLogger(__name__)
 
@@ -21,22 +22,32 @@ def get_all_customers(company_id, user_role, employee_id):
     for customer in customers:
         area = Area.query.get(customer.area_id)
         service_plan = ServicePlan.query.get(customer.service_plan_id)
+        isp = ISP.query.get(customer.isp_id)
+        splitter = InventoryItem.query.get(customer.splitter_id)
         result.append({
             'id': str(customer.id),
-            'email': customer.email,
+            'internet_id': customer.internet_id,
             'first_name': customer.first_name,
             'last_name': customer.last_name,
+            'email': customer.email,
+            'phone_1': customer.phone_1,
+            'phone_2': customer.phone_2,
             'area': area.name if area else 'Unassigned',
-            'service_plan': service_plan.name if service_plan else 'Unassigned',
             'installation_address': customer.installation_address,
+            'service_plan': service_plan.name if service_plan else 'Unassigned',
+            'isp': isp.name if isp else 'Unassigned',
+            'splitter': splitter.splitter_number if splitter else 'Unassigned',
+            'equipment_owned_by': customer.equipment_owned_by if customer.equipment_owned_by else 'N/A',
+            'connection_type': customer.connection_type if customer.connection_type else 'N/A',
             'installation_date': customer.installation_date.isoformat() if customer.installation_date else None,
             'is_active': customer.is_active,
             'cnic': customer.cnic,
-            'cnic_image': customer.cnic_image
+            'cnic_front_image': customer.cnic_front_image,
+            'cnic_back_image': customer.cnic_back_image
         })
     return result
 
-def add_customer(data, user_role, current_user_id, ip_address, user_agent,company_id):
+def add_customer(data, user_role, current_user_id, ip_address, user_agent, company_id):
     try:
         new_customer = Customer(
             company_id=uuid.UUID(data['company_id']),
@@ -45,11 +56,30 @@ def add_customer(data, user_role, current_user_id, ip_address, user_agent,compan
             first_name=data['first_name'],
             last_name=data['last_name'],
             email=data['email'],
+            internet_id=data['internet_id'],
+            phone_1=data['phone_1'],
+            phone_2=data.get('phone_2'),
             installation_address=data['installation_address'],
             installation_date=data['installation_date'],
+            isp_id=data['isp_id'],
+            splitter_id=data['splitter_id'],
+            equipment_owned_by=data['equipment_owned_by'],
+            connection_type=data['connection_type'],
+            wire_length=data.get('wire_length'),
+            router_id=data.get('router_id'),
+            patch_cord_id=data.get('patch_cord_id'),
+            splicing_box_id=data.get('splicing_box_id'),
+            ethernet_cable_id=data.get('ethernet_cable_id'),
+            dish_id=data.get('dish_id'),
+            tv_cable_type=data.get('tv_cable_type'),
+            node_id=data.get('node_id'),
+            stb_id=data.get('stb_id'),
+            discount_amount=data.get('discount_amount'),
+            recharge_date=data.get('recharge_date'),
             is_active=True,
             cnic=data['cnic'],
-            cnic_image=data['cnic_image']
+            cnic_front_image=data['cnic_front_image'],
+            cnic_back_image=data['cnic_back_image']
         )
         db.session.add(new_customer)
         db.session.commit()
@@ -61,10 +91,10 @@ def add_customer(data, user_role, current_user_id, ip_address, user_agent,compan
             new_customer.id,
             None,
             data,
-                        ip_address,
+            ip_address,
             user_agent,
             company_id
-)
+        )
 
         return new_customer
     except Exception as e:
@@ -82,31 +112,42 @@ def update_customer(id, data, company_id, user_role, current_user_id, ip_address
     
     if not customer:
         return None
-    if not customer.cnic_image:
-        customer.cnic_image = None
+
     old_values = {
         'email': customer.email,
         'first_name': customer.first_name,
         'last_name': customer.last_name,
+        'internet_id': customer.internet_id,
+        'phone_1': customer.phone_1,
+        'phone_2': customer.phone_2,
         'area_id': str(customer.area_id),
         'service_plan_id': str(customer.service_plan_id),
+        'isp_id': str(customer.isp_id),
+        'splitter_id': str(customer.splitter_id),
         'installation_address': customer.installation_address,
         'installation_date': customer.installation_date.isoformat() if customer.installation_date else None,
+        'equipment_owned_by': customer.equipment_owned_by,
+        'connection_type': customer.connection_type,
+        'wire_length': customer.wire_length,
+        'router_id': str(customer.router_id) if customer.router_id else None,
+        'patch_cord_id': str(customer.patch_cord_id) if customer.patch_cord_id else None,
+        'splicing_box_id': str(customer.splicing_box_id) if customer.splicing_box_id else None,
+        'ethernet_cable_id': str(customer.ethernet_cable_id) if customer.ethernet_cable_id else None,
+        'dish_id': str(customer.dish_id) if customer.dish_id else None,
+        'tv_cable_type': customer.tv_cable_type,
+        'node_id': str(customer.node_id) if customer.node_id else None,
+        'stb_id': str(customer.stb_id) if customer.stb_id else None,
+        'discount_amount': float(customer.discount_amount) if customer.discount_amount else None,
+        'recharge_date': customer.recharge_date.isoformat() if customer.recharge_date else None,
         'is_active': customer.is_active,
         'cnic': customer.cnic,
-        'cnic_image': customer.cnic_image
+        'cnic_front_image': customer.cnic_front_image,
+        'cnic_back_image': customer.cnic_back_image
     }
 
-    customer.email = data.get('email', customer.email)
-    customer.first_name = data.get('first_name', customer.first_name)
-    customer.last_name = data.get('last_name', customer.last_name)
-    customer.area_id = data.get('area_id', customer.area_id)
-    customer.service_plan_id = data.get('service_plan_id', customer.service_plan_id)
-    customer.installation_address = data.get('installation_address', customer.installation_address)
-    customer.installation_date = data.get('installation_date', customer.installation_date)
-    customer.is_active = data.get('is_active', customer.is_active)
-    customer.cnic = data.get('cnic', customer.cnic)
-    customer.cnic_image = data.get('cnic_image', customer.cnic_image)
+    for key, value in data.items():
+        setattr(customer, key, value)
+
     db.session.commit()
 
     log_action(
@@ -201,6 +242,8 @@ def get_customer_details(id, company_id):
         # Safely get area and service plan
         area = Area.query.get(customer.area_id)
         service_plan = ServicePlan.query.get(customer.service_plan_id)
+        isp = ISP.query.get(customer.isp_id)
+        splitter = InventoryItem.query.get(customer.splitter_id)
         
         # Safely fetch related data
         invoices = Invoice.query.filter_by(customer_id=id).all() or []
@@ -335,13 +378,32 @@ def get_customer_details(id, company_id):
             'first_name': customer.first_name,
             'last_name': customer.last_name,
             'email': customer.email,
+            'internet_id': customer.internet_id,
+            'phone_1': customer.phone_1,
+            'phone_2': customer.phone_2,
             'area': area.name if area else 'Unassigned',
             'service_plan': service_plan.name if service_plan else 'Unassigned',
+            'isp': isp.name if isp else 'Unassigned',
+            'splitter': splitter.splitter_number if splitter else 'Unassigned',
             'installation_address': customer.installation_address,
             'installation_date': customer.installation_date.isoformat() if customer.installation_date else None,
+            'equipment_owned_by': customer.equipment_owned_by,
+            'connection_type': customer.connection_type,
+            'wire_length': customer.wire_length,
+            'router_id': str(customer.router_id) if customer.router_id else None,
+            'patch_cord_id': str(customer.patch_cord_id) if customer.patch_cord_id else None,
+            'splicing_box_id': str(customer.splicing_box_id) if customer.splicing_box_id else None,
+            'ethernet_cable_id': str(customer.ethernet_cable_id) if customer.ethernet_cable_id else None,
+            'dish_id': str(customer.dish_id) if customer.dish_id else None,
+            'tv_cable_type': customer.tv_cable_type,
+            'node_id': str(customer.node_id) if customer.node_id else None,
+            'stb_id': str(customer.stb_id) if customer.stb_id else None,
+            'discount_amount': float(customer.discount_amount) if customer.discount_amount else None,
+            'recharge_date': customer.recharge_date.isoformat() if customer.recharge_date else None,
             'is_active': customer.is_active,
             'cnic': customer.cnic,
-            'cnic_image': customer.cnic_image,
+            'cnic_front_image': customer.cnic_front_image,
+            'cnic_back_image': customer.cnic_back_image,
             'financialMetrics': {
                 'totalAmountPaid': float(total_amount_paid),
                 'averageMonthlyPayment': float(avg_monthly_payment),
@@ -426,4 +488,16 @@ def get_customer_complaints(id, company_id):
         'status': complaint.status,
         'created_at': complaint.created_at.isoformat()
     } for complaint in complaints]
+
+def get_customer_cnic(id, company_id):
+    customer = Customer.query.filter_by(id=id, company_id=company_id).first()
+    if customer:
+        cnic_front_image_path = str(customer.cnic_front_image)
+        cnic_back_image_path = str(customer.cnic_back_image)
+
+        if cnic_back_image_path or cnic_front_image_path:
+            return customer
+        else:
+            return None
+    return None
 

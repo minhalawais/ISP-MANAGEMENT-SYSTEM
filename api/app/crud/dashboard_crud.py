@@ -342,24 +342,20 @@ def get_inventory_movement_data(company_id):
                 'returns': int(returns)
             } for month, assignments, returns in movements
         ]
-        total_assignments = sum(item['assignments'] for item in data)
-        total_returns = sum(item['returns'] for item in data)
-
         return {
             'movement_data': data,
-            'total_assignments': total_assignments,
-            'total_returns': total_returns
+            'total_assignments': sum(item['assignments'] for item in data),
+            'total_returns': sum(item['returns'] for item in data)
         }
     except Exception as e:
         print(f"Error fetching inventory movement data: {e}")
         return {'error': 'An error occurred while fetching inventory movement data.'}
 
-
 def get_inventory_metrics(company_id):
     try:
         # Calculate total inventory value
         total_value = db.session.query(
-            func.sum(InventoryItem.quantity)
+            func.sum(InventoryItem.quantity * InventoryItem.unit_price)
         ).join(Supplier
         ).filter(Supplier.company_id == company_id).scalar() or 0
 
@@ -704,3 +700,4 @@ def get_recovery_collections_data(company_id):
     except Exception as e:
         print(f"Error fetching recovery and collections data: {str(e)}")
         return {'error': 'An error occurred while fetching recovery and collections data.'}
+

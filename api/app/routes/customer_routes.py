@@ -7,6 +7,7 @@ import os
 
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
 UPLOAD_FOLDER = 'uploads\cnic_images'
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -31,34 +32,39 @@ def add_new_customer():
     ip_address = request.remote_addr
     user_agent = request.headers.get('User-Agent')
     
-    # Get form data
     data = request.form.to_dict()
     data['company_id'] = company_id
     
-    print('Form data:', data)
-    print('Files:', request.files)
-    
-    # Handle CNIC image upload
-    if 'cnic_image' in request.files:
-        file = request.files['cnic_image']
-        print(allowed_file(file.filename) if file else None)
+    if 'cnic_front_image' in request.files:
+        file = request.files['cnic_front_image']
         if file and allowed_file(file.filename):
-            filename = secure_filename(f"{data['first_name']}_{data['cnic']}.{file.filename.rsplit('.', 1)[1].lower()}")
+            filename = secure_filename(f"{data['first_name']}_{data['cnic']}_front.{file.filename.rsplit('.', 1)[1].lower()}")
             file_path = os.path.join(UPLOAD_FOLDER, filename)
             os.makedirs(os.path.dirname(file_path), exist_ok=True)
             file.save(file_path)
-            data['cnic_image'] = file_path
+            data['cnic_front_image'] = file_path
         else:
-            print('Invalid file:', file.filename if file else None)
+            return jsonify({'error': 'Invalid file format for CNIC front image'}), 400
     else:
-        print('No cnic_image in request.files')
-        data['cnic_image'] = None
+        data['cnic_front_image'] = None
+
+    if 'cnic_back_image' in request.files:
+        file = request.files['cnic_back_image']
+        if file and allowed_file(file.filename):
+            filename = secure_filename(f"{data['first_name']}_{data['cnic']}_back.{file.filename.rsplit('.', 1)[1].lower()}")
+            file_path = os.path.join(UPLOAD_FOLDER, filename)
+            os.makedirs(os.path.dirname(file_path), exist_ok=True)
+            file.save(file_path)
+            data['cnic_back_image'] = file_path
+        else:
+            return jsonify({'error': 'Invalid file format for CNIC back image'}), 400
+    else:
+        data['cnic_back_image'] = None
     
     try:
         new_customer = customer_crud.add_customer(data, user_role, current_user_id, ip_address, user_agent, company_id)
         return jsonify({'message': 'Customer added successfully', 'id': str(new_customer.id)}), 201
     except Exception as e:
-        print('Error:', str(e))
         return jsonify({'error': 'Failed to add customer', 'message': str(e)}), 400
 
     
@@ -138,19 +144,31 @@ def get_customer_complaints(id):
     complaints = customer_crud.get_customer_complaints(id, company_id)
     return jsonify(complaints), 200
 
-@main.route('/customers/cnic-image/<string:id>', methods=['GET'])
+@main.route('/customers/cnic-front-image/<string:id>', methods=['GET'])
 @jwt_required()
-def get_cnic_image(id):
-    UPLOAD_FOLDER = 'D:\\PycharmProjects\\isp-management-system\\api'
-
+def get_cnic_front_image(id):
     claims = get_jwt()
     company_id = claims['company_id']
-    customer = customer_crud.get_customer_details(id, company_id)
-    if customer and customer.get('cnic_image'):
-        cnic_image_path = os.path.join(UPLOAD_FOLDER, customer['cnic_image'])
+    customer = customer_crud.get_customer_cnic(id, company_id)
+    if customer and customer.cnic_front_image:
+        cnic_image_path = os.path.join(PROJECT_ROOT, customer.cnic_front_image)
         if os.path.exists(cnic_image_path):
             return send_file(cnic_image_path, mimetype='image/jpeg')
         else:
-            return jsonify({'error': 'CNIC image file not found'}), 404
-    return jsonify({'error': 'CNIC image not found'}), 404
+            return jsonify({'error': 'CNIC front image file not found'}), 404
+    return jsonify({'error': 'CNIC front image not found'}), 404
+
+@main.route('/customers/cnic-back-image/<string:id>', methods=['GET'])
+@jwt_required()
+def get_cnic_back_image(id):
+    claims = get_jwt()
+    company_id = claims['company_id']
+    customer = customer_crud.get_customer_cnic(id, company_id)
+    if customer and customer.cnic_back_image:
+        cnic_image_path = os.path.join(PROJECT_ROOT, customer.cnic_back_image)
+        if os.path.exists(cnic_image_path):
+            return send_file(cnic_image_path, mimetype='image/jpeg')
+        else:
+            return jsonify({'error': 'CNIC back image file not found'}), 404
+    return jsonify({'error': 'CNIC back image not found'}), 404
 
