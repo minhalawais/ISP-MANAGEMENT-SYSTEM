@@ -19,6 +19,18 @@ import {
   TrendingUp,
   CreditCard,
   Image,
+  Hash,
+  Phone,
+  Globe,
+  Share2,
+  Box,
+  Wifi,
+  Ruler,
+  PenToolIcon as Tool,
+  Router,
+  Cable,
+  Disc,
+  Tv,
 } from "lucide-react"
 import axiosInstance from "../utils/axiosConfig.ts"
 import { Sidebar } from "../components/sideNavbar.tsx"
@@ -29,13 +41,32 @@ interface CustomerDetail {
   first_name: string
   last_name: string
   email: string
+  internet_id: string
+  phone_1: string
+  phone_2: string | null
   area: string
   service_plan: string
+  isp: string
+  splitter: string
   installation_address: string
   installation_date: string
+  equipment_owned_by: string
+  connection_type: string
+  wire_length: number | null
+  router_id: string | null
+  patch_cord_id: string | null
+  splicing_box_id: string | null
+  ethernet_cable_id: string | null
+  dish_id: string | null
+  tv_cable_type: string | null
+  node_id: string | null
+  stb_id: string | null
+  discount_amount: number | null
+  recharge_date: string | null
   is_active: boolean
   cnic: string
-  cnic_image: string
+  cnic_front_image: string
+  cnic_back_image: string
 }
 
 interface Invoice {
@@ -130,9 +161,13 @@ const CustomerDetail: React.FC = () => {
     "recoveryMetrics",
     "invoices",
     "complaints",
+    "equipment",
   ])
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
-  const [cnicImageUrl, setCnicImageUrl] = useState<string | null>(null)
+  const [cnicImageUrls, setCnicImageUrls] = useState<{ front: string | null; back: string | null }>({
+    front: null,
+    back: null,
+  })
 
   const toggleSidebar = () => {
     setIsSidebarOpen((prev) => !prev)
@@ -172,22 +207,31 @@ const CustomerDetail: React.FC = () => {
 
   useEffect(() => {
     const fetchCnicImage = async () => {
-      if (customer && customer.cnic_image) {
+      if (customer && customer.cnic_front_image && customer.cnic_back_image) {
         try {
           const token = getToken()
-          const response = await axiosInstance.get(`/customers/cnic-image/${id}`, {
+          const responseFront = await axiosInstance.get(`/customers/cnic-front-image/${id}`, {
             headers: { Authorization: `Bearer ${token}` },
             responseType: "blob",
           })
-          const imageUrl = URL.createObjectURL(response.data)
-          setCnicImageUrl(imageUrl)
+          const responseBack = await axiosInstance.get(`/customers/cnic-back-image/${id}`, {
+            headers: { Authorization: `Bearer ${token}` },
+            responseType: "blob",
+          })
+          const imageUrlFront = URL.createObjectURL(responseFront.data)
+          const imageUrlBack = URL.createObjectURL(responseBack.data)
+          setCnicImageUrls({ front: imageUrlFront, back: imageUrlBack })
         } catch (error) {
-          console.error("Failed to fetch CNIC image", error)
+          console.error("Failed to fetch CNIC images", error)
         }
       }
     }
 
     fetchCnicImage()
+    return () => {
+      if (cnicImageUrls.front) URL.revokeObjectURL(cnicImageUrls.front)
+      if (cnicImageUrls.back) URL.revokeObjectURL(cnicImageUrls.back)
+    }
   }, [customer, id])
 
   const toggleSection = (section: string) => {
@@ -263,6 +307,23 @@ const CustomerDetail: React.FC = () => {
                     </div>
 
                     <div className="flex items-start space-x-3">
+                      <Hash className="w-5 h-5 text-[#89A8B2] mt-1" />
+                      <div>
+                        <p className="text-sm text-[#89A8B2] font-medium">Internet ID</p>
+                        <p className="text-gray-700">{customer.internet_id}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start space-x-3">
+                      <Phone className="w-5 h-5 text-[#89A8B2] mt-1" />
+                      <div>
+                        <p className="text-sm text-[#89A8B2] font-medium">Phone Numbers</p>
+                        <p className="text-gray-700">{customer.phone_1}</p>
+                        {customer.phone_2 && <p className="text-gray-700">{customer.phone_2}</p>}
+                      </div>
+                    </div>
+
+                    <div className="flex items-start space-x-3">
                       <MapPin className="w-5 h-5 text-[#89A8B2] mt-1" />
                       <div>
                         <p className="text-sm text-[#89A8B2] font-medium">Area</p>
@@ -275,6 +336,22 @@ const CustomerDetail: React.FC = () => {
                       <div>
                         <p className="text-sm text-[#89A8B2] font-medium">Service Plan</p>
                         <p className="text-gray-700">{customer.service_plan}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start space-x-3">
+                      <Globe className="w-5 h-5 text-[#89A8B2] mt-1" />
+                      <div>
+                        <p className="text-sm text-[#89A8B2] font-medium">ISP</p>
+                        <p className="text-gray-700">{customer.isp}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start space-x-3">
+                      <Share2 className="w-5 h-5 text-[#89A8B2] mt-1" />
+                      <div>
+                        <p className="text-sm text-[#89A8B2] font-medium">Splitter</p>
+                        <p className="text-gray-700">{customer.splitter}</p>
                       </div>
                     </div>
 
@@ -295,6 +372,32 @@ const CustomerDetail: React.FC = () => {
                     </div>
 
                     <div className="flex items-start space-x-3">
+                      <Box className="w-5 h-5 text-[#89A8B2] mt-1" />
+                      <div>
+                        <p className="text-sm text-[#89A8B2] font-medium">Equipment Owned By</p>
+                        <p className="text-gray-700">{customer.equipment_owned_by}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start space-x-3">
+                      <Wifi className="w-5 h-5 text-[#89A8B2] mt-1" />
+                      <div>
+                        <p className="text-sm text-[#89A8B2] font-medium">Connection Type</p>
+                        <p className="text-gray-700">{customer.connection_type}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start space-x-3">
+                      <Ruler className="w-5 h-5 text-[#89A8B2] mt-1" />
+                      <div>
+                        <p className="text-sm text-[#89A8B2] font-medium">Wire Length</p>
+                        <p className="text-gray-700">
+                          {customer.wire_length ? `${customer.wire_length} meters` : "N/A"}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start space-x-3">
                       <CreditCard className="w-5 h-5 text-[#89A8B2] mt-1" />
                       <div>
                         <p className="text-sm text-[#89A8B2] font-medium">CNIC</p>
@@ -305,16 +408,23 @@ const CustomerDetail: React.FC = () => {
                     <div className="flex items-start space-x-3">
                       <Image className="w-5 h-5 text-[#89A8B2] mt-1" />
                       <div>
-                        <p className="text-sm text-[#89A8B2] font-medium">CNIC Image</p>
-                        {cnicImageUrl ? (
-                          <img
-                            src={cnicImageUrl || "/placeholder.svg"}
-                            alt="CNIC"
-                            className="mt-2 max-w-xs rounded-lg shadow-md"
-                          />
-                        ) : (
-                          <p className="text-gray-500 italic">No image available</p>
-                        )}
+                        <p className="text-sm text-[#89A8B2] font-medium">CNIC Images</p>
+                        <div className="flex space-x-2 mt-2">
+                          {cnicImageUrls.front && (
+                            <img
+                              src={cnicImageUrls.front || "/placeholder.svg"}
+                              alt="CNIC Front"
+                              className="w-24 h-16 object-cover rounded-md shadow-sm"
+                            />
+                          )}
+                          {cnicImageUrls.back && (
+                            <img
+                              src={cnicImageUrls.back || "/placeholder.svg"}
+                              alt="CNIC Back"
+                              className="w-24 h-16 object-cover rounded-md shadow-sm"
+                            />
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -856,6 +966,92 @@ const CustomerDetail: React.FC = () => {
                         <p>No support tickets found.</p>
                       </div>
                     )}
+                  </div>
+                )}
+              </div>
+
+              {/* Equipment Details Card */}
+              <div className="bg-white rounded-xl shadow-lg overflow-hidden border border-[#B3C8CF] transition-all duration-300 hover:shadow-xl">
+                <div
+                  className="flex justify-between items-center p-4 bg-gradient-to-r from-[#89A8B2] to-[#B3C8CF] cursor-pointer hover:bg-opacity-90 transition-colors"
+                  onClick={() => toggleSection("equipment")}
+                >
+                  <div className="flex items-center space-x-2">
+                    <Tool className="w-5 h-5 text-white" />
+                    <h2 className="text-xl font-semibold text-white">Equipment Details</h2>
+                  </div>
+                  {activeSection.includes("equipment") ? (
+                    <ChevronUp className="w-5 h-5 text-white" />
+                  ) : (
+                    <ChevronDown className="w-5 h-5 text-white" />
+                  )}
+                </div>
+
+                {activeSection.includes("equipment") && (
+                  <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6 bg-gradient-to-br from-white to-[#F1F0E8] transition-all duration-300">
+                    <div className="flex items-start space-x-3">
+                      <Router className="w-5 h-5 text-[#89A8B2] mt-1" />
+                      <div>
+                        <p className="text-sm text-[#89A8B2] font-medium">Router ID</p>
+                        <p className="text-gray-700">{customer.router_id || "N/A"}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start space-x-3">
+                      <Cable className="w-5 h-5 text-[#89A8B2] mt-1" />
+                      <div>
+                        <p className="text-sm text-[#89A8B2] font-medium">Patch Cord ID</p>
+                        <p className="text-gray-700">{customer.patch_cord_id || "N/A"}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start space-x-3">
+                      <Box className="w-5 h-5 text-[#89A8B2] mt-1" />
+                      <div>
+                        <p className="text-sm text-[#89A8B2] font-medium">Splicing Box ID</p>
+                        <p className="text-gray-700">{customer.splicing_box_id || "N/A"}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start space-x-3">
+                      <Cable className="w-5 h-5 text-[#89A8B2] mt-1" />
+                      <div>
+                        <p className="text-sm text-[#89A8B2] font-medium">Ethernet Cable ID</p>
+                        <p className="text-gray-700">{customer.ethernet_cable_id || "N/A"}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start space-x-3">
+                      <Disc className="w-5 h-5 text-[#89A8B2] mt-1" />
+                      <div>
+                        <p className="text-sm text-[#89A8B2] font-medium">Dish ID</p>
+                        <p className="text-gray-700">{customer.dish_id || "N/A"}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start space-x-3">
+                      <Tv className="w-5 h-5 text-[#89A8B2] mt-1" />
+                      <div>
+                        <p className="text-sm text-[#89A8B2] font-medium">TV Cable Type</p>
+                        <p className="text-gray-700">{customer.tv_cable_type || "N/A"}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start space-x-3">
+                      <Share2 className="w-5 h-5 text-[#89A8B2] mt-1" />
+                      <div>
+                        <p className="text-sm text-[#89A8B2] font-medium">Node ID</p>
+                        <p className="text-gray-700">{customer.node_id || "N/A"}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start space-x-3">
+                      <Box className="w-5 h-5 text-[#89A8B2] mt-1" />
+                      <div>
+                        <p className="text-sm text-[#89A8B2] font-medium">STB ID</p>
+                        <p className="text-gray-700">{customer.stb_id || "N/A"}</p>
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>

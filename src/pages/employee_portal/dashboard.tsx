@@ -49,10 +49,10 @@ const EmployeeDashboard: React.FC = () => {
       const headers = { Authorization: `Bearer ${token}` };
 
       const [statsResponse, complaintsResponse, tasksResponse, transactionsResponse] = await Promise.all([
-        axiosInstance.get('https://mbanet.com.pk/api/employee/dashboard/stats', { headers }),
-        axiosInstance.get('https://mbanet.com.pk/api/employee/dashboard/recent_complaints', { headers }),
-        axiosInstance.get('https://mbanet.com.pk/api/employee/dashboard/pending_tasks', { headers }),
-        axiosInstance.get('https://mbanet.com.pk/api/employee/dashboard/recent_inventory_transactions', { headers })
+        axiosInstance.get('http://127.0.0.1:5000/employee/dashboard/stats', { headers }),
+        axiosInstance.get('http://127.0.0.1:5000/employee/dashboard/recent_complaints', { headers }),
+        axiosInstance.get('http://127.0.0.1:5000/employee/dashboard/pending_tasks', { headers }),
+        axiosInstance.get('http://127.0.0.1:5000/employee/dashboard/recent_inventory_transactions', { headers })
       ]);
       console.log('Stats:', statsResponse.data);
       setStats(statsResponse.data);
