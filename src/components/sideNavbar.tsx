@@ -67,6 +67,12 @@ export const menuItems = [
     path: '/inventory-management'
   },
   { 
+    title: 'ISP Management', 
+    icon: Package,
+    description: 'Manage and monitor ISP Company details',
+    path: '/isp-management'
+  },
+  { 
     title: 'Supplier Management', 
     icon: Truck,
     description: 'Manage supplier relationships and procurement',
@@ -131,7 +137,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar, setIsOp
 
   const handleLogout = async () => {
     try {
-      await axiosInstance.post('https://mbanet.com.pk/api/auth/logout');
+      await axiosInstance.post('http://127.0.0.1:5000/auth/logout');
       removeToken();
       navigate('/login');
     } catch (error) {

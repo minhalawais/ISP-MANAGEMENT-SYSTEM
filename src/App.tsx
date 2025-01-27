@@ -29,6 +29,8 @@ import EmployeeServicePlanManagement from "./pages/employee_portal/crud_pages/se
 import EmployeePaymentManagement from "./pages/employee_portal/crud_pages/paymentCrud.tsx"
 import EmployeeInventoryManagement from "./pages/employee_portal/crud_pages/inventoryCrud.tsx"
 import EmployeeInvoiceManagement from "./pages/employee_portal/crud_pages/invoiceCrud.tsx"
+import ISPManagement from "./pages/crud_pages/ispCrud.tsx"
+
 import "./styles/toastStyles.css"
 const PrivateRoute: React.FC<{ element: React.ReactElement }> = ({ element }) => {
   const isAuthenticated = !!localStorage.getItem("token")
@@ -61,6 +63,7 @@ const App: React.FC = () => {
         <Route path="/profile" element={<PrivateRoute element={<UserProfile />} />} />
         <Route path="/logs-management" element={<PrivateRoute element={<LogManagement />} />} />
         <Route path="/employee_portal" element={<PrivateRoute element={<EmployeeDashboard />} />} />
+        <Route path="/isp-management" element={<PrivateRoute element={<ISPManagement />} />} />
         <Route
           path="/employee_portal/customer-management"
           element={<PrivateRoute element={<CustomerManagementForEmployee />} />}

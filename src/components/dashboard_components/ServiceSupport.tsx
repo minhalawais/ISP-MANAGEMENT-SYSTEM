@@ -45,7 +45,7 @@ export const ServiceSupport: React.FC = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const response = await axiosInstance.get('https://mbanet.com.pk/api/dashboard/service-support', {
+        const response = await axiosInstance.get('http://127.0.0.1:5000/dashboard/service-support', {
           headers: {
             Authorization: `Bearer ${localStorage.getItem('token')}`
           }
