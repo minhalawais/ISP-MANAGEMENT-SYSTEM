@@ -21,7 +21,7 @@ export const Topbar: React.FC<TopbarProps> = ({ toggleSidebar }) => {
   const fetchUserData = async () => {
     try {
       const token = getToken();
-      const response = await axiosInstance.get('http://127.0.0.1:5000/user/profile', {
+      const response = await axiosInstance.get('https://mbanet.com.pk/api/user/profile', {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -34,7 +34,7 @@ export const Topbar: React.FC<TopbarProps> = ({ toggleSidebar }) => {
 
   const handleLogout = async () => {
     try {
-      await axiosInstance.post('http://127.0.0.1:5000/auth/logout');
+      await axiosInstance.post('https://mbanet.com.pk/api/auth/logout');
       removeToken();
       navigate('/login');
     } catch (error) {

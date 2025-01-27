@@ -44,7 +44,7 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
   const fetchData = async () => {
     try {
       const token = getToken();
-      const response = await axiosInstance.get(`http://127.0.0.1:5000/${endpoint}/list`, {
+      const response = await axiosInstance.get(`https://mbanet.com.pk/api/${endpoint}/list`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setData(response.data);
@@ -66,7 +66,7 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
   const handleToggleStatus = async (id: string, currentStatus: boolean) => {
     try {
       const token = getToken();
-      await axiosInstance.put(`http://127.0.0.1:5000/${endpoint}/update/${id}`, 
+      await axiosInstance.put(`https://mbanet.com.pk/api/${endpoint}/update/${id}`, 
         { is_active: !currentStatus },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -86,7 +86,7 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
     try {
       const token = getToken();
       await Promise.all(selectedRows.map(id => 
-        axiosInstance.put(`http://127.0.0.1:5000/${endpoint}/update/${id}`, 
+        axiosInstance.put(`https://mbanet.com.pk/api/${endpoint}/update/${id}`, 
           { is_active: newStatus },
           { headers: { Authorization: `Bearer ${token}` } }
         )
@@ -142,7 +142,7 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
 
       if (editingItem) {
         await axiosInstance.put(
-          `http://127.0.0.1:5000/${endpoint}/update/${editingItem.id}`, 
+          `https://mbanet.com.pk/api/${endpoint}/update/${editingItem.id}`, 
           formDataToSend,
           {
             headers: { 
@@ -156,7 +156,7 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
         });
       } else {
         await axiosInstance.post(
-          `http://127.0.0.1:5000/${endpoint}/add`,
+          `https://mbanet.com.pk/api/${endpoint}/add`,
           formDataToSend,
           {
             headers: { 
@@ -185,7 +185,7 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
     if (window.confirm(`Are you sure you want to delete this ${title.toLowerCase()}?`)) {
       try {
         const token = getToken();
-        await axiosInstance.delete(`http://127.0.0.1:5000/${endpoint}/delete/${id}`, {
+        await axiosInstance.delete(`https://mbanet.com.pk/api/${endpoint}/delete/${id}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         toast.success(`${title} deleted successfully`, {

@@ -48,10 +48,10 @@ export function CustomerForm({
       const token = getToken()
       try {
         const [areasResponse, servicePlansResponse, ispsResponse, inventoryResponse] = await Promise.all([
-          axiosInstance.get("/areas/list", { headers: { Authorization: `Bearer ${token}` } }),
-          axiosInstance.get("/service-plans/list", { headers: { Authorization: `Bearer ${token}` } }),
-          axiosInstance.get("/isps/list", { headers: { Authorization: `Bearer ${token}` } }),
-          axiosInstance.get("/inventory/list", { headers: { Authorization: `Bearer ${token}` } }),
+          axiosInstance.get("https://mbanet.com.pk/api/areas/list", { headers: { Authorization: `Bearer ${token}` } }),
+          axiosInstance.get("https://mbanet.com.pk/api/service-plans/list", { headers: { Authorization: `Bearer ${token}` } }),
+          axiosInstance.get("https://mbanet.com.pk/api/isps/list", { headers: { Authorization: `Bearer ${token}` } }),
+          axiosInstance.get("https://mbanet.com.pk/api/inventory/list", { headers: { Authorization: `Bearer ${token}` } }),
         ])
         setAreas(areasResponse.data)
         setServicePlans(servicePlansResponse.data)
@@ -520,7 +520,7 @@ export function CustomerForm({
           onChange={memoizedHandleFileChange}
           currentImage={
             formData.cnic_front_image
-              ? `http://127.0.0.1:5000/customers/cnic-front-image/${formData.id}`
+              ? `https://mbanet.com.pk/api/customers/cnic-front-image/${formData.id}`
               : undefined
           }
         />
@@ -530,7 +530,7 @@ export function CustomerForm({
           onChange={memoizedHandleFileChange}
           currentImage={
             formData.cnic_back_image
-              ? `http://127.0.0.1:5000/customers/cnic-back-image/${formData.id}`
+              ? `https://mbanet.com.pk/api/customers/cnic-back-image/${formData.id}`
               : undefined
           }
         />
