@@ -39,12 +39,12 @@ export function CustomerForm({
       const token = getToken()
       try {
         const [areasResponse, servicePlansResponse, ispsResponse, inventoryResponse] = await Promise.all([
-          axiosInstance.get("http://127.0.0.1:5000/areas/list", { headers: { Authorization: `Bearer ${token}` } }),
-          axiosInstance.get("http://127.0.0.1:5000/service-plans/list", {
+          axiosInstance.get("https://mbanet.com.pk/api/areas/list", { headers: { Authorization: `Bearer ${token}` } }),
+          axiosInstance.get("https://mbanet.com.pk/api/service-plans/list", {
             headers: { Authorization: `Bearer ${token}` },
           }),
-          axiosInstance.get("http://127.0.0.1:5000/isps/list", { headers: { Authorization: `Bearer ${token}` } }),
-          axiosInstance.get("http://127.0.0.1:5000/inventory/list", { headers: { Authorization: `Bearer ${token}` } }),
+          axiosInstance.get("https://mbanet.com.pk/api/isps/list", { headers: { Authorization: `Bearer ${token}` } }),
+          axiosInstance.get("https://mbanet.com.pk/api/inventory/list", { headers: { Authorization: `Bearer ${token}` } }),
         ])
         setAreas(areasResponse.data)
         setServicePlans(servicePlansResponse.data)
@@ -642,7 +642,7 @@ export function CustomerForm({
           name="cnic_front_image"
           onChange={memoizedHandleFileChange}
           currentImage={
-            formData.cnic_front_image ? `http://127.0.0.1:5000/customers/cnic-front-image/${formData.id}` : undefined
+            formData.cnic_front_image ? `https://mbanet.com.pk/api/customers/cnic-front-image/${formData.id}` : undefined
           }
         />
         <FileUploadField
@@ -650,7 +650,7 @@ export function CustomerForm({
           name="cnic_back_image"
           onChange={memoizedHandleFileChange}
           currentImage={
-            formData.cnic_back_image ? `http://127.0.0.1:5000/customers/cnic-back-image/${formData.id}` : undefined
+            formData.cnic_back_image ? `https://mbanet.com.pk/api/customers/cnic-back-image/${formData.id}` : undefined
           }
         />
       </FormSection>
