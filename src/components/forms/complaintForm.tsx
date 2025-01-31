@@ -56,10 +56,10 @@ export function ComplaintForm({ formData, handleInputChange, handleFileChange, h
       const token = getToken();
       try {
         const [employeesResponse, customersResponse] = await Promise.all([
-          axiosInstance.get('https://mbanet.com.pk/api/employees/list', { 
+          axiosInstance.get('http://127.0.0.1:5000/employees/list', { 
             headers: { Authorization: `Bearer ${token}` } 
           }),
-          axiosInstance.get('https://mbanet.com.pk/api/customers/list', { 
+          axiosInstance.get('http://127.0.0.1:5000/customers/list', { 
             headers: { Authorization: `Bearer ${token}` } 
           })
         ]);

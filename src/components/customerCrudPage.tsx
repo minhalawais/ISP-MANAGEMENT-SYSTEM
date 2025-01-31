@@ -51,7 +51,7 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
   const fetchData = async () => {
     try {
       const token = getToken()
-      const response = await axios.get(`https://mbanet.com.pk/api/${endpoint}/list`, {
+      const response = await axios.get(`http://127.0.0.1:5000/${endpoint}/list`, {
         headers: { Authorization: `Bearer ${token}` },
       })
       setData(response.data)
@@ -98,7 +98,7 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
       }
 
       if (editingItem) {
-        await axiosInstance.put(`https://mbanet.com.pk/api/${endpoint}/update/${editingItem.id}`, formDataToSend, {
+        await axiosInstance.put(`http://127.0.0.1:5000/${endpoint}/update/${editingItem.id}`, formDataToSend, {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "multipart/form-data",
@@ -108,7 +108,7 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
           style: { background: "#E5E1DA", color: "#89A8B2" },
         })
       } else {
-        await axiosInstance.post(`https://mbanet.com.pk/api/${endpoint}/add`, formDataToSend, {
+        await axiosInstance.post(`http://127.0.0.1:5000/${endpoint}/add`, formDataToSend, {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "multipart/form-data",
@@ -134,7 +134,7 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
     if (window.confirm(`Are you sure you want to delete this ${title.toLowerCase()}?`)) {
       try {
         const token = getToken()
-        await axiosInstance.delete(`https://mbanet.com.pk/api/${endpoint}/delete/${id}`, {
+        await axiosInstance.delete(`http://127.0.0.1:5000/${endpoint}/delete/${id}`, {
           headers: { Authorization: `Bearer ${token}` },
         })
         toast.success(`${title} deleted successfully`, {
@@ -154,7 +154,7 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
     try {
       const token = getToken()
       await axiosInstance.patch(
-        `https://mbanet.com.pk/api/${endpoint}/toggle-status/${id}`,
+        `http://127.0.0.1:5000/${endpoint}/toggle-status/${id}`,
         {},
         {
           headers: { Authorization: `Bearer ${token}` },

@@ -36,7 +36,7 @@ export const FinancialAnalytics: React.FC = () => {
   useEffect(() => {
     const fetchAnalyticsData = async () => {
       try {
-        const response = await axiosInstance.get('https://mbanet.com.pk/api/dashboard/financial-analytics', {
+        const response = await axiosInstance.get('http://127.0.0.1:5000/dashboard/financial-analytics', {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
           }

@@ -2,16 +2,7 @@ import type React from "react"
 import { useState, useEffect, useCallback } from "react"
 import { getToken } from "../../utils/auth.ts"
 import axiosInstance from "../../utils/axiosConfig.ts"
-import {
-  FaSpinner,
-  FaUser,
-  FaNetworkWired,
-  FaCreditCard,
-  FaFileImage,
-  FaBox,
-  FaTv,
-  FaMoneyBillWave,
-} from "react-icons/fa"
+import { FaSpinner, FaUser, FaNetworkWired, FaFileImage, FaBox, FaMoneyBillWave } from "react-icons/fa"
 
 interface CustomerFormProps {
   formData: any
@@ -48,10 +39,12 @@ export function CustomerForm({
       const token = getToken()
       try {
         const [areasResponse, servicePlansResponse, ispsResponse, inventoryResponse] = await Promise.all([
-          axiosInstance.get("https://mbanet.com.pk/api/areas/list", { headers: { Authorization: `Bearer ${token}` } }),
-          axiosInstance.get("https://mbanet.com.pk/api/service-plans/list", { headers: { Authorization: `Bearer ${token}` } }),
-          axiosInstance.get("https://mbanet.com.pk/api/isps/list", { headers: { Authorization: `Bearer ${token}` } }),
-          axiosInstance.get("https://mbanet.com.pk/api/inventory/list", { headers: { Authorization: `Bearer ${token}` } }),
+          axiosInstance.get("http://127.0.0.1:5000/areas/list", { headers: { Authorization: `Bearer ${token}` } }),
+          axiosInstance.get("http://127.0.0.1:5000/service-plans/list", {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+          axiosInstance.get("http://127.0.0.1:5000/isps/list", { headers: { Authorization: `Bearer ${token}` } }),
+          axiosInstance.get("http://127.0.0.1:5000/inventory/list", { headers: { Authorization: `Bearer ${token}` } }),
         ])
         setAreas(areasResponse.data)
         setServicePlans(servicePlansResponse.data)
@@ -66,138 +59,156 @@ export function CustomerForm({
     fetchData()
   }, [])
 
-  const memoizedHandleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    e.persist()
-    handleInputChange(e)
-  }, [handleInputChange])
+  const memoizedHandleInputChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+      e.persist()
+      handleInputChange(e)
+    },
+    [handleInputChange],
+  )
 
-  const memoizedHandleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    e.persist()
-    handleFileChange(e)
-  }, [handleFileChange])
+  const memoizedHandleFileChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      e.persist()
+      handleFileChange(e)
+    },
+    [handleFileChange],
+  )
 
-  const memoizedHandleSubmit = useCallback((e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    handleSubmit(e)
-  }, [handleSubmit])
+  const memoizedHandleSubmit = useCallback(
+    (e: React.FormEvent<HTMLFormElement>) => {
+      e.preventDefault()
+      handleSubmit(e)
+    },
+    [handleSubmit],
+  )
 
-  const FormSection = useCallback(({
-    title,
-    icon: Icon,
-    children,
-  }: {
-    title: string
-    icon: React.ComponentType<{ className?: string }>
-    children: React.ReactNode
-  }) => (
-    <div className="bg-white/90 p-6 rounded-2xl shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 mb-6">
-      <div className="flex items-center mb-4 space-x-3">
-        <Icon className="text-purple-600 text-2xl" />
-        <h3 className="text-xl font-semibold text-gray-800">{title}</h3>
-      </div>
-      <div className="space-y-4">{children}</div>
-    </div>
-  ), [])
-
-  const InputField = useCallback(({
-    label,
-    name,
-    type = "text",
-    value,
-    onChange,
-    placeholder,
-    required = false,
-    className = "",
-    options = [],
-  }: {
-    label: string
-    name: string
-    type?: string
-    value: string
-    onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void
-    placeholder?: string
-    required?: boolean
-    className?: string
-    options?: { value: string; label: string }[]
-  }) => (
-    <div>
-      <label htmlFor={name} className="block text-sm font-medium text-gray-700 mb-1">
-        {label}
-      </label>
-      {type === "select" ? (
-        <select
-          id={name}
-          name={name}
-          value={value || ""}
-          onChange={onChange}
-          required={required}
-          className={`w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300 ${className}`}
-        >
-          <option value="">Select {label}</option>
-          {options.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-      ) : (
-        <input
-          id={name}
-          type={type}
-          name={name}
-          value={value || ""}
-          onChange={onChange}
-          placeholder={placeholder}
-          required={required}
-          className={`w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300 ${className}`}
-        />
-      )}
-    </div>
-  ), [])
-
-  const FileUploadField = useCallback(({
-    label,
-    name,
-    onChange,
-    currentImage,
-  }: {
-    label: string
-    name: string
-    onChange: (e: React.ChangeEvent<HTMLInputElement>) => void
-    currentImage?: string
-  }) => (
-    <div>
-      <label htmlFor={name} className="block text-sm font-medium text-gray-700 mb-1">
-        {label}
-      </label>
-      <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md hover:border-purple-500 transition-colors">
-        <div className="space-y-1 text-center">
-          <div className="flex text-sm text-gray-600">
-            <input
-              id={name}
-              name={name}
-              type="file"
-              onChange={onChange}
-              className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-600 hover:file:bg-purple-100"
-              accept=".png,.jpg,.jpeg"
-            />
-          </div>
-          <p className="text-xs text-gray-500">PNG, JPG, or JPEG up to 10MB</p>
+  const FormSection = useCallback(
+    ({
+      title,
+      icon: Icon,
+      children,
+    }: {
+      title: string
+      icon: React.ComponentType<{ className?: string }>
+      children: React.ReactNode
+    }) => (
+      <div className="bg-white/90 p-6 rounded-2xl shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 mb-6">
+        <div className="flex items-center mb-4 space-x-3">
+          <Icon className="text-purple-600 text-2xl" />
+          <h3 className="text-xl font-semibold text-gray-800">{title}</h3>
         </div>
+        <div className="space-y-4">{children}</div>
       </div>
-      {currentImage && (
-        <div className="mt-4">
-          <div className="relative w-full h-48 bg-gray-100 rounded-lg overflow-hidden">
-            <img
-              src={currentImage}
-              alt={`${label} preview`}
-              className="w-full h-full object-contain"
-            />
+    ),
+    [],
+  )
+
+  const InputField = useCallback(
+    ({
+      label,
+      name,
+      type = "text",
+      value,
+      onChange,
+      placeholder,
+      required = false,
+      className = "",
+      options = [],
+    }: {
+      label: string
+      name: string
+      type?: string
+      value: string
+      onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void
+      placeholder?: string
+      required?: boolean
+      className?: string
+      options?: { value: string; label: string }[]
+    }) => (
+      <div>
+        <label htmlFor={name} className="block text-sm font-medium text-gray-700 mb-1">
+          {label}
+        </label>
+        {type === "select" ? (
+          <select
+            id={name}
+            name={name}
+            value={value || ""}
+            onChange={onChange}
+            required={required}
+            className={`w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300 ${className}`}
+          >
+            <option value="">Select {label}</option>
+            {options.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <input
+            id={name}
+            type={type}
+            name={name}
+            value={value || ""}
+            onChange={onChange}
+            placeholder={placeholder}
+            required={required}
+            className={`w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300 ${className}`}
+          />
+        )}
+      </div>
+    ),
+    [],
+  )
+
+  const FileUploadField = useCallback(
+    ({
+      label,
+      name,
+      onChange,
+      currentImage,
+    }: {
+      label: string
+      name: string
+      onChange: (e: React.ChangeEvent<HTMLInputElement>) => void
+      currentImage?: string
+    }) => (
+      <div>
+        <label htmlFor={name} className="block text-sm font-medium text-gray-700 mb-1">
+          {label}
+        </label>
+        <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md hover:border-purple-500 transition-colors">
+          <div className="space-y-1 text-center">
+            <div className="flex text-sm text-gray-600">
+              <input
+                id={name}
+                name={name}
+                type="file"
+                onChange={onChange}
+                className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-600 hover:file:bg-purple-100"
+                accept=".png,.jpg,.jpeg"
+              />
+            </div>
+            <p className="text-xs text-gray-500">PNG, JPG, or JPEG up to 10MB</p>
           </div>
         </div>
-      )}
-    </div>
-  ), [])
+        {currentImage && (
+          <div className="mt-4">
+            <div className="relative w-full h-48 bg-gray-100 rounded-lg overflow-hidden">
+              <img
+                src={currentImage || "/placeholder.svg"}
+                alt={`${label} preview`}
+                className="w-full h-full object-contain"
+              />
+            </div>
+          </div>
+        )}
+      </div>
+    ),
+    [],
+  )
 
   if (isLoading) {
     return (
@@ -255,12 +266,12 @@ export function CustomerForm({
             required
           />
           <InputField
-            label="Phone 2"
+            label="Whatsapp Number"
             name="phone_2"
             type="tel"
             value={formData.phone_2}
             onChange={memoizedHandleInputChange}
-            placeholder="Enter secondary phone number"
+            placeholder="Enter whatsapp phone number"
           />
         </div>
         <InputField
@@ -306,174 +317,268 @@ export function CustomerForm({
           options={isps.map((isp: any) => ({ value: isp.id, label: isp.name }))}
         />
         <InputField
-          label="Splitter Number"
-          name="splitter_id"
+          label="Connection Type"
+          name="connection_type"
           type="select"
-          value={formData.splitter_id}
-          onChange={memoizedHandleInputChange}
-          required
-          options={inventoryItems
-            .filter((item) => item.is_splitter)
-            .map((splitter) => ({
-              value: splitter.id,
-              label: `${splitter.splitter_number} - ${splitter.serial_number}`,
-            }))}
-        />
-        <InputField
-          label="Equipment Owned By"
-          name="equipment_owned_by"
-          type="select"
-          value={formData.equipment_owned_by}
+          value={formData.connection_type}
           onChange={memoizedHandleInputChange}
           required
           options={[
-            { value: "customer", label: "Customer" },
-            { value: "company", label: "Company" },
+            { value: "internet", label: "Internet" },
+            { value: "tv_cable", label: "TV Cable" },
+            { value: "both", label: "Both" },
           ]}
         />
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Connection Type</label>
-          <div className="flex space-x-4">
-            <label className="inline-flex items-center">
-              <input
-                type="radio"
-                name="connection_type"
-                value="wire"
-                checked={formData.connection_type === "wire"}
-                onChange={memoizedHandleInputChange}
-                className="form-radio text-purple-600"
-              />
-              <span className="ml-2">Wire</span>
-            </label>
-            <label className="inline-flex items-center">
-              <input
-                type="radio"
-                name="connection_type"
-                value="wireless"
-                checked={formData.connection_type === "wireless"}
-                onChange={memoizedHandleInputChange}
-                className="form-radio text-purple-600"
-              />
-              <span className="ml-2">Wireless</span>
-            </label>
-          </div>
-        </div>
-        {formData.connection_type === "wire" && (
-          <InputField
-            label="Wire Length (meters)"
-            name="wire_length"
-            type="number"
-            value={formData.wire_length}
-            onChange={memoizedHandleInputChange}
-            placeholder="Enter wire length"
-          />
-        )}
-        {formData.equipment_owned_by === "company" && (
+        {(formData.connection_type === "internet" || formData.connection_type === "both") && (
           <>
             <InputField
-              label="Router"
-              name="router_id"
+              label="Internet Connection Type"
+              name="internet_connection_type"
               type="select"
-              value={formData.router_id}
+              value={formData.internet_connection_type}
               onChange={memoizedHandleInputChange}
-              options={inventoryItems
-                .filter((item) => item.item_type === "router")
-                .map((item) => ({ value: item.id, label: `${item.name} - ${item.serial_number}` }))}
+              required
+              options={[
+                { value: "wire", label: "Wire" },
+                { value: "wireless", label: "Wireless" },
+              ]}
             />
-            <InputField
-              label="Patch Cord"
-              name="patch_cord_id"
-              type="select"
-              value={formData.patch_cord_id}
-              onChange={memoizedHandleInputChange}
-              options={inventoryItems
-                .filter((item) => item.item_type === "cable")
-                .map((item) => ({ value: item.id, label: `${item.name} - ${item.serial_number}` }))}
-            />
-            <InputField
-              label="Splicing Box"
-              name="splicing_box_id"
-              type="select"
-              value={formData.splicing_box_id}
-              onChange={memoizedHandleInputChange}
-              options={inventoryItems
-                .filter((item) => item.item_type === "patch_panel")
-                .map((item) => ({ value: item.id, label: `${item.name} - ${item.serial_number}` }))}
-            />
-          </>
-        )}
-            {formData.connection_type === "wireless" && (
+            {formData.internet_connection_type === "wire" && (
               <>
                 <InputField
-                  label="Ethernet Cable"
-                  name="ethernet_cable_id"
-                  type="select"
-                  value={formData.ethernet_cable_id}
+                  label="Wire Length (meters)"
+                  name="wire_length"
+                  type="number"
+                  value={formData.wire_length}
                   onChange={memoizedHandleInputChange}
-                  options={inventoryItems
-                    .filter((item) => item.item_type === "cable")
-                    .map((item) => ({ value: item.id, label: `${item.name} - ${item.serial_number}` }))}
+                  placeholder="Enter wire length"
+                  required
                 />
                 <InputField
-                  label="Dish"
-                  name="dish_id"
+                  label="Wire Ownership"
+                  name="wire_ownership"
                   type="select"
-                  value={formData.dish_id}
+                  value={formData.wire_ownership}
                   onChange={memoizedHandleInputChange}
-                  options={inventoryItems
-                    .filter((item) => item.item_type === "other")
-                    .map((item) => ({ value: item.id, label: `${item.name} - ${item.serial_number}` }))}
+                  required
+                  options={[
+                    { value: "company", label: "Company" },
+                    { value: "customer", label: "Customer" },
+                  ]}
                 />
+                <InputField
+                  label="Router Ownership"
+                  name="router_ownership"
+                  type="select"
+                  value={formData.router_ownership}
+                  onChange={memoizedHandleInputChange}
+                  required
+                  options={[
+                    { value: "company", label: "Company" },
+                    { value: "customer", label: "Customer" },
+                  ]}
+                />
+                {formData.router_ownership === "company" && (
+                  <InputField
+                    label="Router"
+                    name="router_id"
+                    type="select"
+                    value={formData.router_id}
+                    onChange={memoizedHandleInputChange}
+                    required
+                    options={inventoryItems
+                      .filter((item) => item.item_type === "router")
+                      .map((item) => ({ value: item.id, label: `${item.name} - ${item.serial_number}` }))}
+                  />
+                )}
+                {formData.router_ownership === "customer" && (
+                  <InputField
+                    label="Router Serial Number"
+                    name="router_serial_number"
+                    value={formData.router_serial_number}
+                    onChange={memoizedHandleInputChange}
+                    placeholder="Enter router serial number"
+                    required
+                  />
+                )}
+                <InputField
+                  label="Patch Cord Ownership"
+                  name="patch_cord_ownership"
+                  type="select"
+                  value={formData.patch_cord_ownership}
+                  onChange={memoizedHandleInputChange}
+                  required
+                  options={[
+                    { value: "company", label: "Company" },
+                    { value: "customer", label: "Customer" },
+                  ]}
+                />
+                {formData.patch_cord_ownership === "company" && (
+                  <InputField
+                    label="Number of Patch Cords"
+                    name="patch_cord_count"
+                    type="number"
+                    value={formData.patch_cord_count}
+                    onChange={memoizedHandleInputChange}
+                    placeholder="Enter number of patch cords"
+                    required
+                  />
+                )}
+                <InputField
+                  label="Patch Cord Ethernet Ownership"
+                  name="patch_cord_ethernet_ownership"
+                  type="select"
+                  value={formData.patch_cord_ethernet_ownership}
+                  onChange={memoizedHandleInputChange}
+                  required
+                  options={[
+                    { value: "company", label: "Company" },
+                    { value: "customer", label: "Customer" },
+                  ]}
+                />
+                {formData.patch_cord_ethernet_ownership === "company" && (
+                  <InputField
+                    label="Number of Patch Cord Ethernet"
+                    name="patch_cord_ethernet_count"
+                    type="number"
+                    value={formData.patch_cord_ethernet_count}
+                    onChange={memoizedHandleInputChange}
+                    placeholder="Enter number of patch cord ethernet"
+                    required
+                  />
+                )}
+                <InputField
+                  label="Splicing Box Ownership"
+                  name="splicing_box_ownership"
+                  type="select"
+                  value={formData.splicing_box_ownership}
+                  onChange={memoizedHandleInputChange}
+                  required
+                  options={[
+                    { value: "company", label: "Company" },
+                    { value: "customer", label: "Customer" },
+                  ]}
+                />
+                {formData.splicing_box_ownership === "company" && (
+                  <InputField
+                    label="Splicing Box Serial Number"
+                    name="splicing_box_serial_number"
+                    value={formData.splicing_box_serial_number}
+                    onChange={memoizedHandleInputChange}
+                    placeholder="Enter splicing box serial number"
+                    required
+                  />
+                )}
+              </>
+            )}
+            {formData.internet_connection_type === "wireless" && (
+              <>
+                <InputField
+                  label="Ethernet Cable Ownership"
+                  name="ethernet_cable_ownership"
+                  type="select"
+                  value={formData.ethernet_cable_ownership}
+                  onChange={memoizedHandleInputChange}
+                  required
+                  options={[
+                    { value: "company", label: "Company" },
+                    { value: "customer", label: "Customer" },
+                  ]}
+                />
+                <InputField
+                  label="Ethernet Cable Length (feet)"
+                  name="ethernet_cable_length"
+                  type="number"
+                  value={formData.ethernet_cable_length}
+                  onChange={memoizedHandleInputChange}
+                  placeholder="Enter ethernet cable length"
+                  required
+                />
+                <InputField
+                  label="Dish Ownership"
+                  name="dish_ownership"
+                  type="select"
+                  value={formData.dish_ownership}
+                  onChange={memoizedHandleInputChange}
+                  required
+                  options={[
+                    { value: "company", label: "Company" },
+                    { value: "customer", label: "Customer" },
+                  ]}
+                />
+                {formData.dish_ownership === "company" && (
+                  <InputField
+                    label="Dish"
+                    name="dish_id"
+                    type="select"
+                    value={formData.dish_id}
+                    onChange={memoizedHandleInputChange}
+                    required
+                    options={inventoryItems
+                      .filter((item) => item.item_type === "dish")
+                      .map((item) => ({ value: item.id, label: `${item.name} - ${item.serial_number}` }))}
+                  />
+                )}
+                {formData.dish_ownership === "customer" && (
+                  <InputField
+                    label="Dish MAC Address"
+                    name="dish_mac_address"
+                    value={formData.dish_mac_address}
+                    onChange={memoizedHandleInputChange}
+                    placeholder="Enter dish MAC address"
+                    required
+                  />
+                )}
+              </>
+            )}
           </>
         )}
-      </FormSection>
-
-      <FormSection title="TV Cable" icon={FaTv}>
-        <InputField
-          label="TV Cable Type"
-          name="tv_cable_type"
-          type="select"
-          value={formData.tv_cable_type}
-          onChange={memoizedHandleInputChange}
-          options={[
-            { value: "analog", label: "Analog" },
-            { value: "digital", label: "Digital" },
-          ]}
-        />
-        {formData.tv_cable_type === "analog" && (
-          <InputField
-            label="Node"
-            name="node_id"
-            type="select"
-            value={formData.node_id}
-            onChange={memoizedHandleInputChange}
-            options={inventoryItems
-              .filter((item) => item.item_type === "other")
-              .map((item) => ({ value: item.id, label: `${item.name} - ${item.serial_number}` }))}
-          />
-        )}
-        {formData.tv_cable_type === "digital" && (
+        {(formData.connection_type === "tv_cable" || formData.connection_type === "both") && (
           <>
             <InputField
-              label="Node"
-              name="node_id"
+              label="TV Cable Connection Type"
+              name="tv_cable_connection_type"
               type="select"
-              value={formData.node_id}
+              value={formData.tv_cable_connection_type}
               onChange={memoizedHandleInputChange}
-              options={inventoryItems
-                .filter((item) => item.item_type === "other")
-                .map((item) => ({ value: item.id, label: `${item.name} - ${item.serial_number}` }))}
+              required
+              options={[
+                { value: "analog", label: "Analog" },
+                { value: "digital", label: "Digital" },
+              ]}
             />
-            <InputField
-              label="STB"
-              name="stb_id"
-              type="select"
-              value={formData.stb_id}
-              onChange={memoizedHandleInputChange}
-              options={inventoryItems
-                .filter((item) => item.item_type === "other")
-                .map((item) => ({ value: item.id, label: `${item.name} - ${item.serial_number}` }))}
-            />
+            {formData.tv_cable_connection_type === "analog" && (
+              <InputField
+                label="Number of Nodes"
+                name="node_count"
+                type="number"
+                value={formData.node_count}
+                onChange={memoizedHandleInputChange}
+                placeholder="Enter number of nodes"
+                required
+              />
+            )}
+            {formData.tv_cable_connection_type === "digital" && (
+              <>
+                <InputField
+                  label="Number of Nodes"
+                  name="node_count"
+                  type="number"
+                  value={formData.node_count}
+                  onChange={memoizedHandleInputChange}
+                  placeholder="Enter number of nodes"
+                  required
+                />
+                <InputField
+                  label="STB Serial Number"
+                  name="stb_serial_number"
+                  value={formData.stb_serial_number}
+                  onChange={memoizedHandleInputChange}
+                  placeholder="Enter STB serial number"
+                  required
+                />
+              </>
+            )}
           </>
         )}
       </FormSection>
@@ -513,15 +618,31 @@ export function CustomerForm({
         />
       </FormSection>
 
+      <FormSection title="Miscellaneous" icon={FaBox}>
+        <InputField
+          label="Miscellaneous Details"
+          name="miscellaneous_details"
+          value={formData.miscellaneous_details}
+          onChange={memoizedHandleInputChange}
+          placeholder="Enter any additional details"
+        />
+        <InputField
+          label="Miscellaneous Charges"
+          name="miscellaneous_charges"
+          type="number"
+          value={formData.miscellaneous_charges}
+          onChange={memoizedHandleInputChange}
+          placeholder="Enter any additional charges"
+        />
+      </FormSection>
+
       <FormSection title="Documentation" icon={FaFileImage}>
         <FileUploadField
           label="CNIC Front Image"
           name="cnic_front_image"
           onChange={memoizedHandleFileChange}
           currentImage={
-            formData.cnic_front_image
-              ? `https://mbanet.com.pk/api/customers/cnic-front-image/${formData.id}`
-              : undefined
+            formData.cnic_front_image ? `http://127.0.0.1:5000/customers/cnic-front-image/${formData.id}` : undefined
           }
         />
         <FileUploadField
@@ -529,13 +650,11 @@ export function CustomerForm({
           name="cnic_back_image"
           onChange={memoizedHandleFileChange}
           currentImage={
-            formData.cnic_back_image
-              ? `https://mbanet.com.pk/api/customers/cnic-back-image/${formData.id}`
-              : undefined
+            formData.cnic_back_image ? `http://127.0.0.1:5000/customers/cnic-back-image/${formData.id}` : undefined
           }
         />
       </FormSection>
-
     </form>
   )
 }
+
