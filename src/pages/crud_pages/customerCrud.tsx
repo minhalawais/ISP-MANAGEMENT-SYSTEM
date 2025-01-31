@@ -98,7 +98,7 @@ const CustomerManagement: React.FC = () => {
             onClick={() => {
               if (info.getValue()) {
                 const token = getToken()
-                fetch(`http://127.0.0.1:5000/customers/cnic-front-image/${info.row.original.id}`, {
+                fetch(`https://mbanet.com.pk/api/customers/cnic-front-image/${info.row.original.id}`, {
                   method: "GET",
                   headers: {
                     Authorization: `Bearer ${token}`,
@@ -133,7 +133,7 @@ const CustomerManagement: React.FC = () => {
             onClick={() => {
               if (info.getValue()) {
                 const token = getToken()
-                fetch(`http://127.0.0.1:5000/customers/cnic-back-image/${info.row.original.id}`, {
+                fetch(`https://mbanet.com.pk/api/customers/cnic-back-image/${info.row.original.id}`, {
                   method: "GET",
                   headers: {
                     Authorization: `Bearer ${token}`,
