@@ -17,9 +17,9 @@ interface Customer {
   installation_address: string
   service_plan: string
   isp: string
-  splitter: string
-  equipment_owned_by: string
   connection_type: string
+  internet_connection_type: string | null
+  tv_cable_connection_type: string | null
   installation_date: string | null
   is_active: boolean
   cnic: string
@@ -71,16 +71,16 @@ const CustomerManagement: React.FC = () => {
         accessorKey: "isp",
       },
       {
-        header: "Splitter",
-        accessorKey: "splitter",
-      },
-      {
-        header: "Equipment Owned By",
-        accessorKey: "equipment_owned_by",
-      },
-      {
         header: "Connection Type",
         accessorKey: "connection_type",
+      },
+      {
+        header: "Internet Connection Type",
+        accessorKey: "internet_connection_type",
+      },
+      {
+        header: "TV Cable Connection Type",
+        accessorKey: "tv_cable_connection_type",
       },
       {
         header: "Installation Date",
@@ -98,7 +98,7 @@ const CustomerManagement: React.FC = () => {
             onClick={() => {
               if (info.getValue()) {
                 const token = getToken()
-                fetch(`https://mbanet.com.pk/api/customers/cnic-front-image/${info.row.original.id}`, {
+                fetch(`http://127.0.0.1:5000/customers/cnic-front-image/${info.row.original.id}`, {
                   method: "GET",
                   headers: {
                     Authorization: `Bearer ${token}`,
@@ -133,7 +133,7 @@ const CustomerManagement: React.FC = () => {
             onClick={() => {
               if (info.getValue()) {
                 const token = getToken()
-                fetch(`https://mbanet.com.pk/api/customers/cnic-back-image/${info.row.original.id}`, {
+                fetch(`http://127.0.0.1:5000/customers/cnic-back-image/${info.row.original.id}`, {
                   method: "GET",
                   headers: {
                     Authorization: `Bearer ${token}`,
@@ -159,7 +159,7 @@ const CustomerManagement: React.FC = () => {
             {info.getValue() ? "View Back CNIC" : "No Image"}
           </button>
         ),
-      }
+      },
     ],
     [],
   )
