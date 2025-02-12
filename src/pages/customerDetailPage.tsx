@@ -2,7 +2,37 @@ import type React from "react"
 import { useState, useEffect } from "react"
 import { useParams } from "react-router-dom"
 import { getToken } from "../utils/auth.ts"
-import { ChevronDown, ChevronUp, User, Mail, MapPin, Calendar, Package, Home, AlertCircle, DollarSign, BarChart, PhoneCall, Clock, TrendingUp, CreditCard, Image, Hash, Phone, Globe, Share2, Box, Wifi, Ruler, PenToolIcon as Tool, Router, Cable, Disc, Tv } from 'lucide-react'
+import {
+  ChevronDown,
+  ChevronUp,
+  User,
+  Mail,
+  MapPin,
+  Calendar,
+  Package,
+  Home,
+  AlertCircle,
+  DollarSign,
+  BarChart,
+  PhoneCall,
+  Clock,
+  TrendingUp,
+  CreditCard,
+  Image,
+  Hash,
+  Phone,
+  Globe,
+  Share2,
+  Box,
+  Wifi,
+  Ruler,
+  PenToolIcon as Tool,
+  Router,
+  Cable,
+  Disc,
+  Tv,
+  FileText,
+} from "lucide-react"
 import axiosInstance from "../utils/axiosConfig.ts"
 import { Sidebar } from "../components/sideNavbar.tsx"
 import { Topbar } from "../components/topNavbar.tsx"
@@ -49,6 +79,8 @@ interface CustomerDetail {
   cnic: string
   cnic_front_image: string
   cnic_back_image: string
+  gps_coordinates: string | null
+  agreement_document: string | null
 }
 
 interface Invoice {
@@ -392,6 +424,48 @@ const CustomerDetail: React.FC = () => {
                             />
                           )}
                         </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start space-x-3">
+                      <MapPin className="w-5 h-5 text-[#89A8B2] mt-1" />
+                      <div>
+                        <p className="text-sm text-[#89A8B2] font-medium">GPS Coordinates</p>
+                        <p className="text-gray-700">{customer.gps_coordinates || 'N/A'}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start space-x-3">
+                      <FileText className="w-5 h-5 text-[#89A8B2] mt-1" />
+                      <div>
+                        <p className="text-sm text-[#89A8B2] font-medium">Agreement Document</p>
+                        {customer.agreement_document ? (
+                          <button
+                            onClick={() => {
+                              const token = getToken()
+                              fetch(`https://mbanet.com.pk/api/customers/agreement-document/${customer.id}`, {
+                                headers: { Authorization: `Bearer ${token}` },
+                              })
+                                .then((response) => response.blob())
+                                .then((blob) => {
+                                  const url = window.URL.createObjectURL(blob)
+                                  const a = document.createElement("a")
+                                  a.style.display = "none"
+                                  a.href = url
+                                  a.target = "_blank"
+                                  document.body.appendChild(a)
+                                  a.click()
+                                  window.URL.revokeObjectURL(url)
+                                })
+                                .catch((error) => console.error("Error:", error))
+                            }}
+                            className="px-2 py-1 bg-[#89A8B2] text-white text-sm rounded-md shadow-md hover:bg-[#B3C8CF] transition duration-300 ease-in-out transform hover:-translate-y-1 hover:scale-105"
+                          >
+                            View Agreement
+                          </button>
+                        ) : (
+                          <p className="text-gray-700">No agreement document available</p>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -880,159 +954,160 @@ const CustomerDetail: React.FC = () => {
               </div>
 
             {/* Support History Card */}
-<div className="bg-white rounded-xl shadow-lg overflow-hidden border border-[#B3C8CF] transition-all duration-300 hover:shadow-xl mb-8">
-  <div
-    className="flex justify-between items-center p-4 bg-gradient-to-r from-[#89A8B2] to-[#B3C8CF] cursor-pointer hover:bg-opacity-90 transition-colors"
-    onClick={() => toggleSection("complaints")}
-  >
-    <div className="flex items-center space-x-2">
-      <AlertCircle className="w-5 h-5 text-white" />
-      <h2 className="text-xl font-semibold text-white">Support History</h2>
-    </div>
-    {activeSection.includes("complaints") ? (
-      <ChevronUp className="w-5 h-5 text-white" />
-    ) : (
-      <ChevronDown className="w-5 h-5 text-white" />
-    )}
-  </div>
-
-  {activeSection.includes("complaints") && (
-    <div className="p-6 bg-gradient-to-br from-white to-[#F1F0E8] transition-all duration-300">
-      {complaints.length > 0 ? (
-        <div className="space-y-4">
-          {complaints.map((complaint) => (
-            <div
-              key={complaint.id}
-              className="bg-white p-4 rounded-lg border border-[#B3C8CF] hover:shadow-md transition-shadow"
-            >
-              <div className="flex justify-between items-start mb-2">
-                <h3 className="text-lg font-semibold text-[#89A8B2]">{complaint.title}</h3>
-                <span
-                  className={`px-2 py-1 rounded-full text-xs font-medium
-                  ${
-                    complaint.status === "Resolved"
-                      ? "bg-[#89A8B2] text-white"
-                      : "bg-[#E5E1DA] text-[#89A8B2]"
-                  }`}
-                >
-                  {complaint.status}
-                </span>
+            <div className="bg-white rounded-xl shadow-lg overflow-hidden border border-[#B3C8CF] transition-all duration-300 hover:shadow-xl mb-8">
+              <div
+                className="flex justify-between items-center p-4 bg-gradient-to-r from-[#89A8B2] to-[#B3C8CF] cursor-pointer hover:bg-opacity-90 transition-colors"
+                onClick={() => toggleSection("complaints")}
+              >
+                <div className="flex items-center space-x-2">
+                  <AlertCircle className="w-5 h-5 text-white" />
+                  <h2 className="text-xl font-semibold text-white">Support History</h2>
+                </div>
+                {activeSection.includes("complaints") ? (
+                  <ChevronUp className="w-5 h-5 text-white" />
+                ) : (
+                  <ChevronDown className="w-5 h-5 text-white" />
+                )}
               </div>
 
-              <p className="text-sm text-gray-500 mb-2">
-                Submitted: {new Date(complaint.created_at).toLocaleDateString()}
-              </p>
+              {activeSection.includes("complaints") && (
+                <div className="p-6 bg-gradient-to-br from-white to-[#F1F0E8] transition-all duration-300">
+                  {complaints.length > 0 ? (
+                    <div className="space-y-4">
+                      {complaints.map((complaint) => (
+                        <div
+                          key={complaint.id}
+                          className="bg-white p-4 rounded-lg border border-[#B3C8CF] hover:shadow-md transition-shadow"
+                        >
+                          <div className="flex justify-between items-start mb-2">
+                            <h3 className="text-lg font-semibold text-[#89A8B2]">{complaint.title}</h3>
+                            <span
+                              className={`px-2 py-1 rounded-full text-xs font-medium
+                              ${
+                                complaint.status === "Resolved"
+                                  ? "bg-[#89A8B2] text-white"
+                                  : "bg-[#E5E1DA] text-[#89A8B2]"
+                              }`}
+                            >
+                              {complaint.status}
+                            </span>
+                          </div>
 
-              <p className="text-gray-700 text-sm leading-relaxed">{complaint.description}</p>
+                          <p className="text-sm text-gray-500 mb-2">
+                            Submitted: {new Date(complaint.created_at).toLocaleDateString()}
+                          </p>
+
+                          <p className="text-gray-700 text-sm leading-relaxed">{complaint.description}</p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-gray-500">
+                      <AlertCircle className="w-12 h-12 text-[#B3C8CF] mx-auto mb-3" />
+                      <p>No support tickets found.</p>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
-          ))}
-        </div>
-      ) : (
-        <div className="text-center py-8 text-gray-500">
-          <AlertCircle className="w-12 h-12 text-[#B3C8CF] mx-auto mb-3" />
-          <p>No support tickets found.</p>
-        </div>
-      )}
-    </div>
-  )}
-</div>
 
-{/* Equipment Details Card */}
-<div className="bg-white rounded-xl shadow-lg overflow-hidden border border-[#B3C8CF] transition-all duration-300 hover:shadow-xl">
-  <div
-    className="flex justify-between items-center p-4 bg-gradient-to-r from-[#89A8B2] to-[#B3C8CF] cursor-pointer hover:bg-opacity-90 transition-colors"
-    onClick={() => toggleSection("equipment")}
-  >
-    <div className="flex items-center space-x-2">
-      <Tool className="w-5 h-5 text-white" />
-      <h2 className="text-xl font-semibold text-white">Equipment Details</h2>
-    </div>
-    {activeSection.includes("equipment") ? (
-      <ChevronUp className="w-5 h-5 text-white" />
-    ) : (
-      <ChevronDown className="w-5 h-5 text-white" />
-    )}
-  </div>
+            {/* Equipment Details Card */}
+            <div className="bg-white rounded-xl shadow-lg overflow-hidden border border-[#B3C8CF] transition-all duration-300 hover:shadow-xl">
+              <div
+                className="flex justify-between items-center p-4 bg-gradient-to-r from-[#89A8B2] to-[#B3C8CF] cursor-pointer hover:bg-opacity-90 transition-colors"
+                onClick={() => toggleSection("equipment")}
+              >
+                <div className="flex items-center space-x-2">
+                  <Tool className="w-5 h-5 text-white" />
+                  <h2 className="text-xl font-semibold text-white">Equipment Details</h2>
+                </div>
+                {activeSection.includes("equipment") ? (
+                  <ChevronUp className="w-5 h-5 text-white" />
+                ) : (
+                  <ChevronDown className="w-5 h-5 text-white" />
+                )}
+              </div>
 
-  {activeSection.includes("equipment") && (
-    <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6 bg-gradient-to-br from-white to-[#F1F0E8] transition-all duration-300">
-      <div className="flex items-start space-x-3">
-        <Router className="w-5 h-5 text-[#89A8B2] mt-1" />
-        <div>
-          <p className="text-sm text-[#89A8B2] font-medium">Router Details</p>
-          <p className="text-gray-700">Ownership: {customer.router_ownership || "N/A"}</p>
-          <p className="text-gray-700">Serial Number: {customer.router_serial_number || "N/A"}</p>
-        </div>
-      </div>
+              {activeSection.includes("equipment") && (
+                <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6 bg-gradient-to-br from-white to-[#F1F0E8] transition-all duration-300">
+                  <div className="flex items-start space-x-3">
+                    <Router className="w-5 h-5 text-[#89A8B2] mt-1" />
+                    <div>
+                      <p className="text-sm text-[#89A8B2] font-medium">Router Details</p>
+                      <p className="text-gray-700">Ownership: {customer.router_ownership || "N/A"}</p>
+                      <p className="text-gray-700">Serial Number: {customer.router_serial_number || "N/A"}</p>
+                    </div>
+                  </div>
 
-      <div className="flex items-start space-x-3">
-        <Cable className="w-5 h-5 text-[#89A8B2] mt-1" />
-        <div>
-          <p className="text-sm text-[#89A8B2] font-medium">Patch Cord Details</p>
-          <p className="text-gray-700">Ownership: {customer.patch_cord_ownership || "N/A"}</p>
-          <p className="text-gray-700">Count: {customer.patch_cord_count || "N/A"}</p>
-        </div>
-      </div>
+                  <div className="flex items-start space-x-3">
+                    <Cable className="w-5 h-5 text-[#89A8B2] mt-1" />
+                    <div>
+                      <p className="text-sm text-[#89A8B2] font-medium">Patch Cord Details</p>
+                      <p className="text-gray-700">Ownership: {customer.patch_cord_ownership || "N/A"}</p>
+                      <p className="text-gray-700">Count: {customer.patch_cord_count || "N/A"}</p>
+                    </div>
+                  </div>
 
-      <div className="flex items-start space-x-3">
-        <Box className="w-5 h-5 text-[#89A8B2] mt-1" />
-        <div>
-          <p className="text-sm text-[#89A8B2] font-medium">Splicing Box Details</p>
-          <p className="text-gray-700">Ownership: {customer.splicing_box_ownership || "N/A"}</p>
-          <p className="text-gray-700">Serial Number: {customer.splicing_box_serial_number || "N/A"}</p>
-        </div>
-      </div>
+                  <div className="flex items-start space-x-3">
+                    <Box className="w-5 h-5 text-[#89A8B2] mt-1" />
+                    <div>
+                      <p className="text-sm text-[#89A8B2] font-medium">Splicing Box Details</p>
+                      <p className="text-gray-700">Ownership: {customer.splicing_box_ownership || "N/A"}</p>
+                      <p className="text-gray-700">Serial Number: {customer.splicing_box_serial_number || "N/A"}</p>
+                    </div>
+                  </div>
 
-      <div className="flex items-start space-x-3">
-        <Cable className="w-5 h-5 text-[#89A8B2] mt-1" />
-        <div>
-          <p className="text-sm text-[#89A8B2] font-medium">Ethernet Cable Details</p>
-          <p className="text-gray-700">Ownership: {customer.ethernet_cable_ownership || "N/A"}</p>
-          <p className="text-gray-700">Length: {customer.ethernet_cable_length ? `${customer.ethernet_cable_length} meters` : "N/A"}</p>
-        </div>
-      </div>
+                  <div className="flex items-start space-x-3">
+                    <Cable className="w-5 h-5 text-[#89A8B2] mt-1" />
+                    <div>
+                      <p className="text-sm text-[#89A8B2] font-medium">Ethernet Cable Details</p>
+                      <p className="text-gray-700">Ownership: {customer.ethernet_cable_ownership || "N/A"}</p>
+                      <p className="text-gray-700">Length: {customer.ethernet_cable_length ? `${customer.ethernet_cable_length} meters` : "N/A"}</p>
+                    </div>
+                  </div>
 
-      <div className="flex items-start space-x-3">
-        <Disc className="w-5 h-5 text-[#89A8B2] mt-1" />
-        <div>
-          <p className="text-sm text-[#89A8B2] font-medium">Dish Details</p>
-          <p className="text-gray-700">Ownership: {customer.dish_ownership || "N/A"}</p>
-          <p className="text-gray-700">MAC Address: {customer.dish_mac_address || "N/A"}</p>
-        </div>
-      </div>
+                  <div className="flex items-start space-x-3">
+                    <Disc className="w-5 h-5 text-[#89A8B2] mt-1" />
+                    <div>
+                      <p className="text-sm text-[#89A8B2] font-medium">Dish Details</p>
+                      <p className="text-gray-700">Ownership: {customer.dish_ownership || "N/A"}</p>
+                      <p className="text-gray-700">MAC Address: {customer.dish_mac_address || "N/A"}</p>
+                    </div>
+                  </div>
 
-      <div className="flex items-start space-x-3">
-        <Tv className="w-5 h-5 text-[#89A8B2] mt-1" />
-        <div>
-          <p className="text-sm text-[#89A8B2] font-medium">TV Cable Details</p>
-          <p className="text-gray-700">Connection Type: {customer.tv_cable_connection_type || "N/A"}</p>
-        </div>
-      </div>
+                  <div className="flex items-start space-x-3">
+                    <Tv className="w-5 h-5 text-[#89A8B2] mt-1" />
+                    <div>
+                      <p className="text-sm text-[#89A8B2] font-medium">TV Cable Details</p>
+                      <p className="text-gray-700">Connection Type: {customer.tv_cable_connection_type || "N/A"}</p>
+                    </div>
+                  </div>
 
-      <div className="flex items-start space-x-3">
-        <Share2 className="w-5 h-5 text-[#89A8B2] mt-1" />
-        <div>
-          <p className="text-sm text-[#89A8B2] font-medium">Node Details</p>
-          <p className="text-gray-700">Count: {customer.node_count || "N/A"}</p>
-        </div>
-      </div>
+                  <div className="flex items-start space-x-3">
+                    <Share2 className="w-5 h-5 text-[#89A8B2] mt-1" />
+                    <div>
+                      <p className="text-sm text-[#89A8B2] font-medium">Node Details</p>
+                      <p className="text-gray-700">Count: {customer.node_count || "N/A"}</p>
+                    </div>
+                  </div>
 
-      <div className="flex items-start space-x-3">
-        <Box className="w-5 h-5 text-[#89A8B2] mt-1" />
-        <div>
-          <p className="text-sm text-[#89A8B2] font-medium">STB Details</p>
-          <p className="text-gray-700">Serial Number: {customer.stb_serial_number || "N/A"}</p>
-        </div>
-      </div>
-    </div>
-  )}
-</div>
+                  <div className="flex items-start space-x-3">
+                    <Box className="w-5 h-5 text-[#89A8B2] mt-1" />
+                    <div>
+                      <p className="text-sm text-[#89A8B2] font-medium">STB Details</p>
+                      <p className="text-gray-700">Serial Number: {customer.stb_serial_number || "N/A"}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
     </div>
-  </div>
-)
+    </div>
+  )
 }
 
 export default CustomerDetail
+

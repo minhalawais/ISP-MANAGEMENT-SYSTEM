@@ -1,89 +1,140 @@
-import React, { useMemo,useEffect } from 'react';
-import { ColumnDef } from '@tanstack/react-table';
-import { CRUDPage } from '../../components/crudPage.tsx';
-import { ComplaintForm } from '../../components/forms/complaintForm.tsx';
+"use client"
+
+import type React from "react"
+import { useMemo, useEffect } from "react"
+import type { ColumnDef } from "@tanstack/react-table"
+import { CRUDPage } from "../../components/complaintCrudPage.tsx"
+import { ComplaintForm } from "../../components/forms/complaintForm.tsx"
+import { useNavigate } from "react-router-dom"
+import { getToken } from "../../utils/auth.ts"
 
 interface Complaint {
-  id: string;
-  customer_name: string;
-  title: string;
-  description: string;
-  category: string;
-  status: 'open' | 'in_progress' | 'resolved' | 'closed';
-  priority: 'low' | 'medium' | 'high' | 'critical';
-  assigned_to_name: string;
-  created_at: string;
-  updated_at: string;
-  resolved_at: string | null;
-  response_due_date: string | null;
-  satisfaction_rating: number | null;
-  resolution_attempts: number;
-  attachment_path: string | null;
-  feedback_comments: string | null;
-  is_active: boolean;
+  id: string
+  customer_name: string
+  description: string
+  status: "open" | "in_progress" | "resolved" | "closed"
+  assigned_to_name: string
+  created_at: string
+  response_due_date: string | null
+  is_active: boolean
+  remarks: string
+  attachment_path: string | null
 }
 
 const ComplaintManagement: React.FC = () => {
+  const navigate = useNavigate()
+
   useEffect(() => {
-    document.title = "MBA NET - Complaint Management";
-  }, []);
+    document.title = "MBA NET - Complaint Management"
+  }, [])
+
   const columns = useMemo<ColumnDef<Complaint>[]>(
     () => [
       {
-        header: 'Customer',
-        accessorKey: 'customer_name',
+        header: "Ticket #",
+        accessorKey: "ticket_number",
       },
       {
-        header: 'Title',
-        accessorKey: 'title',
+        header: "Internet ID",
+        accessorKey: "internet_id",
       },
       {
-        header: 'Category',
-        accessorKey: 'category',
+        header: "Customer",
+        accessorKey: "customer_name",
       },
       {
-        header: 'Status',
-        accessorKey: 'status',
-        cell: info => (
-          <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-            ${info.getValue() === 'open' ? 'bg-yellow-100 text-yellow-800' : 
-              info.getValue() === 'in_progress' ? 'bg-blue-100 text-blue-800' : 
-              info.getValue() === 'resolved' ? 'bg-green-100 text-green-800' : 
-              'bg-gray-100 text-gray-800'}`}>
+        header: "Phone No",
+        accessorKey: "phone_number",
+      },
+      {
+        header: "Description",
+        accessorKey: "description",
+      },
+      {
+        header: "Status",
+        accessorKey: "status",
+        cell: (info) => (
+          <span
+            className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+            ${
+              info.getValue() === "open"
+                ? "bg-yellow-100 text-yellow-800"
+                : info.getValue() === "in_progress"
+                  ? "bg-blue-100 text-blue-800"
+                  : info.getValue() === "resolved"
+                    ? "bg-green-100 text-green-800"
+                    : "bg-gray-100 text-gray-800"
+            }`}
+          >
             {info.getValue() as string}
           </span>
         ),
       },
       {
-        header: 'Priority',
-        accessorKey: 'priority',
-        cell: info => (
-          <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-            ${info.getValue() === 'low' ? 'bg-green-100 text-green-800' : 
-              info.getValue() === 'medium' ? 'bg-yellow-100 text-yellow-800' : 
-              info.getValue() === 'high' ? 'bg-orange-100 text-orange-800' : 
-              'bg-red-100 text-red-800'}`}>
+        header: "Assigned To",
+        accessorKey: "assigned_to_name",
+      },
+      {
+        header: "Created At",
+        accessorKey: "created_at",
+        cell: (info) => new Date(info.getValue() as string).toLocaleString(),
+      },
+      {
+        header: "Due Date",
+        accessorKey: "response_due_date",
+        cell: (info) => (info.getValue() ? new Date(info.getValue() as string).toLocaleString() : "N/A"),
+      },
+      {
+        header: "Remarks",
+        accessorKey: "remarks",
+        cell: (info) => (
+          <span className="truncate max-w-xs" title={info.getValue() as string}>
             {info.getValue() as string}
           </span>
         ),
       },
       {
-        header: 'Assigned To',
-        accessorKey: 'assigned_to_name',
-      },
-      {
-        header: 'Created At',
-        accessorKey: 'created_at',
-        cell: info => new Date(info.getValue() as string).toLocaleString(),
-      },
-      {
-        header: 'Due Date',
-        accessorKey: 'response_due_date',
-        cell: info => info.getValue() ? new Date(info.getValue() as string).toLocaleString() : 'N/A',
+        header: "Attachment",
+        accessorKey: "attachment_path",
+        cell: (info: any) => (
+          <button
+            onClick={() => {
+              if (info.getValue()) {
+                const token = getToken()
+                fetch(`https://mbanet.com.pk/api/complaints/attachment/${info.row.original.id}`, {
+                  method: "GET",
+                  headers: {
+                    Authorization: `Bearer ${token}`,
+                  },
+                })
+                .then((response) => response.blob())
+                .then((blob) => {
+                  const url = window.URL.createObjectURL(blob)
+                  const a = document.createElement("a")
+                  a.style.display = "none"
+                  a.href = url
+                  a.target = "_blank"
+                  document.body.appendChild(a)
+                  a.click()
+                  window.URL.revokeObjectURL(url)
+                })
+                .catch((error) => console.error("Error:", error))
+              }
+            }}
+            className="px-2 py-1 bg-[#89A8B2] text-white text-sm rounded-md shadow-md hover:bg-[#B3C8CF] transition duration-300 ease-in-out transform hover:-translate-y-1 hover:scale-105"
+            disabled={!info.getValue()}
+          >
+            {info.getValue() ? "View Attachment" : "No Attachment"}
+          </button>
+        ),
       },
     ],
-    []
-  );
+    [],
+  )
+
+  const handleAddNew = () => {
+    navigate("/complaints/new")
+  }
 
   return (
     <CRUDPage<Complaint>
@@ -91,9 +142,10 @@ const ComplaintManagement: React.FC = () => {
       endpoint="complaints"
       columns={columns}
       FormComponent={ComplaintForm}
+      onAddNew={handleAddNew}
     />
-  );
-};
+  )
+}
 
-export default ComplaintManagement;
+export default ComplaintManagement
 

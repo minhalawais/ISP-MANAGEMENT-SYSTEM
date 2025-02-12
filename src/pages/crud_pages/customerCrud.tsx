@@ -25,6 +25,8 @@ interface Customer {
   cnic: string
   cnic_front_image: string | null
   cnic_back_image: string | null
+  gps_coordinates: string | null
+  agreement_document: string | null
 }
 
 const CustomerManagement: React.FC = () => {
@@ -89,6 +91,10 @@ const CustomerManagement: React.FC = () => {
       {
         header: "CNIC",
         accessorKey: "cnic",
+      },
+      {
+        header: "GPS Coordinates",
+        accessorKey: "gps_coordinates",
       },
       {
         header: "CNIC Front Image",
@@ -157,6 +163,42 @@ const CustomerManagement: React.FC = () => {
             disabled={!info.getValue()}
           >
             {info.getValue() ? "View Back CNIC" : "No Image"}
+          </button>
+        ),
+      },
+      {
+        header: "Agreement Document",
+        accessorKey: "agreement_document",
+        cell: (info: any) => (
+          <button
+            onClick={() => {
+              if (info.getValue()) {
+                const token = getToken()
+                fetch(`https://mbanet.com.pk/api/customers/agreement-document/${info.row.original.id}`, {
+                  method: "GET",
+                  headers: {
+                    Authorization: `Bearer ${token}`,
+                  },
+                })
+                .then((response) => response.blob())
+                .then((blob) => {
+                  console.log('blob',blob)
+                  const url = window.URL.createObjectURL(blob)
+                  const a = document.createElement("a")
+                  a.style.display = "none"
+                  a.href = url
+                  a.target = "_blank"
+                  document.body.appendChild(a)
+                  a.click()
+                  window.URL.revokeObjectURL(url)
+                })
+                .catch((error) => console.error("Error:", error))
+              }
+            }}
+            className="px-2 py-1 bg-[#89A8B2] text-white text-sm rounded-md shadow-md hover:bg-[#B3C8CF] transition duration-300 ease-in-out transform hover:-translate-y-1 hover:scale-105"
+            disabled={!info.getValue()}
+          >
+            {info.getValue() ? "View Agreement" : "No Agreement"}
           </button>
         ),
       },

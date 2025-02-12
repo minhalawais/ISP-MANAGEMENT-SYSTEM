@@ -30,8 +30,10 @@ import EmployeePaymentManagement from "./pages/employee_portal/crud_pages/paymen
 import EmployeeInventoryManagement from "./pages/employee_portal/crud_pages/inventoryCrud.tsx"
 import EmployeeInvoiceManagement from "./pages/employee_portal/crud_pages/invoiceCrud.tsx"
 import ISPManagement from "./pages/crud_pages/ispCrud.tsx"
-
+import NewComplaintPage from "./pages/ComplaintFormPage.tsx"
+import TicketDisplayPage from "./pages/TicketDisplayPage.tsx"
 import "./styles/toastStyles.css"
+
 const PrivateRoute: React.FC<{ element: React.ReactElement }> = ({ element }) => {
   const isAuthenticated = !!localStorage.getItem("token")
   return isAuthenticated ? element : <Navigate to="/login" />
@@ -49,6 +51,8 @@ const App: React.FC = () => {
         <Route path="/customer-management" element={<PrivateRoute element={<CustomerManagement />} />} />
         <Route path="/service-plan-management" element={<PrivateRoute element={<ServicePlanManagement />} />} />
         <Route path="/complaint-management" element={<PrivateRoute element={<ComplaintManagement />} />} />
+        <Route path="/complaints/new" element={<PrivateRoute element={<NewComplaintPage />} />} />
+        <Route path="/complaints/ticket/:ticketNumber" element={<PrivateRoute element={<TicketDisplayPage />} />} />
         <Route path="/inventory-management" element={<PrivateRoute element={<InventoryManagement />} />} />
         <Route path="/supplier-management" element={<PrivateRoute element={<SupplierManagement />} />} />
         <Route path="/area-zone-management" element={<PrivateRoute element={<AreaZoneManagement />} />} />
