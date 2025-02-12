@@ -1,12 +1,12 @@
-from flask import jsonify, request, send_file
+from flask import jsonify, request, send_file,current_app
 from flask_jwt_extended import jwt_required, get_jwt, get_jwt_identity
 from . import main
 from ..crud import customer_crud
 from werkzeug.utils import secure_filename
 import os
 
-ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
-UPLOAD_FOLDER = 'uploads\cnic_images'
+UPLOAD_FOLDER = os.path.join(current_app.root_path, 'uploads/cnic_images')
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'pdf'}
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 
 def allowed_file(filename):
@@ -60,6 +60,19 @@ def add_new_customer():
             return jsonify({'error': 'Invalid file format for CNIC back image'}), 400
     else:
         data['cnic_back_image'] = None
+    
+    if 'agreement_document' in request.files:
+        file = request.files['agreement_document']
+        if file and allowed_file(file.filename):
+            filename = secure_filename(f"{data['first_name']}_{data['cnic']}_agreement.{file.filename.rsplit('.', 1)[1].lower()}")
+            file_path = os.path.join(UPLOAD_FOLDER, filename)
+            os.makedirs(os.path.dirname(file_path), exist_ok=True)
+            file.save(file_path)
+            data['agreement_document'] = file_path
+        else:
+            return jsonify({'error': 'Invalid file format for agreement document'}), 400
+    else:
+        data['agreement_document'] = None
     
     try:
         new_customer = customer_crud.add_customer(data, user_role, current_user_id, ip_address, user_agent, company_id)
@@ -167,8 +180,24 @@ def get_cnic_back_image(id):
     if customer and customer.cnic_back_image:
         cnic_image_path = os.path.join(PROJECT_ROOT, customer.cnic_back_image)
         if os.path.exists(cnic_image_path):
+            print('Document : ',cnic_image_path)
             return send_file(cnic_image_path, mimetype='image/jpeg')
         else:
             return jsonify({'error': 'CNIC back image file not found'}), 404
     return jsonify({'error': 'CNIC back image not found'}), 404
+
+@main.route('/customers/agreement-document/<string:id>', methods=['GET'])
+@jwt_required()
+def get_agreement_document(id):
+    claims = get_jwt()
+    company_id = claims['company_id']
+    customer = customer_crud.get_customer_details(id, company_id)
+    if customer and customer['agreement_document']:
+        agreement_document_path = os.path.join(PROJECT_ROOT, customer['agreement_document'])
+        if os.path.exists(agreement_document_path):
+            print('Document : ',agreement_document_path)
+            return send_file(agreement_document_path, mimetype='image/jpeg')
+        else:
+            return jsonify({'error': 'Agreement document file not found'}), 404
+    return jsonify({'error': 'Agreement document not found'}), 404
 

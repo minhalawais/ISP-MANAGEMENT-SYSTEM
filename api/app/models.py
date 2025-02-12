@@ -132,6 +132,8 @@ class Customer(db.Model):
     recharge_date = db.Column(db.Date)
     miscellaneous_details = db.Column(db.Text)
     miscellaneous_charges = db.Column(db.Float)
+    gps_coordinates = db.Column(db.String(50))
+    agreement_document = db.Column(db.String(255))
 
     company = relationship('Company', back_populates='customers')
     area = relationship('Area', back_populates='customers')
@@ -187,21 +189,26 @@ class Complaint(db.Model):
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     customer_id = db.Column(UUID(as_uuid=True), db.ForeignKey('customers.id'))
     assigned_to = db.Column(UUID(as_uuid=True), db.ForeignKey('users.id'))
-    title = db.Column(db.String(255), nullable=False)
     description = db.Column(db.Text)
-    category = db.Column(db.String(50))
     status = db.Column(complaint_status, nullable=False, default='open')
-    priority = db.Column(ENUM('low', 'medium', 'high', 'critical', name='priority_level'), default='medium')
     created_at = db.Column(db.TIMESTAMP(timezone=True), server_default=db.func.current_timestamp())
     updated_at = db.Column(db.TIMESTAMP(timezone=True), server_default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())
     resolved_at = db.Column(db.TIMESTAMP(timezone=True))
-    response_due_date = db.Column(db.DateTime)  # SLA compliance
+    response_due_date = db.Column(db.DateTime)
     satisfaction_rating = db.Column(db.Integer)
     resolution_attempts = db.Column(db.Integer, default=0)
     attachment_path = db.Column(db.String(255))
     feedback_comments = db.Column(db.Text)
     is_active = db.Column(db.Boolean, default=True)
-    resolution_proof = db.Column(db.String(255)) 
+    resolution_proof = db.Column(db.String(255))
+    ticket_number = db.Column(db.String(50), unique=True, nullable=False)
+    remarks = db.Column(db.Text) #Added remarks field
+
+    customer = db.relationship('Customer', backref=db.backref('complaints', lazy=True))
+    assigned_user = db.relationship('User', backref=db.backref('assigned_complaints', lazy=True))
+
+    def __repr__(self):
+        return f'<Complaint {self.id}>'
 
 
 
