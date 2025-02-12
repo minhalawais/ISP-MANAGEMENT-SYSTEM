@@ -1,17 +1,19 @@
+"use client"
+
 import type React from "react"
 import { useState, useEffect, useMemo } from "react"
-import axios from "axios"
-import { CSVLink } from "react-csv"
 import type { ColumnDef } from "@tanstack/react-table"
-import { FaPlus, FaFileExport, FaPen, FaTrash, FaEye } from "react-icons/fa"
+import { FaPlus, FaPen, FaTrash } from "react-icons/fa"
 import { Table } from "./table/table.tsx"
-import { Modal } from "./customerModal.tsx"
+import { Modal } from "./modal.tsx"
 import { Topbar } from "./topNavbar.tsx"
 import { Sidebar } from "./sideNavbar.tsx"
 import { getToken } from "../utils/auth.ts"
-import { toast, ToastContainer } from "react-toastify"
-import "react-toastify/dist/ReactToastify.css"
+import { toast } from "react-toastify"
 import axiosInstance from "../utils/axiosConfig.ts"
+import { CredentialsModal } from "./modals/CredentialsModal.tsx"
+import { useNavigate } from "react-router-dom"
+import { ComplaintForm } from "./forms/complaintForm.tsx" // Import ComplaintForm
 
 interface CRUDPageProps<T> {
   title: string
@@ -25,6 +27,7 @@ interface CRUDPageProps<T> {
   }>
   onDataChange?: () => void
   validateBeforeSubmit?: (formData: Partial<T>) => string | null
+  onAddNew?: () => void
 }
 
 export function CRUDPage<T extends { id: string; is_active?: boolean }>({
@@ -34,38 +37,105 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
   FormComponent,
   onDataChange,
   validateBeforeSubmit,
+  onAddNew,
 }: CRUDPageProps<T>) {
   const [data, setData] = useState<T[]>([])
   const [isModalVisible, setIsModalVisible] = useState(false)
   const [editingItem, setEditingItem] = useState<T | null>(null)
   const [formData, setFormData] = useState<Partial<T>>({})
-  const [searchTerm, setSearchTerm] = useState("")
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+  const [selectedRows, setSelectedRows] = useState<string[]>([])
   const [isLoading, setIsLoading] = useState(false)
-
-  useEffect(() => {
-    fetchData()
-  }, [])
+  const [showCredentialsModal, setShowCredentialsModal] = useState(false)
+  const [newEmployeeCredentials, setNewEmployeeCredentials] = useState<{
+    username: string
+    password: string
+    email: string
+  } | null>(null)
+  const navigate = useNavigate()
 
   const fetchData = async () => {
+    setIsLoading(true)
     try {
       const token = getToken()
-      const response = await axios.get(`https://mbanet.com.pk/api/${endpoint}/list`, {
+      const response = await axiosInstance.get(`https://mbanet.com.pk/api/${endpoint}/list`, {
         headers: { Authorization: `Bearer ${token}` },
       })
       setData(response.data)
+      if (onDataChange) {
+        onDataChange()
+      }
     } catch (error) {
       console.error(`Failed to fetch ${title}`, error)
       toast.error(`Failed to fetch ${title}`, {
+        style: { background: "#F1F0E8", color: "#B3C8CF" },
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchData()
+  }, []) // Added dependency array to fix the useEffect hook
+
+  const handleToggleStatus = async (id: string, currentStatus: boolean) => {
+    try {
+      const token = getToken()
+      await axiosInstance.put(
+        `https://mbanet.com.pk/api/${endpoint}/update/${id}`,
+        { is_active: !currentStatus },
+        { headers: { Authorization: `Bearer ${token}` } },
+      )
+      toast.success(`${title} status updated successfully`, {
+        style: { background: "#E5E1DA", color: "#89A8B2" },
+      })
+      await fetchData()
+    } catch (error) {
+      console.error(`Failed to update ${title} status`, error)
+      toast.error(`Failed to update ${title} status`, {
+        style: { background: "#F1F0E8", color: "#B3C8CF" },
+      })
+    }
+  }
+
+  const handleBulkStatusChange = async (newStatus: boolean) => {
+    try {
+      const token = getToken()
+      await Promise.all(
+        selectedRows.map((id) =>
+          axiosInstance.put(
+            `https://mbanet.com.pk/api/${endpoint}/update/${id}`,
+            { is_active: newStatus },
+            { headers: { Authorization: `Bearer ${token}` } },
+          ),
+        ),
+      )
+      toast.success(`${title} status updated successfully`, {
+        style: { background: "#E5E1DA", color: "#89A8B2" },
+      })
+      await fetchData()
+      setSelectedRows([])
+    } catch (error) {
+      console.error(`Failed to update ${title} status`, error)
+      toast.error(`Failed to update ${title} status`, {
         style: { background: "#F1F0E8", color: "#B3C8CF" },
       })
     }
   }
 
   const showModal = (item: T | null) => {
-    setEditingItem(item)
-    setFormData(item || {})
-    setIsModalVisible(true)
+    if (item) {
+      setEditingItem(item)
+      setFormData(item)
+      setIsModalVisible(true)
+    } else if (onAddNew) {
+      onAddNew()
+    } else {
+      setEditingItem(null)
+      setFormData({})
+      setIsModalVisible(true)
+    }
   }
 
   const handleCancel = () => {
@@ -84,7 +154,7 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
       Object.keys(formData).forEach((key) => {
         if (formData[key] != null) {
           if (
-            (key === "cnic_front_image" || key === "cnic_back_image" || key === "agreement_document") &&
+            (key === "attachment") &&
             formData[key] instanceof File
           ) {
             formDataToSend.append(key, formData[key], formData[key].name)
@@ -142,7 +212,7 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
         toast.success(`${title} deleted successfully`, {
           style: { background: "#E5E1DA", color: "#89A8B2" },
         })
-        fetchData()
+        await fetchData()
       } catch (error) {
         console.error("Delete operation failed", error)
         toast.error("Delete operation failed", {
@@ -152,37 +222,9 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
     }
   }
 
-  const handleToggleStatus = async (id: string, currentStatus: boolean) => {
-    try {
-      const token = getToken()
-      await axiosInstance.patch(
-        `https://mbanet.com.pk/api/${endpoint}/toggle-status/${id}`,
-        {},
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        },
-      )
-      toast.success(`${title} status updated successfully`, {
-        style: { background: "#E5E1DA", color: "#89A8B2" },
-      })
-      fetchData()
-    } catch (error) {
-      console.error("Toggle status failed", error)
-      toast.error(`Failed to update ${title} status`, {
-        style: { background: "#F1F0E8", color: "#B3C8CF" },
-      })
-    }
-  }
-
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
-  }
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setFormData((prev) => ({ ...prev, [e.target.name]: e.target.files![0] }))
-    }
   }
 
   const toggleSidebar = () => {
@@ -218,17 +260,11 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
             <button onClick={() => handleDelete(info.row.original.id)} className="text-red-600 hover:text-red-900">
               <FaTrash />
             </button>
-            <button
-              onClick={() => (window.location.href = `/customers/${info.row.original.id}`)}
-              className="text-blue-600 hover:text-blue-900"
-            >
-              <FaEye />
-            </button>
           </div>
         ),
       },
     ]
-  }, [columns, handleDelete, handleToggleStatus, showModal])
+  }, [columns])
 
   return (
     <div className="flex h-screen bg-gray-100">
@@ -240,22 +276,38 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
         >
           <div className="container mx-auto">
             <h1 className="text-4xl font-bold text-center text-[#8b5cf6] mb-8">{title} Management</h1>
-            <div className="flex justify-end mb-4 space-x-4">
+            <div className="flex justify-between mb-4">
+              <div className="space-x-2">
+                <button
+                  onClick={() => handleBulkStatusChange(true)}
+                  disabled={selectedRows.length === 0}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+                >
+                  Activate Selected
+                </button>
+                <button
+                  onClick={() => handleBulkStatusChange(false)}
+                  disabled={selectedRows.length === 0}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+                >
+                  Deactivate Selected
+                </button>
+              </div>
               <button
                 onClick={() => showModal(null)}
                 className="bg-[#8b5cf6] text-white px-4 py-2 rounded-lg hover:bg-[#7c3aed] transition duration-300 flex items-center"
               >
                 <FaPlus className="mr-2" /> Add New {title}
               </button>
-              <CSVLink
-                data={data}
-                filename={`${title.toLowerCase()}.csv`}
-                className="bg-yellow-500 text-white px-4 py-2 rounded-lg hover:bg-yellow-600 transition duration-300 flex items-center"
-              >
-                <FaFileExport className="mr-2" /> Export to CSV
-              </CSVLink>
             </div>
-            <Table data={data} columns={memoizedColumns} />
+            <Table
+              data={data}
+              columns={memoizedColumns}
+              selectedRows={selectedRows}
+              setSelectedRows={setSelectedRows}
+              handleToggleStatus={handleToggleStatus}
+              isLoading={isLoading}
+            />
           </div>
         </main>
       </div>
@@ -266,12 +318,7 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
         isLoading={isLoading}
       >
         <form onSubmit={handleSubmit}>
-          <FormComponent
-            formData={formData}
-            handleInputChange={handleInputChange}
-            handleFileChange={handleFileChange}
-            isEditing={!!editingItem}
-          />
+          <FormComponent formData={formData} handleInputChange={handleInputChange} isEditing={!!editingItem} />
           <div className="mt-4 flex justify-end">
             <button
               type="submit"
@@ -311,19 +358,120 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
           </div>
         </form>
       </Modal>
-      <ToastContainer
-        position="top-right"
-        autoClose={5000}
-        hideProgressBar={false}
-        newestOnTop={false}
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        theme="light"
-      />
+      {newEmployeeCredentials && (
+        <CredentialsModal
+          isVisible={showCredentialsModal}
+          onClose={() => setShowCredentialsModal(false)}
+          credentials={newEmployeeCredentials}
+        />
+      )}
     </div>
   )
 }
+
+interface Complaint {
+  id: string
+  customer_name: string
+  description: string
+  status: "open" | "in_progress" | "resolved" | "closed"
+  assigned_to_name: string
+  created_at: string
+  response_due_date: string | null
+  is_active: boolean
+  remarks: string
+  attachment_path: string | null
+}
+
+const ComplaintManagement: React.FC = () => {
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    document.title = "MBA NET - Complaint Management"
+  }, [])
+
+  const columns = useMemo<ColumnDef<Complaint>[]>(
+    () => [
+      {
+        header: "Customer Name",
+        accessorKey: "customer_name",
+      },
+      {
+        header: "Description",
+        accessorKey: "description",
+      },
+      {
+        header: "Status",
+        accessorKey: "status",
+      },
+      {
+        header: "Assigned To",
+        accessorKey: "assigned_to_name",
+      },
+      {
+        header: "Created At",
+        accessorKey: "created_at",
+      },
+      {
+        header: "Response Due Date",
+        accessorKey: "response_due_date",
+      },
+      {
+        header: "Remarks",
+        accessorKey: "remarks",
+      },
+      {
+        header: "Attachment",
+        accessorKey: "attachment_path",
+        cell: (info: any) => (
+          <button
+            onClick={() => {
+              if (info.getValue()) {
+                const token = getToken()
+                fetch(`https://mbanet.com.pk/api/complaints/attachment/${info.row.original.id}`, {
+                  method: "GET",
+                  headers: {
+                    Authorization: `Bearer ${token}`,
+                  },
+                })
+                  .then((response) => response.blob())
+                  .then((blob) => {
+                    const url = window.URL.createObjectURL(blob)
+                    const a = document.createElement("a")
+                    a.style.display = "none"
+                    a.href = url
+                    a.download = `complaint_attachment_${info.row.original.id}`
+                    document.body.appendChild(a)
+                    a.click()
+                    window.URL.revokeObjectURL(url)
+                  })
+                  .catch((error) => console.error("Error:", error))
+              }
+            }}
+            className="px-2 py-1 bg-[#89A8B2] text-white text-sm rounded-md shadow-md hover:bg-[#B3C8CF] transition duration-300 ease-in-out transform hover:-translate-y-1 hover:scale-105"
+            disabled={!info.getValue()}
+          >
+            {info.getValue() ? "View Attachment" : "No Attachment"}
+          </button>
+        ),
+      },
+    ],
+    [],
+  )
+
+  const handleAddNew = () => {
+    navigate("/complaints/new")
+  }
+
+  return (
+    <CRUDPage<Complaint>
+      title="Complaint"
+      endpoint="complaints"
+      columns={columns}
+      FormComponent={ComplaintForm}
+      onAddNew={handleAddNew}
+    />
+  )
+}
+
+export default ComplaintManagement
 
