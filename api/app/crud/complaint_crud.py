@@ -1,3 +1,5 @@
+import random
+import string
 from app import db
 from app.models import Complaint, Customer, User
 import uuid
@@ -5,6 +7,8 @@ from sqlalchemy.exc import SQLAlchemyError
 import logging
 from sqlalchemy import and_
 from datetime import datetime
+from sqlalchemy import func
+
 logger = logging.getLogger(__name__)
 
 def get_all_complaints(company_id, user_role, employee_id=None):
@@ -25,12 +29,12 @@ def get_all_complaints(company_id, user_role, employee_id=None):
             assigned_user = User.query.get(complaint.assigned_to)
             result.append({
                 'id': str(complaint.id),
+                'internet_id': customer.internet_id,
                 'customer_name': f"{customer.first_name} {customer.last_name}" if customer else "Unknown",
+                'phone_number': customer.phone_1,
                 'customer_id': str(customer.id) if customer else None,
-                'title': complaint.title,
                 'description': complaint.description,
                 'status': complaint.status,
-                'priority': complaint.priority,
                 'response_due_date': complaint.response_due_date.isoformat() if complaint.response_due_date else None,
                 'attachment_path': complaint.attachment_path,
                 'feedback_comments': complaint.feedback_comments,
@@ -38,7 +42,8 @@ def get_all_complaints(company_id, user_role, employee_id=None):
                 'assigned_to_name': f"{assigned_user.first_name} {assigned_user.last_name}" if assigned_user else "Unassigned",
                 'created_at': complaint.created_at.isoformat(),
                 'is_active': complaint.is_active,
-                'category': complaint.category
+                'ticket_number': complaint.ticket_number,
+                'remarks': complaint.remarks,
             })
         return result
     except SQLAlchemyError as e:
@@ -47,25 +52,49 @@ def get_all_complaints(company_id, user_role, employee_id=None):
 
 def add_complaint(data, company_id, user_role, current_user_id, ip_address, user_agent):
     try:
+        # Generate ticket numbe
         new_complaint = Complaint(
             customer_id=uuid.UUID(data['customer_id']),
-            title=data['title'],
             description=data['description'],
             status='open',
-            priority=data.get('priority', 'medium'),
             response_due_date=data.get('response_due_date'),
             attachment_path=data.get('attachment_path'),
             assigned_to=uuid.UUID(data['assigned_to']) if data.get('assigned_to') else None,
-            category=data.get('category')
+            ticket_number=data.get('ticket_number'),
+            remarks=data.get('remarks'),
         )
         db.session.add(new_complaint)
         db.session.commit()
-        return new_complaint
+        return new_complaint, data.get('ticket_number')
     except SQLAlchemyError as e:
         print('Error:', e)
         logger.error(f"Error adding complaint: {e}")
         db.session.rollback()
-        return None
+        return None, None
+
+def generate_ticket_number(customer_id):
+    # Get the current date
+    now = datetime.now()
+    date_part = now.strftime("%y%m%d")  # Format as YYMMDD
+
+    # Extract the last 3 digits of the customer ID
+    customer_id_part = str(customer_id)[-3:]
+
+    # Query the database to count how many complaints the customer has made today
+    complaint_count = (
+        db.session.query(func.count(Complaint.id))
+        .filter(Complaint.customer_id == customer_id)
+        .filter(func.date(Complaint.created_at) == now.date())
+        .scalar()
+    )
+
+    # Add 1 to the count to get the sequence number for the new complaint
+    sequence_number = complaint_count + 1
+
+    # Combine the parts to create the ticket number
+    ticket_number = f"TKT-{date_part}-{customer_id_part}-{sequence_number:02d}"
+
+    return ticket_number
 
 def update_complaint(id, data, company_id, user_role, current_user_id=None):
     try:
@@ -99,10 +128,8 @@ def update_complaint(id, data, company_id, user_role, current_user_id=None):
             return {"error": "Complaint not found or insufficient permissions."}
 
         # Validate and update fields
-        complaint.title = data.get('title', complaint.title)
         complaint.description = data.get('description', complaint.description)
         complaint.status = data.get('status', complaint.status)
-        complaint.priority = data.get('priority', complaint.priority)
 
         # Handle date fields and validate if required
         response_due_date = data.get('response_due_date')
@@ -114,6 +141,7 @@ def update_complaint(id, data, company_id, user_role, current_user_id=None):
 
         complaint.attachment_path = data.get('attachment_path', complaint.attachment_path)
         complaint.feedback_comments = data.get('feedback_comments', complaint.feedback_comments)
+        complaint.remarks = data.get('remarks', complaint.remarks)
 
         # Validate and update UUIDs
         assigned_to = data.get('assigned_to')
@@ -177,3 +205,14 @@ def delete_complaint(id, company_id, user_role):
         logger.error(f"Error deleting complaint: {e}")
         db.session.rollback()
         return False
+    
+
+def get_complaint_attachment(id, company_id):
+    try:
+        complaint = Complaint.query.join(Customer).filter(
+            and_(Complaint.id == id, Customer.company_id == company_id)
+        ).first()
+        return complaint
+    except Exception as e:
+        print(f"Error getting complaint attachment: {e}")
+        return None

@@ -250,15 +250,6 @@ def get_service_support_metrics(company_id):
 
         status_distribution = {status: count for status, count in status_counts}
 
-        # Complaint Categories
-        category_counts = db.session.query(
-            Complaint.category, func.count(Complaint.id)
-        ).join(Customer).filter(
-            Customer.company_id == company_id
-        ).group_by(Complaint.category).all()
-
-        category_distribution = [{'category': category, 'count': count} for category, count in category_counts]
-
         # Average Resolution Time (in hours)
         avg_resolution_time = db.session.query(
             func.avg(Complaint.resolved_at - Complaint.created_at)
@@ -284,23 +275,21 @@ def get_service_support_metrics(company_id):
         # Support Ticket Volume (last 30 days)
         ticket_volume = len(complaints)
 
-        # Priority Distribution
-        priority_counts = db.session.query(
-            Complaint.priority, func.count(Complaint.id)
-        ).join(Customer).filter(
-            Customer.company_id == company_id
-        ).group_by(Complaint.priority).all()
-
-        priority_distribution = [{'priority': priority, 'count': count} for priority, count in priority_counts]
+        # Remarks Summary (last 5 non-empty remarks)
+        remarks_summary = db.session.query(Complaint.remarks).join(Customer).filter(
+            Customer.company_id == company_id,
+            Complaint.remarks != None,
+            Complaint.remarks != ''
+        ).order_by(Complaint.created_at.desc()).limit(5).all()
+        remarks_summary = [remark[0] for remark in remarks_summary]
 
         return {
             'status_distribution': status_distribution,
-            'category_distribution': category_distribution,
-            'priority_distribution': priority_distribution,
             'average_resolution_time': avg_resolution_time,
             'customer_satisfaction_rate': satisfaction_rate,
             'first_contact_resolution_rate': fcr_rate,
-            'support_ticket_volume': ticket_volume
+            'support_ticket_volume': ticket_volume,
+            'remarks_summary': remarks_summary
         }
     except Exception as e:
         print(f"Error fetching service support metrics: {e}")

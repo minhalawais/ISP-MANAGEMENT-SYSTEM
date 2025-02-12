@@ -6,6 +6,7 @@ from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 import logging
 from datetime import datetime
 from flask import jsonify
+from sqlalchemy import or_
 
 logger = logging.getLogger(__name__)
 
@@ -43,12 +44,30 @@ def get_all_customers(company_id, user_role, employee_id):
             'is_active': customer.is_active,
             'cnic': customer.cnic,
             'cnic_front_image': customer.cnic_front_image,
-            'cnic_back_image': customer.cnic_back_image
+            'cnic_back_image': customer.cnic_back_image,
+            'gps_coordinates': customer.gps_coordinates,
+            'agreement_document': customer.agreement_document
         })
     return result
 
+def format_phone_number(phone):
+    """Format phone number by removing all non-numeric characters."""
+    if not phone:
+        return None
+    # Remove all non-digit characters
+    cleaned = ''.join(filter(str.isdigit, str(phone)))
+    # Remove '92' from start if it exists
+    if cleaned.startswith('92'):
+        cleaned = cleaned[2:]
+    # Ensure the number starts with '92'
+    return f"92{cleaned}"
+
 def add_customer(data, user_role, current_user_id, ip_address, user_agent, company_id):
     try:
+        # Format phone numbers before saving
+        phone_1 = format_phone_number(data['phone_1'])
+        phone_2 = format_phone_number(data.get('phone_2')) if data.get('phone_2') else None
+
         new_customer = Customer(
             company_id=uuid.UUID(data['company_id']),
             area_id=data['area_id'],
@@ -57,8 +76,8 @@ def add_customer(data, user_role, current_user_id, ip_address, user_agent, compa
             last_name=data['last_name'],
             email=data['email'],
             internet_id=data['internet_id'],
-            phone_1=data['phone_1'],
-            phone_2=data.get('phone_2'),
+            phone_1=phone_1,
+            phone_2=phone_2,
             installation_address=data['installation_address'],
             installation_date=data['installation_date'],
             isp_id=data['isp_id'],
@@ -90,7 +109,9 @@ def add_customer(data, user_role, current_user_id, ip_address, user_agent, compa
             is_active=True,
             cnic=data['cnic'],
             cnic_front_image=data['cnic_front_image'],
-            cnic_back_image=data['cnic_back_image']
+            cnic_back_image=data['cnic_back_image'],
+            gps_coordinates=data.get('gps_coordinates'),
+            agreement_document=data.get('agreement_document')
         )
         db.session.add(new_customer)
         db.session.commit()
@@ -164,7 +185,9 @@ def update_customer(id, data, company_id, user_role, current_user_id, ip_address
         'is_active': customer.is_active,
         'cnic': customer.cnic,
         'cnic_front_image': customer.cnic_front_image,
-        'cnic_back_image': customer.cnic_back_image
+        'cnic_back_image': customer.cnic_back_image,
+        'gps_coordinates': customer.gps_coordinates,
+        'agreement_document': customer.agreement_document
     }
 
     for key, value in data.items():
@@ -430,6 +453,8 @@ def get_customer_details(id, company_id):
             'cnic': customer.cnic,
             'cnic_front_image': customer.cnic_front_image,
             'cnic_back_image': customer.cnic_back_image,
+            'gps_coordinates': customer.gps_coordinates,
+            'agreement_document': customer.agreement_document,
             'financialMetrics': {
                 'totalAmountPaid': float(total_amount_paid) if total_amount_paid is not None else 0,
                 'averageMonthlyPayment': float(avg_monthly_payment) if avg_monthly_payment is not None else 0,
@@ -527,3 +552,27 @@ def get_customer_cnic(id, company_id):
             return None
     return None
 
+
+
+def search_customer(company_id, search_term):
+    customer = Customer.query.filter(
+        Customer.company_id == company_id,
+        or_(
+            Customer.phone_1.ilike(f'%{search_term}%'),
+            Customer.phone_2.ilike(f'%{search_term}%'),
+            Customer.internet_id.ilike(f'%{search_term}%')
+        )
+    ).first()
+
+    if customer:
+        return {
+            'id': str(customer.id),
+            'first_name': customer.first_name,
+            'last_name': customer.last_name,
+            'internet_id': customer.internet_id,
+            'phone_1': customer.phone_1,
+            'phone_2': customer.phone_2,
+            'installation_address': customer.installation_address,
+            'gps_coordinates': customer.gps_coordinates
+        }
+    return None
