@@ -1,7 +1,7 @@
-import React, { useMemo } from 'react';
+import React, { useMemo,useEffect } from 'react';
 import { ColumnDef } from '@tanstack/react-table';
-import { CRUDPage } from '../../components/crudPage.tsx';
-import { AreaZoneForm } from '../../components/forms/areaZoneForm.tsx';
+import { CRUDPage } from '../../../components/employee_portal/crudPage.tsx';
+import { AreaZoneForm } from '../../../components/employee_portal/forms/areaZoneForm.tsx';
 
 interface AreaZone {
   id: string;
@@ -11,6 +11,9 @@ interface AreaZone {
 }
 
 const AreaZoneManagement: React.FC = () => {
+  useEffect(() => {
+    document.title = "MBA NET - Are Management";
+  }, []);
   const columns = useMemo<ColumnDef<AreaZone>[]>(
     () => [
       {
