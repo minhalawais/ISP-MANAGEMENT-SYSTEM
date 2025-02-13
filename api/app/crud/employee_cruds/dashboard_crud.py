@@ -1,3 +1,5 @@
+# dashboard_crud.py
+
 from sqlalchemy import func
 from datetime import datetime, timedelta
 from ...models import User, Complaint, Task, InventoryAssignment, InventoryTransaction
@@ -43,7 +45,7 @@ def get_recent_complaints(employee_id, limit=3):
         complaints = Complaint.query.filter_by(assigned_to=employee_id).order_by(Complaint.created_at.desc()).limit(limit).all()
         return [{
             'id': str(c.id),
-            'title': c.title,
+            'description': c.description,  # Changed 'title' to 'description'
             'customer': f"{c.customer.first_name} {c.customer.last_name}",
             'status': c.status
         } for c in complaints]
