@@ -79,16 +79,10 @@ export const menuItems = [
     path: '/messaging'
   },
   { 
-    title: 'Reports', 
-    icon: BarChart2,
-    description: 'Generate and view reports',
-    path: '/reports'
-  },
-  { 
     title: 'Profile Management', 
     icon: User,
     description: 'Manage your profile and settings',
-    path: '/profile-management'
+    path: '/profile'
   }
 ];
 

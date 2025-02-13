@@ -4,8 +4,8 @@ import { ColumnDef } from '@tanstack/react-table';
 import { FaPlus, FaFileExport, FaPen, FaTrash } from 'react-icons/fa';
 import { Table } from './table/table.tsx'
 import { Modal } from '../modal.tsx';
-import { Topbar } from './TopNavbar.tsx';
-import { Sidebar } from './SideNavbar.tsx';
+import { Topbar } from "./TopNavbar.tsx"
+import { Sidebar } from "./SideNavbar.tsx"
 import { getToken } from '../../utils/auth.ts';
 import { toast } from 'react-toastify';
 import axiosInstance from '../../utils/axiosConfig.ts';
