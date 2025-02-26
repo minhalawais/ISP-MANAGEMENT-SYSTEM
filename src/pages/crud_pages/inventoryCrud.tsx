@@ -11,20 +11,16 @@ import { FaExchangeAlt, FaUsersCog } from "react-icons/fa"
 
 interface InventoryItem {
   id: string
-  name: string
-  description: string
-  serial_number: string
-  status: string
-  supplier_id: string
-  supplier_name: string
-  is_splitter: boolean
-  splitter_number?: string
-  splitter_type?: string
-  port_count?: number
   item_type: string
   quantity: number
+  vendor: string
+  vendor_name: string
   unit_price?: number
   is_active: boolean
+  company_id: string
+  attributes: any
+  created_at?: string
+  updated_at?: string
 }
 
 const InventoryManagement: React.FC = () => {
@@ -37,7 +33,7 @@ const InventoryManagement: React.FC = () => {
     const fetchSuppliers = async () => {
       try {
         const token = getToken()
-        const response = await axiosInstance.get("https://mbanet.com.pk/api/suppliers/list", {
+        const response = await axiosInstance.get("http://127.0.0.1:5000/suppliers/list", {
           headers: { Authorization: `Bearer ${token}` },
         })
         setSuppliers(response.data)
@@ -53,37 +49,80 @@ const InventoryManagement: React.FC = () => {
   const columns = useMemo<ColumnDef<InventoryItem>[]>(
     () => [
       {
-        header: "Name",
-        accessorKey: "name",
-      },
-      {
-        header: "Description",
-        accessorKey: "description",
-      },
-      {
-        header: "Serial Number",
-        accessorKey: "serial_number",
-      },
-      {
-        header: "Status",
-        accessorKey: "status",
-      },
-      {
-        header: "Supplier",
-        accessorKey: "supplier_name",
-      },
-      {
-        header: "Type",
+        header: "Item Type",
         accessorKey: "item_type",
+      },
+      {
+        header: "Details",
+        cell: ({ row }) => {
+          const item = row.original
+          const attributes = item.attributes || {}
+          
+          switch (item.item_type) {
+            case "Fiber Cable":
+              return "Fiber Cable"
+            case "EtherNet Cable":
+              return `Type: ${attributes.type || 'N/A'}`
+            case "Splitters":
+              return "Splitter"
+            case "ONT":
+            case "ONU":
+            case "Router":
+            case "STB":
+              return (
+                <div>
+                  <div>Serial: {attributes.serial_number || 'N/A'}</div>
+                  <div>Type: {attributes.type || 'N/A'}</div>
+                  <div>Model: {attributes.model || 'N/A'}</div>
+                </div>
+              )
+            case "Fibe OPTIC Patch Cord":
+            case "Ethernet Patch Cord":
+              return `Type: ${attributes.type || 'N/A'}`
+            case "Switches":
+              return `Type: ${attributes.type || 'N/A'}`
+            case "Node":
+              return `Type: ${attributes.type || 'N/A'}`
+            case "Dish":
+              return (
+                <div>
+                  <div>MAC: {attributes.mac_address || 'N/A'}</div>
+                  <div>Type: {attributes.type || 'N/A'}</div>
+                </div>
+              )
+            case "Adopter":
+              return (
+                <div>
+                  <div>Volt: {attributes.volt || 'N/A'}</div>
+                  <div>Amp: {attributes.amp || 'N/A'}</div>
+                </div>
+              )
+            case "Cable Ties":
+              return (
+                <div>
+                  <div>Type: {attributes.type || 'N/A'}</div>
+                  <div>Model: {attributes.model || 'N/A'}</div>
+                </div>
+              )
+            case "Others":
+              return "Other Item"
+            default:
+              return "N/A"
+          }
+        },
       },
       {
         header: "Quantity",
         accessorKey: "quantity",
       },
       {
+        header: "Vendor",
+        accessorKey: "vendor_name",
+      },
+      {
         header: "Unit Price",
         accessorKey: "unit_price",
-        cell: ({ row }) => (row.original.unit_price ? `$${row.original.unit_price.toFixed(2)}` : "N/A"),
+        cell: ({ row }) => (row.original.unit_price ? `PKR${row.original.unit_price.toFixed(2)}` : "N/A"),
       },
       {
         header: "Transactions",
@@ -118,24 +157,33 @@ const InventoryManagement: React.FC = () => {
   )
 
   const validateBeforeSubmit = (formData: Partial<InventoryItem>) => {
-    if (!formData.name || formData.name.trim() === "") {
-      return "Item name is required"
-    }
-    if (!formData.serial_number || formData.serial_number.trim() === "") {
-      return "Serial number is required"
-    }
-    if (!formData.status) {
-      return "Status is required"
-    }
-    if (!formData.supplier_id) {
-      return "Supplier is required"
-    }
     if (!formData.item_type) {
       return "Item type is required"
+    }
+    if (!formData.vendor) {
+      return "Vendor is required"
     }
     if (formData.quantity == null || formData.quantity < 1) {
       return "Quantity must be at least 1"
     }
+    
+    // Validate type-specific required fields
+    const attributes = formData.attributes || {}
+    
+    if (formData.item_type === 'EtherNet Cable' && !attributes.type) {
+      return "Cable type is required"
+    }
+    
+    if (['ONT', 'ONU', 'Router', 'STB'].includes(formData.item_type || '')) {
+      if (!attributes.serial_number) {
+        return "Serial number is required"
+      }
+    }
+    
+    if (formData.item_type === 'Dish' && !attributes.mac_address) {
+      return "MAC address is required"
+    }
+    
     return null
   }
 
@@ -167,4 +215,3 @@ const InventoryManagement: React.FC = () => {
 }
 
 export default InventoryManagement
-

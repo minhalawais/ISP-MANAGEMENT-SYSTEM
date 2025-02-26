@@ -17,7 +17,7 @@ const ForgotPasswordPage: React.FC = () => {
     setError("")
 
     try {
-      const response = await axios.post("https://mbanet.com.pk/api/auth/forgot-password", { email })
+      const response = await axios.post("http://127.0.0.1:5000/auth/forgot-password", { email })
       setMessage(response.data.message)
     } catch (err) {
       setError("An error occurred. Please try again.")
