@@ -52,10 +52,10 @@ const EmployeeDashboard: React.FC = () => {
       const headers = { Authorization: `Bearer ${token}` }
 
       const [statsResponse, complaintsResponse, tasksResponse, transactionsResponse] = await Promise.all([
-        axiosInstance.get("http://127.0.0.1:5000/employee/dashboard/stats", { headers }),
-        axiosInstance.get("http://127.0.0.1:5000/employee/dashboard/recent_complaints", { headers }),
-        axiosInstance.get("http://127.0.0.1:5000/employee/dashboard/pending_tasks", { headers }),
-        axiosInstance.get("http://127.0.0.1:5000/employee/dashboard/recent_inventory_transactions", { headers }),
+        axiosInstance.get("http://mbanet.com.pk/api/employee/dashboard/stats", { headers }),
+        axiosInstance.get("http://mbanet.com.pk/api/employee/dashboard/recent_complaints", { headers }),
+        axiosInstance.get("http://mbanet.com.pk/api/employee/dashboard/pending_tasks", { headers }),
+        axiosInstance.get("http://mbanet.com.pk/api/employee/dashboard/recent_inventory_transactions", { headers }),
       ])
       console.log("Stats:", statsResponse.data)
       setStats(statsResponse.data)
@@ -75,7 +75,7 @@ const EmployeeDashboard: React.FC = () => {
     try {
       const token = getToken()
       await axiosInstance.patch(
-        `http://127.0.0.1:5000/tasks/${taskId}`,
+        `http://mbanet.com.pk/api/tasks/${taskId}`,
         { status: "completed" },
         {
           headers: { Authorization: `Bearer ${token}` },

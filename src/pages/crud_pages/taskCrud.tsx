@@ -38,7 +38,7 @@ const TaskManagement: React.FC = () => {
     const fetchEmployees = async () => {
       try {
         const token = getToken();
-        const response = await axiosInstance.get('http://127.0.0.1:5000/employees/list', {
+        const response = await axiosInstance.get('http://mbanet.com.pk/api/employees/list', {
           headers: { Authorization: `Bearer ${token}` }
         });
         setEmployees(response.data);

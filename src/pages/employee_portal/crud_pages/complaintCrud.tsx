@@ -101,7 +101,7 @@ const ComplaintManagement: React.FC = () => {
             onClick={() => {
               if (info.getValue()) {
                 const token = getToken()
-                fetch(`http://127.0.0.1:5000/complaints/attachment/${info.row.original.id}`, {
+                fetch(`http://mbanet.com.pk/api/complaints/attachment/${info.row.original.id}`, {
                   method: "GET",
                   headers: {
                     Authorization: `Bearer ${token}`,
