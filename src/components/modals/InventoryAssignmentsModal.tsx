@@ -1,3 +1,5 @@
+"use client"
+
 import type React from "react"
 import { useState, useEffect } from "react"
 import { Modal } from "../modal.tsx"
@@ -7,7 +9,8 @@ import { toast } from "react-toastify"
 
 interface InventoryAssignment {
   id: string
-  inventory_item_name: string
+  inventory_item_id: string
+  inventory_item_type: string
   assigned_to_customer: string | null
   assigned_to_employee: string | null
   assigned_at: string
@@ -46,7 +49,7 @@ export const InventoryAssignmentsModal: React.FC<InventoryAssignmentsModalProps>
     try {
       const token = getToken()
       const response = await axiosInstance.get(
-        `https://mbanet.com.pk/api/inventory/assignments?inventory_item_id=${inventoryItemId}`,
+        `http://127.0.0.1:5000/inventory/assignments?inventory_item_id=${inventoryItemId}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         },
@@ -61,7 +64,7 @@ export const InventoryAssignmentsModal: React.FC<InventoryAssignmentsModalProps>
   const fetchCustomers = async () => {
     try {
       const token = getToken()
-      const response = await axiosInstance.get("https://mbanet.com.pk/api/customers/list", {
+      const response = await axiosInstance.get("http://127.0.0.1:5000/customers/list", {
         headers: { Authorization: `Bearer ${token}` },
       })
       setCustomers(
@@ -79,7 +82,7 @@ export const InventoryAssignmentsModal: React.FC<InventoryAssignmentsModalProps>
   const fetchEmployees = async () => {
     try {
       const token = getToken()
-      const response = await axiosInstance.get("https://mbanet.com.pk/api/employees/list", {
+      const response = await axiosInstance.get("http://127.0.0.1:5000/employees/list", {
         headers: { Authorization: `Bearer ${token}` },
       })
       setEmployees(
@@ -104,7 +107,7 @@ export const InventoryAssignmentsModal: React.FC<InventoryAssignmentsModalProps>
     try {
       const token = getToken()
       await axiosInstance.post(
-        "https://mbanet.com.pk/api/inventory/assignments/add",
+        "http://127.0.0.1:5000/inventory/assignments/add",
         { ...newAssignment, inventory_item_id: inventoryItemId },
         { headers: { Authorization: `Bearer ${token}` } },
       )
@@ -121,7 +124,7 @@ export const InventoryAssignmentsModal: React.FC<InventoryAssignmentsModalProps>
     try {
       const token = getToken()
       await axiosInstance.put(
-        `https://mbanet.com.pk/api/inventory/assignments/return/${assignmentId}`,
+        `http://127.0.0.1:5000/inventory/assignments/return/${assignmentId}`,
         {},
         {
           headers: { Authorization: `Bearer ${token}` },

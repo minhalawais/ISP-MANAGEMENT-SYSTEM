@@ -136,11 +136,11 @@ export const RecoveryCollections: React.FC = () => {
         <div className="grid grid-cols-4 gap-4">
           <div className="bg-[#89A8B2] p-4 rounded-lg text-white">
             <h4 className="text-sm font-medium">Total Recovered</h4>
-            <p className="text-2xl font-bold">${metrics.totalRecovered.toLocaleString()}</p>
+            <p className="text-2xl font-bold">PKR{metrics.totalRecovered.toLocaleString()}</p>
           </div>
           <div className="bg-[#B3C8CF] p-4 rounded-lg text-white">
             <h4 className="text-sm font-medium">Total Outstanding</h4>
-            <p className="text-2xl font-bold">${metrics.totalOutstanding.toLocaleString()}</p>
+            <p className="text-2xl font-bold">PKR{metrics.totalOutstanding.toLocaleString()}</p>
           </div>
           <div className="bg-[#E5E1DA] p-4 rounded-lg">
             <h4 className="text-sm font-medium">Recovery Rate</h4>

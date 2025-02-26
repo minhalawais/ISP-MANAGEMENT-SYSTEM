@@ -37,7 +37,7 @@ export const ExecutiveSummary: React.FC = () => {
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        const response = await axiosInstance.get('https://mbanet.com.pk/api/dashboard/executive-summary', {
+        const response = await axiosInstance.get('http://127.0.0.1:5000/dashboard/executive-summary', {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
           }
@@ -114,11 +114,11 @@ export const ExecutiveSummary: React.FC = () => {
         </div>
         <div className="bg-green-100 p-4 rounded-lg">
           <h4 className="text-sm font-medium text-green-800">Monthly Recurring Revenue</h4>
-          <p className="text-2xl font-bold text-green-900">${dashboardData.monthly_recurring_revenue.toFixed(2)}</p>
+          <p className="text-2xl font-bold text-green-900">PKR{dashboardData.monthly_recurring_revenue.toFixed(2)}</p>
         </div>
         <div className="bg-yellow-100 p-4 rounded-lg">
           <h4 className="text-sm font-medium text-yellow-800">Outstanding Payments</h4>
-          <p className="text-2xl font-bold text-yellow-900">${dashboardData.outstanding_payments.toFixed(2)}</p>
+          <p className="text-2xl font-bold text-yellow-900">PKR{dashboardData.outstanding_payments.toFixed(2)}</p>
         </div>
         <div className="bg-red-100 p-4 rounded-lg">
           <h4 className="text-sm font-medium text-red-800">Active Complaints</h4>

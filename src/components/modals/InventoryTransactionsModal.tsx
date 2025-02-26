@@ -1,3 +1,5 @@
+"use client"
+
 import type React from "react"
 import { useState, useEffect } from "react"
 import { Modal } from "../modal.tsx"
@@ -12,7 +14,7 @@ interface InventoryTransaction {
   performed_by: string
   performed_at: string
   notes: string
-  unit_price: number | null
+  quantity: number
 }
 
 interface InventoryTransactionsModalProps {
@@ -30,20 +32,20 @@ export const InventoryTransactionsModal: React.FC<InventoryTransactionsModalProp
   const [newTransaction, setNewTransaction] = useState({
     transaction_type: "",
     notes: "",
-    quantity: "1",
+    quantity: 1,
   })
 
   useEffect(() => {
     if (isVisible) {
       fetchTransactions()
     }
-  }, [isVisible]) // Removed unnecessary dependency: inventoryItemId
+  }, [isVisible])
 
   const fetchTransactions = async () => {
     try {
       const token = getToken()
       const response = await axiosInstance.get(
-        `https://mbanet.com.pk/api/inventory/transactions?inventory_item_id=${inventoryItemId}`,
+        `http://127.0.0.1:5000/inventory/transactions?inventory_item_id=${inventoryItemId}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         },
@@ -57,7 +59,7 @@ export const InventoryTransactionsModal: React.FC<InventoryTransactionsModalProp
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
-    setNewTransaction((prev) => ({ ...prev, [name]: value }))
+    setNewTransaction((prev) => ({ ...prev, [name]: name === "quantity" ? Number.parseInt(value) : value }))
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -65,18 +67,18 @@ export const InventoryTransactionsModal: React.FC<InventoryTransactionsModalProp
     try {
       const token = getToken()
       await axiosInstance.post(
-        "https://mbanet.com.pk/api/inventory/transactions/add",
+        "http://127.0.0.1:5000/inventory/transactions/add",
         {
           inventory_item_id: inventoryItemId,
           transaction_type: newTransaction.transaction_type,
-          quantity: Number.parseInt(newTransaction.quantity),
+          quantity: newTransaction.quantity,
           notes: newTransaction.notes,
         },
         { headers: { Authorization: `Bearer ${token}` } },
       )
       toast.success("Transaction added successfully")
       fetchTransactions()
-      setNewTransaction({ transaction_type: "", notes: "", quantity: "1" })
+      setNewTransaction({ transaction_type: "", notes: "", quantity: 1 })
     } catch (error) {
       console.error("Failed to add inventory transaction", error)
       toast.error("Failed to add inventory transaction")
@@ -142,7 +144,7 @@ export const InventoryTransactionsModal: React.FC<InventoryTransactionsModalProp
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Unit Price
+                Quantity
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Notes</th>
             </tr>
@@ -153,9 +155,7 @@ export const InventoryTransactionsModal: React.FC<InventoryTransactionsModalProp
                 <td className="px-6 py-4 whitespace-nowrap">{transaction.transaction_type}</td>
                 <td className="px-6 py-4 whitespace-nowrap">{transaction.performed_by}</td>
                 <td className="px-6 py-4 whitespace-nowrap">{new Date(transaction.performed_at).toLocaleString()}</td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  {transaction.unit_price ? `$${transaction.unit_price.toFixed(2)}` : "N/A"}
-                </td>
+                <td className="px-6 py-4 whitespace-nowrap">{transaction.quantity}</td>
                 <td className="px-6 py-4 whitespace-nowrap">{transaction.notes}</td>
               </tr>
             ))}

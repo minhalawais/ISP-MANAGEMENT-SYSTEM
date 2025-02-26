@@ -36,7 +36,7 @@ export const FinancialAnalytics: React.FC = () => {
   useEffect(() => {
     const fetchAnalyticsData = async () => {
       try {
-        const response = await axiosInstance.get('https://mbanet.com.pk/api/dashboard/financial-analytics', {
+        const response = await axiosInstance.get('http://127.0.0.1:5000/dashboard/financial-analytics', {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
           }
@@ -100,15 +100,15 @@ export const FinancialAnalytics: React.FC = () => {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
         <div className="bg-green-100 p-4 rounded-lg">
           <h4 className="text-sm font-medium text-green-800">Total Revenue</h4>
-          <p className="text-2xl font-bold text-green-900">${analyticsData.total_revenue.toFixed(2)}</p>
+          <p className="text-2xl font-bold text-green-900">PKR{analyticsData.total_revenue.toFixed(2)}</p>
         </div>
         <div className="bg-blue-100 p-4 rounded-lg">
           <h4 className="text-sm font-medium text-blue-800">Average Revenue per User</h4>
-          <p className="text-2xl font-bold text-blue-900">${analyticsData.avg_revenue_per_user.toFixed(2)}</p>
+          <p className="text-2xl font-bold text-blue-900">PKR{analyticsData.avg_revenue_per_user.toFixed(2)}</p>
         </div>
         <div className="bg-yellow-100 p-4 rounded-lg">
           <h4 className="text-sm font-medium text-yellow-800">Operating Expenses</h4>
-          <p className="text-2xl font-bold text-yellow-900">${analyticsData.operating_expenses.toFixed(2)}</p>
+          <p className="text-2xl font-bold text-yellow-900">PKR{analyticsData.operating_expenses.toFixed(2)}</p>
         </div>
         <div className="bg-purple-100 p-4 rounded-lg">
           <h4 className="text-sm font-medium text-purple-800">Net Profit Margin</h4>

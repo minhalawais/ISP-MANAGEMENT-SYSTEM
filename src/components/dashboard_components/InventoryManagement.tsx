@@ -42,7 +42,7 @@ export const InventoryManagement: React.FC = () => {
   useEffect(() => {
     const fetchInventoryData = async () => {
       try {
-        const response = await axiosInstance.get("https://mbanet.com.pk/api/dashboard/inventory-management", {
+        const response = await axiosInstance.get("http://127.0.0.1:5000/dashboard/inventory-management", {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
@@ -101,7 +101,7 @@ export const InventoryManagement: React.FC = () => {
           <div className="bg-blue-100 p-4 rounded-lg">
             <h4 className="text-sm font-medium text-blue-800">Total Inventory Value</h4>
             <p className="text-2xl font-bold text-blue-900">
-              ${inventoryData.inventory_metrics.total_inventory_value?.toLocaleString() ?? "N/A"}
+            PKR{inventoryData.inventory_metrics.total_inventory_value?.toLocaleString() ?? "N/A"}
             </p>
           </div>
           <div className="bg-green-100 p-4 rounded-lg">

@@ -38,7 +38,7 @@ export const AreaAnalysis: React.FC = () => {
   useEffect(() => {
     const fetchAnalyticsData = async () => {
       try {
-        const response = await axiosInstance.get('https://mbanet.com.pk/api/dashboard/area-analytics', {
+        const response = await axiosInstance.get('http://127.0.0.1:5000/dashboard/area-analytics', {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
           }
@@ -116,7 +116,7 @@ export const AreaAnalysis: React.FC = () => {
           </div>
           <div className="bg-[#B3C8CF] p-4 rounded-lg text-white">
             <h4 className="text-sm font-medium">Total Revenue</h4>
-            <p className="text-2xl font-bold">${analyticsData.metrics.totalRevenue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>
+            <p className="text-2xl font-bold">PKR{analyticsData.metrics.totalRevenue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>
           </div>
           <div className="bg-[#E5E1DA] p-4 rounded-lg">
             <h4 className="text-sm font-medium">Best Performing Area</h4>
@@ -124,7 +124,7 @@ export const AreaAnalysis: React.FC = () => {
           </div>
           <div className="bg-[#F1F0E8] p-4 rounded-lg">
             <h4 className="text-sm font-medium">Avg. Revenue per Customer</h4>
-            <p className="text-2xl font-bold">${analyticsData.metrics.avgRevenuePerCustomer.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>
+            <p className="text-2xl font-bold">PKR{analyticsData.metrics.avgRevenuePerCustomer.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>
           </div>
         </div>
       </div>

@@ -54,7 +54,7 @@ export const ServicePlanAnalytics: React.FC = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await axiosInstance.get<ServicePlanData>('https://mbanet.com.pk/api/dashboard/service-plan-analytics', {
+        const response = await axiosInstance.get<ServicePlanData>('http://127.0.0.1:5000/dashboard/service-plan-analytics', {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
           }
@@ -125,7 +125,7 @@ export const ServicePlanAnalytics: React.FC = () => {
           </div>
           <div className="bg-[#B3C8CF] p-4 rounded-lg text-white">
             <h4 className="text-sm font-medium">Total Revenue</h4>
-            <p className="text-2xl font-bold">${data.metrics.totalRevenue.toLocaleString()}</p>
+            <p className="text-2xl font-bold">PKR{data.metrics.totalRevenue.toLocaleString()}</p>
           </div>
           <div className="bg-[#E5E1DA] p-4 rounded-lg">
             <h4 className="text-sm font-medium">Most Popular Plan</h4>
