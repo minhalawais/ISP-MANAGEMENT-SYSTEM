@@ -19,7 +19,7 @@ const Login = () => {
     setIsLoading(true)
 
     try {
-      const response = await fetch("http://mbanet.com.pk/api/auth/login", {
+      const response = await fetch("https://mbanet.com.pk/api/auth/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

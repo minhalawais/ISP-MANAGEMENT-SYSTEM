@@ -17,7 +17,7 @@ const ResetPasswordPage: React.FC = () => {
   useEffect(() => {
     const validateToken = async () => {
       try {
-        await axios.get(`http://mbanet.com.pk/api/auth/reset-password/${token}`)
+        await axios.get(`https://mbanet.com.pk/api/auth/reset-password/${token}`)
       } catch (err) {
         setIsValidToken(false)
         if (axios.isAxiosError(err) && err.response) {
@@ -42,7 +42,7 @@ const ResetPasswordPage: React.FC = () => {
     setError("")
 
     try {
-      const response = await axios.post(`http://mbanet.com.pk/api/auth/reset-password/${token}`, { password })
+      const response = await axios.post(`https://mbanet.com.pk/api/auth/reset-password/${token}`, { password })
       setMessage(response.data.message)
       setTimeout(() => navigate("/login"), 3000)
     } catch (err) {

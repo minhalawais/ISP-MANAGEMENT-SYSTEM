@@ -5,7 +5,7 @@ import { toast } from 'react-toastify';
 import { removeToken } from './auth.ts';
 
 const axiosInstance = axios.create({
-  baseURL: 'http://mbanet.com.pk/api/',
+  baseURL: 'https://mbanet.com.pk/api/',
 });
 
 axiosInstance.interceptors.response.use(

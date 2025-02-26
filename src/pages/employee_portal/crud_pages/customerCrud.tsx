@@ -104,7 +104,7 @@ const CustomerManagement: React.FC = () => {
             onClick={() => {
               if (info.getValue()) {
                 const token = getToken()
-                fetch(`http://mbanet.com.pk/api/customers/cnic-front-image/${info.row.original.id}`, {
+                fetch(`https://mbanet.com.pk/api/customers/cnic-front-image/${info.row.original.id}`, {
                   method: "GET",
                   headers: {
                     Authorization: `Bearer ${token}`,
@@ -139,7 +139,7 @@ const CustomerManagement: React.FC = () => {
             onClick={() => {
               if (info.getValue()) {
                 const token = getToken()
-                fetch(`http://mbanet.com.pk/api/customers/cnic-back-image/${info.row.original.id}`, {
+                fetch(`https://mbanet.com.pk/api/customers/cnic-back-image/${info.row.original.id}`, {
                   method: "GET",
                   headers: {
                     Authorization: `Bearer ${token}`,
@@ -174,7 +174,7 @@ const CustomerManagement: React.FC = () => {
             onClick={() => {
               if (info.getValue()) {
                 const token = getToken()
-                fetch(`http://mbanet.com.pk/api/customers/agreement-document/${info.row.original.id}`, {
+                fetch(`https://mbanet.com.pk/api/customers/agreement-document/${info.row.original.id}`, {
                   method: "GET",
                   headers: {
                     Authorization: `Bearer ${token}`,

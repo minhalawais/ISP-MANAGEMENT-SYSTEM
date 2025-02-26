@@ -37,12 +37,12 @@ const RecoveryTaskManagement: React.FC = () => {
     const fetchData = async () => {
       const token = getToken();
       try {
-        const invoicesResponse = await axiosInstance.get('http://mbanet.com.pk/api/invoices/list', {
+        const invoicesResponse = await axiosInstance.get('https://mbanet.com.pk/api/invoices/list', {
           headers: { Authorization: `Bearer ${token}` }
         });
         setInvoices(invoicesResponse.data);
 
-        const employeesResponse = await axiosInstance.get('http://mbanet.com.pk/api/employees/list', {
+        const employeesResponse = await axiosInstance.get('https://mbanet.com.pk/api/employees/list', {
           headers: { Authorization: `Bearer ${token}` }
         });
         setEmployees(employeesResponse.data);

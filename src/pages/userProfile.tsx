@@ -21,7 +21,7 @@ const UserProfile: React.FC = () => {
   const fetchUserData = async () => {
     try {
       const token = getToken();
-      const response = await axiosInstance.get('http://mbanet.com.pk/api/user/profile', {
+      const response = await axiosInstance.get('https://mbanet.com.pk/api/user/profile', {
         headers: {
           Authorization: `Bearer ${token}`
         }

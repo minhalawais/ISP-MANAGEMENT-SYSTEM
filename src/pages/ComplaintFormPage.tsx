@@ -44,7 +44,7 @@ const NewComplaintPage: React.FC = () => {
     })
     try {
       const token = getToken()
-      const response = await axiosInstance.post(`http://mbanet.com.pk/api/complaints/add`, formDataToSend, {
+      const response = await axiosInstance.post(`https://mbanet.com.pk/api/complaints/add`, formDataToSend, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "multipart/form-data",
@@ -68,7 +68,7 @@ const NewComplaintPage: React.FC = () => {
     try {
       const token = getToken()
       const response = await axiosInstance.get(
-        `http://mbanet.com.pk/api/complaints/search-customer?search_term=${searchTerm}`,
+        `https://mbanet.com.pk/api/complaints/search-customer?search_term=${searchTerm}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         },
