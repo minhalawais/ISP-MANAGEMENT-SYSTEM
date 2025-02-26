@@ -19,7 +19,7 @@ export function InvoiceForm({ formData, handleInputChange, isEditing }: InvoiceF
   const fetchCustomers = async () => {
     try {
       const token = getToken();
-      const response = await axiosInstance.get('http://mbanet.com.pk/api/customers/list', {
+      const response = await axiosInstance.get('https://mbanet.com.pk/api/customers/list', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setCustomers(response.data.map((customer: any) => ({ 

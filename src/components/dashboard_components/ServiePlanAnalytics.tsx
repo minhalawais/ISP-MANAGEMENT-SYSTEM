@@ -54,7 +54,7 @@ export const ServicePlanAnalytics: React.FC = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await axiosInstance.get<ServicePlanData>('http://mbanet.com.pk/api/dashboard/service-plan-analytics', {
+        const response = await axiosInstance.get<ServicePlanData>('https://mbanet.com.pk/api/dashboard/service-plan-analytics', {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
           }

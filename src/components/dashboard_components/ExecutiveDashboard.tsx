@@ -37,7 +37,7 @@ export const ExecutiveSummary: React.FC = () => {
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        const response = await axiosInstance.get('http://mbanet.com.pk/api/dashboard/executive-summary', {
+        const response = await axiosInstance.get('https://mbanet.com.pk/api/dashboard/executive-summary', {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
           }

@@ -45,7 +45,7 @@ export const InventoryTransactionsModal: React.FC<InventoryTransactionsModalProp
     try {
       const token = getToken()
       const response = await axiosInstance.get(
-        `http://mbanet.com.pk/api/inventory/transactions?inventory_item_id=${inventoryItemId}`,
+        `https://mbanet.com.pk/api/inventory/transactions?inventory_item_id=${inventoryItemId}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         },
@@ -67,7 +67,7 @@ export const InventoryTransactionsModal: React.FC<InventoryTransactionsModalProp
     try {
       const token = getToken()
       await axiosInstance.post(
-        "http://mbanet.com.pk/api/inventory/transactions/add",
+        "https://mbanet.com.pk/api/inventory/transactions/add",
         {
           inventory_item_id: inventoryItemId,
           transaction_type: newTransaction.transaction_type,

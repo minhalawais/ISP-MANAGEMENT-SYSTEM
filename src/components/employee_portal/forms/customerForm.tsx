@@ -48,12 +48,12 @@ export function CustomerForm({
       const token = getToken()
       try {
         const [areasResponse, servicePlansResponse, ispsResponse, inventoryResponse] = await Promise.all([
-          axiosInstance.get("http://mbanet.com.pk/api/areas/list", { headers: { Authorization: `Bearer ${token}` } }),
-          axiosInstance.get("http://mbanet.com.pk/api/service-plans/list", {
+          axiosInstance.get("https://mbanet.com.pk/api/areas/list", { headers: { Authorization: `Bearer ${token}` } }),
+          axiosInstance.get("https://mbanet.com.pk/api/service-plans/list", {
             headers: { Authorization: `Bearer ${token}` },
           }),
-          axiosInstance.get("http://mbanet.com.pk/api/isps/list", { headers: { Authorization: `Bearer ${token}` } }),
-          axiosInstance.get("http://mbanet.com.pk/api/inventory/list", { headers: { Authorization: `Bearer ${token}` } }),
+          axiosInstance.get("https://mbanet.com.pk/api/isps/list", { headers: { Authorization: `Bearer ${token}` } }),
+          axiosInstance.get("https://mbanet.com.pk/api/inventory/list", { headers: { Authorization: `Bearer ${token}` } }),
         ])
         setAreas(areasResponse.data)
         setServicePlans(servicePlansResponse.data)
@@ -746,7 +746,7 @@ export function CustomerForm({
           name="cnic_front_image"
           onChange={memoizedHandleFileChange}
           currentImage={
-            formData.cnic_front_image ? `http://mbanet.com.pk/api/customers/cnic-front-image/${formData.id}` : undefined
+            formData.cnic_front_image ? `https://mbanet.com.pk/api/customers/cnic-front-image/${formData.id}` : undefined
           }
         />
         <FileUploadField
@@ -754,7 +754,7 @@ export function CustomerForm({
           name="cnic_back_image"
           onChange={memoizedHandleFileChange}
           currentImage={
-            formData.cnic_back_image ? `http://mbanet.com.pk/api/customers/cnic-back-image/${formData.id}` : undefined
+            formData.cnic_back_image ? `https://mbanet.com.pk/api/customers/cnic-back-image/${formData.id}` : undefined
           }
         />
         <FileUploadField
@@ -763,7 +763,7 @@ export function CustomerForm({
           onChange={memoizedHandleFileChange}
           currentDocument={
             formData.agreement_document
-              ? `http://mbanet.com.pk/api/customers/agreement-document/${formData.id}`
+              ? `https://mbanet.com.pk/api/customers/agreement-document/${formData.id}`
               : undefined
           }
         />
