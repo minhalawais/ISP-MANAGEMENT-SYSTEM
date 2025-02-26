@@ -112,6 +112,8 @@ def return_inventory_assignment(assignment_id):
         if returned_assignment:
             return jsonify({'message': 'Inventory assignment returned successfully'}), 200
         return jsonify({'message': 'Inventory assignment not found'}), 404
-    except Exception as e:
+    except ValueError as e:
         return jsonify({'error': 'Failed to return inventory assignment', 'message': str(e)}), 400
+    except Exception as e:
+        return jsonify({'error': 'Failed to return inventory assignment', 'message': str(e)}), 500
 

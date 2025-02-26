@@ -139,6 +139,7 @@ class Customer(db.Model):
     area = relationship('Area', back_populates='customers')
     service_plan = relationship('ServicePlan', back_populates='customers')
     isp = relationship('ISP', back_populates='customers')
+    inventory_assignments = relationship('InventoryAssignment', back_populates='customer')
 
 
 
@@ -215,30 +216,25 @@ class Complaint(db.Model):
 class InventoryItem(db.Model):
     __tablename__ = 'inventory_items'
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    name = db.Column(db.String(255), nullable=False)
-    description = db.Column(db.Text)
-    serial_number = db.Column(db.String(255), unique=True, nullable=False)
-    status = db.Column(db.String(50), nullable=False, default='available')
-    supplier_id = db.Column(UUID(as_uuid=True), db.ForeignKey('suppliers.id'), nullable=False)
     company_id = db.Column(UUID(as_uuid=True), db.ForeignKey('companies.id'), nullable=False)
     created_at = db.Column(db.TIMESTAMP(timezone=True), server_default=func.current_timestamp())
     updated_at = db.Column(db.TIMESTAMP(timezone=True), server_default=func.current_timestamp(), onupdate=func.current_timestamp())
     quantity = db.Column(db.Integer, default=1)
-    is_splitter = db.Column(db.Boolean, default=False)
-    splitter_number = db.Column(db.String(50))
-    splitter_type = db.Column(db.String(50))
-    port_count = db.Column(db.Integer)
-    item_type = db.Column(db.String(50))
+    vendor = db.Column(UUID(as_uuid=True), db.ForeignKey('suppliers.id'), nullable=False)  # Renamed from supplier_id
     unit_price = db.Column(db.Numeric(10, 2))
+    item_type = db.Column(db.String(50), nullable=False)
     is_active = db.Column(db.Boolean, default=True)
-
-    supplier = relationship('Supplier', back_populates='inventory_items')
+    
+    # Type-specific fields stored in JSON
+    attributes = db.Column(db.JSON)
+    
+    # Relationships
+    company = relationship('Company', back_populates='inventory_items')
+    supplier = relationship('Supplier', back_populates='inventory_items', foreign_keys=[vendor])  # Updated foreign key
     assignments = relationship('InventoryAssignment', back_populates='inventory_item')
     transactions = relationship('InventoryTransaction', back_populates='inventory_item')
-    company = relationship('Company', back_populates='inventory_items')
 
 class InventoryAssignment(db.Model):
-
     __tablename__ = 'inventory_assignments'
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     inventory_item_id = db.Column(UUID(as_uuid=True), db.ForeignKey('inventory_items.id'), nullable=False)
@@ -251,7 +247,11 @@ class InventoryAssignment(db.Model):
     updated_at = db.Column(db.TIMESTAMP(timezone=True), server_default=func.current_timestamp(), onupdate=func.current_timestamp())
     
     inventory_item = relationship('InventoryItem', back_populates='assignments')
+    customer = relationship('Customer', back_populates='inventory_assignments')
     employee = relationship('User', back_populates='inventory_assignments')
+
+
+
 class InventoryTransaction(db.Model):
     __tablename__ = 'inventory_transactions'
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -260,12 +260,13 @@ class InventoryTransaction(db.Model):
     performed_by_id = db.Column(UUID(as_uuid=True), db.ForeignKey('users.id'), nullable=False)
     performed_at = db.Column(db.TIMESTAMP(timezone=True), server_default=func.current_timestamp())
     notes = db.Column(db.Text)
+    quantity = db.Column(db.Integer, nullable=False)
     created_at = db.Column(db.TIMESTAMP(timezone=True), server_default=func.current_timestamp())
     updated_at = db.Column(db.TIMESTAMP(timezone=True), server_default=func.current_timestamp(), onupdate=func.current_timestamp())
-    unit_price = db.Column(db.Numeric(10, 2))
     
     inventory_item = relationship('InventoryItem', back_populates='transactions')
     performed_by = relationship('User', back_populates='inventory_transactions')
+
 
 class Supplier(db.Model):
     __tablename__ = 'suppliers'
