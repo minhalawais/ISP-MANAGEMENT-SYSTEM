@@ -42,7 +42,7 @@ export const InventoryManagement: React.FC = () => {
   useEffect(() => {
     const fetchInventoryData = async () => {
       try {
-        const response = await axiosInstance.get("http://127.0.0.1:5000/dashboard/inventory-management", {
+        const response = await axiosInstance.get("http://mbanet.com.pk/api/dashboard/inventory-management", {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },

@@ -56,7 +56,7 @@ export function ComplaintForm({
     const fetchEmployees = async () => {
       const token = getToken()
       try {
-        const response = await axiosInstance.get("http://127.0.0.1:5000/employees/list", {
+        const response = await axiosInstance.get("http://mbanet.com.pk/api/employees/list", {
           headers: { Authorization: `Bearer ${token}` },
         })
         setEmployees(response.data)
@@ -307,7 +307,7 @@ export function ComplaintForm({
             onChange={memoizedHandleFileChange}
             currentDocument={
               formData.agreement_document
-                ? `http://127.0.0.1:5000/customers/agreement-document/${formData.id}`
+                ? `http://mbanet.com.pk/api/customers/agreement-document/${formData.id}`
                 : undefined
             }
           />

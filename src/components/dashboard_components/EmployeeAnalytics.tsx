@@ -42,7 +42,7 @@ export const EmployeePerformance: React.FC = () => {
   useEffect(() => {
     const fetchAnalyticsData = async () => {
       try {
-        const response = await axiosInstance.get('http://127.0.0.1:5000/dashboard/employee-analytics', {
+        const response = await axiosInstance.get('http://mbanet.com.pk/api/dashboard/employee-analytics', {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
           }

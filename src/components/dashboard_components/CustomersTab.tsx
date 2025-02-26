@@ -19,7 +19,7 @@ export default function CustomersTab() {
   const [data, setData] = useState<CustomersData | null>(null)
 
   useEffect(() => {
-    fetch('http://127.0.0.1:5000/dashboard/customers')
+    fetch('http://mbanet.com.pk/api/dashboard/customers')
       .then(response => response.json())
       .then(data => setData(data))
   }, [])

@@ -49,7 +49,7 @@ export const InventoryAssignmentsModal: React.FC<InventoryAssignmentsModalProps>
     try {
       const token = getToken()
       const response = await axiosInstance.get(
-        `http://127.0.0.1:5000/inventory/assignments?inventory_item_id=${inventoryItemId}`,
+        `http://mbanet.com.pk/api/inventory/assignments?inventory_item_id=${inventoryItemId}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         },
@@ -64,7 +64,7 @@ export const InventoryAssignmentsModal: React.FC<InventoryAssignmentsModalProps>
   const fetchCustomers = async () => {
     try {
       const token = getToken()
-      const response = await axiosInstance.get("http://127.0.0.1:5000/customers/list", {
+      const response = await axiosInstance.get("http://mbanet.com.pk/api/customers/list", {
         headers: { Authorization: `Bearer ${token}` },
       })
       setCustomers(
@@ -82,7 +82,7 @@ export const InventoryAssignmentsModal: React.FC<InventoryAssignmentsModalProps>
   const fetchEmployees = async () => {
     try {
       const token = getToken()
-      const response = await axiosInstance.get("http://127.0.0.1:5000/employees/list", {
+      const response = await axiosInstance.get("http://mbanet.com.pk/api/employees/list", {
         headers: { Authorization: `Bearer ${token}` },
       })
       setEmployees(
@@ -107,7 +107,7 @@ export const InventoryAssignmentsModal: React.FC<InventoryAssignmentsModalProps>
     try {
       const token = getToken()
       await axiosInstance.post(
-        "http://127.0.0.1:5000/inventory/assignments/add",
+        "http://mbanet.com.pk/api/inventory/assignments/add",
         { ...newAssignment, inventory_item_id: inventoryItemId },
         { headers: { Authorization: `Bearer ${token}` } },
       )
@@ -124,7 +124,7 @@ export const InventoryAssignmentsModal: React.FC<InventoryAssignmentsModalProps>
     try {
       const token = getToken()
       await axiosInstance.put(
-        `http://127.0.0.1:5000/inventory/assignments/return/${assignmentId}`,
+        `http://mbanet.com.pk/api/inventory/assignments/return/${assignmentId}`,
         {},
         {
           headers: { Authorization: `Bearer ${token}` },

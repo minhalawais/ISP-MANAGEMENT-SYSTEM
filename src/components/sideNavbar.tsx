@@ -137,7 +137,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar, setIsOp
 
   const handleLogout = async () => {
     try {
-      await axiosInstance.post('http://127.0.0.1:5000/auth/logout');
+      await axiosInstance.post('http://mbanet.com.pk/api/auth/logout');
       removeToken();
       navigate('/login');
     } catch (error) {
