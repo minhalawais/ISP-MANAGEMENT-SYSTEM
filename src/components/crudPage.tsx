@@ -1,45 +1,47 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import axios from 'axios';
-import { ColumnDef } from '@tanstack/react-table';
-import { FaPlus, FaFileExport, FaPen, FaTrash } from 'react-icons/fa';
-import { Table } from './table/table.tsx'
-import { Modal } from './modal.tsx';
-import { Topbar } from './topNavbar.tsx';
-import { Sidebar } from './sideNavbar.tsx';
-import { getToken } from '../utils/auth.ts';
-import { toast } from 'react-toastify';
-import axiosInstance from '../utils/axiosConfig.ts';
-import { CredentialsModal } from "./modals/CredentialsModal.tsx";
+"use client"
+
+import type React from "react"
+import { useState, useEffect, useMemo } from "react"
+import type { ColumnDef } from "@tanstack/react-table"
+import { FaPlus, FaPen, FaTrash } from "react-icons/fa"
+import { Table } from "./table/table.tsx"
+import { Modal } from "./modal.tsx"
+import { Topbar } from "./topNavbar.tsx"
+import { Sidebar } from "./sideNavbar.tsx"
+import { getToken } from "../utils/auth.ts"
+import { toast } from "react-toastify"
+import axiosInstance from "../utils/axiosConfig.ts"
+import { CredentialsModal } from "./modals/CredentialsModal.tsx"
 
 interface CRUDPageProps<T> {
-  title: string;
-  endpoint: string;
-  columns: ColumnDef<T>[];
+  title: string
+  endpoint: string
+  columns: ColumnDef<T>[]
   FormComponent: React.ComponentType<{
-    formData: Partial<T>;
-    handleInputChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void;
-    isEditing: boolean;
-    validateBeforeSubmit?: (formData: Partial<T>) => string | null;
-  }>;
-  onDataChange?: () => void;
-  validateBeforeSubmit?: (formData: Partial<T>) => string | null;
+    formData: Partial<T>
+    handleInputChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void
+    isEditing: boolean
+    validateBeforeSubmit?: (formData: Partial<T>) => string | null
+  }>
+  onDataChange?: () => void
+  validateBeforeSubmit?: (formData: Partial<T>) => string | null
 }
 
-export function CRUDPage<T extends { id: string; is_active?: boolean }>({ 
-  title, 
-  endpoint, 
-  columns, 
+export function CRUDPage<T extends { id: string; is_active?: boolean }>({
+  title,
+  endpoint,
+  columns,
   FormComponent,
   onDataChange,
   validateBeforeSubmit,
 }: CRUDPageProps<T>) {
-  const [data, setData] = useState<T[]>([]);
-  const [isModalVisible, setIsModalVisible] = useState(false);
-  const [editingItem, setEditingItem] = useState<T | null>(null);
-  const [formData, setFormData] = useState<Partial<T>>({});
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [selectedRows, setSelectedRows] = useState<string[]>([]);
-  const [isLoading, setIsLoading] = useState(false); // Added isLoading state
+  const [data, setData] = useState<T[]>([])
+  const [isModalVisible, setIsModalVisible] = useState(false)
+  const [editingItem, setEditingItem] = useState<T | null>(null)
+  const [formData, setFormData] = useState<Partial<T>>({})
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+  const [selectedRows, setSelectedRows] = useState<string[]>([])
+  const [isLoading, setIsLoading] = useState(false) // Added isLoading state
   const [showCredentialsModal, setShowCredentialsModal] = useState(false)
   const [newEmployeeCredentials, setNewEmployeeCredentials] = useState<{
     username: string
@@ -48,183 +50,196 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
   } | null>(null)
 
   const fetchData = async () => {
-    setIsLoading(true); // Add this line
+    setIsLoading(true) // Add this line
     try {
-      const token = getToken();
-      const response = await axiosInstance.get(`https://mbanet.com.pk/api/${endpoint}/list`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setData(response.data);
+      const token = getToken()
+      const response = await axiosInstance.get(`http://127.0.0.1:5000/${endpoint}/list`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      setData(response.data)
       if (onDataChange) {
-        onDataChange();
+        onDataChange()
       }
     } catch (error) {
-      console.error(`Failed to fetch ${title}`, error);
+      console.error(`Failed to fetch ${title}`, error)
       toast.error(`Failed to fetch ${title}`, {
-        style: { background: '#F1F0E8', color: '#B3C8CF' },
-      });
+        style: { background: "#F1F0E8", color: "#B3C8CF" },
+      })
     } finally {
-      setIsLoading(false); // Add this line
+      setIsLoading(false) // Add this line
     }
-  };
+  }
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    fetchData()
+  }, [])
 
   const handleToggleStatus = async (id: string, currentStatus: boolean) => {
     try {
-      const token = getToken();
-      await axiosInstance.put(`https://mbanet.com.pk/api/${endpoint}/update/${id}`, 
+      const token = getToken()
+      await axiosInstance.put(
+        `http://127.0.0.1:5000/${endpoint}/update/${id}`,
         { is_active: !currentStatus },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+        { headers: { Authorization: `Bearer ${token}` } },
+      )
       toast.success(`${title} status updated successfully`, {
-        style: { background: '#E5E1DA', color: '#89A8B2' },
-      });
-      await fetchData();
+        style: { background: "#E5E1DA", color: "#89A8B2" },
+      })
+      await fetchData()
     } catch (error) {
-      console.error(`Failed to update ${title} status`, error);
+      console.error(`Failed to update ${title} status`, error)
       toast.error(`Failed to update ${title} status`, {
-        style: { background: '#F1F0E8', color: '#B3C8CF' },
-      });
+        style: { background: "#F1F0E8", color: "#B3C8CF" },
+      })
     }
-  };
+  }
 
   const handleBulkStatusChange = async (newStatus: boolean) => {
     try {
-      const token = getToken();
-      await Promise.all(selectedRows.map(id => 
-        axiosInstance.put(`https://mbanet.com.pk/api/${endpoint}/update/${id}`, 
-          { is_active: newStatus },
-          { headers: { Authorization: `Bearer ${token}` } }
-        )
-      ));
+      const token = getToken()
+      await Promise.all(
+        selectedRows.map((id) =>
+          axiosInstance.put(
+            `http://127.0.0.1:5000/${endpoint}/update/${id}`,
+            { is_active: newStatus },
+            { headers: { Authorization: `Bearer ${token}` } },
+          ),
+        ),
+      )
       toast.success(`${title} status updated successfully`, {
-        style: { background: '#E5E1DA', color: '#89A8B2' },
-      });
-      await fetchData();
-      setSelectedRows([]);
+        style: { background: "#E5E1DA", color: "#89A8B2" },
+      })
+      await fetchData()
+      setSelectedRows([])
     } catch (error) {
-      console.error(`Failed to update ${title} status`, error);
+      console.error(`Failed to update ${title} status`, error)
       toast.error(`Failed to update ${title} status`, {
-        style: { background: '#F1F0E8', color: '#B3C8CF' },
-      });
+        style: { background: "#F1F0E8", color: "#B3C8CF" },
+      })
     }
-  };
+  }
 
   const showModal = (item: T | null) => {
-    console.log('showModal', item);
-    setEditingItem(item);
-    setFormData(item || {});
-    setIsModalVisible(true);
-  };
+    console.log("showModal", item)
+    setEditingItem(item)
+    setFormData(item || {})
+    setIsModalVisible(true)
+  }
 
   const handleCancel = () => {
-    setIsModalVisible(false);
-    setEditingItem(null);
-    setFormData({});
-  };
+    setIsModalVisible(false)
+    setEditingItem(null)
+    setFormData({})
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
+    e.preventDefault()
+
     if (validateBeforeSubmit) {
-      const validationError = validateBeforeSubmit(formData);
+      const validationError = validateBeforeSubmit(formData)
       if (validationError) {
         toast.error(validationError, {
-          style: { background: '#F1F0E8', color: '#B3C8CF' },
-        });
-        return;
+          style: { background: "#F1F0E8", color: "#B3C8CF" },
+        })
+        return
       }
     }
 
-    setIsLoading(true); // Added setIsLoading(true)
+    setIsLoading(true) // Added setIsLoading(true)
+
+    // Log the form data being sent
+    console.log("Submitting form data:", formData)
+
+    // Ensure attributes are properly formatted if they exist
+    if (formData.attributes && typeof formData.attributes === "object") {
+      console.log("Attributes being sent:", formData.attributes)
+    }
+
     try {
-      const token = getToken();
-      let response;
+      const token = getToken()
+      let response
       if (editingItem) {
-        response = await axiosInstance.put(`https://mbanet.com.pk/api/${endpoint}/update/${editingItem.id}`, formData, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        response = await axiosInstance.put(`http://127.0.0.1:5000/${endpoint}/update/${editingItem.id}`, formData, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
         toast.success(`${title} updated successfully`, {
-          style: { background: '#E5E1DA', color: '#89A8B2' },
-        });
+          style: { background: "#E5E1DA", color: "#89A8B2" },
+        })
       } else {
-        response = await axiosInstance.post(`https://mbanet.com.pk/api/${endpoint}/add`, formData, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        response = await axiosInstance.post(`http://127.0.0.1:5000/${endpoint}/add`, formData, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
         toast.success(`${title} added successfully`, {
-          style: { background: '#E5E1DA', color: '#89A8B2' },
-        });
-        console.log('response', response.data);
+          style: { background: "#E5E1DA", color: "#89A8B2" },
+        })
+        console.log("response", response.data)
         if (response.data.credentials) {
           setNewEmployeeCredentials(response.data.credentials)
           setShowCredentialsModal(true)
         }
       }
-      await fetchData();
-      handleCancel();
+      await fetchData()
+      handleCancel()
     } catch (error) {
-      console.error('Operation failed', error);
-      toast.error('Operation failed', {
-        style: { background: '#F1F0E8', color: '#B3C8CF' },
-      });
+      console.error("Operation failed", error)
+      toast.error("Operation failed", {
+        style: { background: "#F1F0E8", color: "#B3C8CF" },
+      })
     } finally {
-      setIsLoading(false); // Added setIsLoading(false)
+      setIsLoading(false) // Added setIsLoading(false)
     }
-  };
+  }
 
   const handleDelete = async (id: string) => {
     if (window.confirm(`Are you sure you want to delete this ${title.toLowerCase()}?`)) {
       try {
-        const token = getToken();
-        await axiosInstance.delete(`https://mbanet.com.pk/api/${endpoint}/delete/${id}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        const token = getToken()
+        await axiosInstance.delete(`http://127.0.0.1:5000/${endpoint}/delete/${id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
         toast.success(`${title} deleted successfully`, {
-          style: { background: '#E5E1DA', color: '#89A8B2' },
-        });
-        await fetchData();
+          style: { background: "#E5E1DA", color: "#89A8B2" },
+        })
+        await fetchData()
       } catch (error) {
-        console.error('Delete operation failed', error);
-        toast.error('Delete operation failed', {
-          style: { background: '#F1F0E8', color: '#B3C8CF' },
-        });
+        console.error("Delete operation failed", error)
+        toast.error("Delete operation failed", {
+          style: { background: "#F1F0E8", color: "#B3C8CF" },
+        })
       }
     }
-  };
+  }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
+    const { name, value } = e.target
+    setFormData((prev) => ({ ...prev, [name]: value }))
+  }
 
   const toggleSidebar = () => {
-    setIsSidebarOpen(prev => !prev);
-  };
+    setIsSidebarOpen((prev) => !prev)
+  }
 
   const memoizedColumns = useMemo(() => {
     return [
       ...columns,
       {
-        header: 'Active',
-        accessorKey: 'is_active',
+        header: "Active",
+        accessorKey: "is_active",
         cell: (info: any) => (
           <div className="flex items-center space-x-2">
             <button
               onClick={() => handleToggleStatus(info.row.original.id, info.getValue())}
               className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                info.getValue() ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                info.getValue() ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
               }`}
             >
-              {info.getValue() ? 'Active' : 'Inactive'}
+              {info.getValue() ? "Active" : "Inactive"}
             </button>
           </div>
         ),
       },
       {
-        header: 'Actions',
+        header: "Actions",
         cell: (info: any) => (
           <div className="flex space-x-2">
             <button onClick={() => showModal(info.row.original)} className="text-indigo-600 hover:text-indigo-900">
@@ -236,15 +251,17 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
           </div>
         ),
       },
-    ];
-  }, [columns]);
+    ]
+  }, [columns])
 
   return (
     <div className="flex h-screen bg-gray-100">
       <Sidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} setIsOpen={setIsSidebarOpen} />
       <div className="flex-1 flex flex-col overflow-hidden">
         <Topbar toggleSidebar={toggleSidebar} />
-        <main className={`flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-6 pt-20 transition-all duration-300 ${isSidebarOpen ? 'ml-72' : 'ml-20'}`}>
+        <main
+          className={`flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-6 pt-20 transition-all duration-300 ${isSidebarOpen ? "ml-72" : "ml-20"}`}
+        >
           <div className="container mx-auto">
             <h1 className="text-4xl font-bold text-center text-[#8b5cf6] mb-8">{title} Management</h1>
             <div className="flex justify-between mb-4">
@@ -271,9 +288,9 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
                 <FaPlus className="mr-2" /> Add New {title}
               </button>
             </div>
-            <Table 
-              data={data} 
-              columns={memoizedColumns} 
+            <Table
+              data={data}
+              columns={memoizedColumns}
               selectedRows={selectedRows}
               setSelectedRows={setSelectedRows}
               handleToggleStatus={handleToggleStatus}
@@ -289,11 +306,7 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
         isLoading={isLoading} // Added isLoading prop
       >
         <form onSubmit={handleSubmit}>
-          <FormComponent
-            formData={formData}
-            handleInputChange={handleInputChange}
-            isEditing={!!editingItem}
-          />
+          <FormComponent formData={formData} handleInputChange={handleInputChange} isEditing={!!editingItem} />
           <div className="mt-4 flex justify-end">
             <button
               type="submit"
@@ -302,14 +315,32 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
             >
               {isLoading ? (
                 <>
-                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  <svg
+                    className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
                   </svg>
                   Processing...
                 </>
+              ) : editingItem ? (
+                "Update"
               ) : (
-                editingItem ? 'Update' : 'Add'
+                "Add"
               )}
             </button>
           </div>
@@ -323,6 +354,6 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
         />
       )}
     </div>
-  );
+  )
 }
 

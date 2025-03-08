@@ -1,6 +1,8 @@
+"use client"
+
 import type React from "react"
 import { useState, useEffect } from "react"
-import { Box, Barcode, ClipboardList, Truck, CheckCircle, Package, DollarSign, Hash, Wifi, Monitor, Cpu, Radio, Plug, Paperclip } from 'lucide-react'
+import { Barcode, Truck, Package, DollarSign, Hash, Wifi, Monitor, Cpu, Radio, Plug, Paperclip } from "lucide-react"
 
 interface InventoryFormProps {
   formData: any
@@ -15,23 +17,29 @@ export function InventoryForm({ formData, handleInputChange, isEditing, supplier
 
   useEffect(() => {
     setSelectedItemType(formData.item_type || "")
-    setAttributes(formData.attributes || {})
+    // Ensure attributes is properly initialized
+    if (formData.attributes) {
+      setAttributes(formData.attributes)
+    } else {
+      setAttributes({})
+    }
   }, [formData])
 
   const handleAttributeChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target
     const updatedAttributes = { ...attributes, [name]: value }
     setAttributes(updatedAttributes)
-    
+
     // Update the formData with the new attributes
-    const event = {
+    // Create a custom event to update the parent's formData
+    const customEvent = {
       target: {
         name: "attributes",
-        value: updatedAttributes
-      }
+        value: updatedAttributes,
+      },
     } as React.ChangeEvent<HTMLInputElement>
-    
-    handleInputChange(event)
+
+    handleInputChange(customEvent)
   }
 
   const itemTypes = [
@@ -49,7 +57,7 @@ export function InventoryForm({ formData, handleInputChange, isEditing, supplier
     "Dish",
     "Adopter",
     "Cable Ties",
-    "Others"
+    "Others",
   ]
 
   const renderTypeSpecificFields = () => {
@@ -76,7 +84,7 @@ export function InventoryForm({ formData, handleInputChange, isEditing, supplier
             </div>
           </div>
         )
-      
+
       case "ONT":
       case "ONU":
       case "Router":
@@ -143,7 +151,7 @@ export function InventoryForm({ formData, handleInputChange, isEditing, supplier
             </div>
           </>
         )
-      
+
       case "Fibe OPTIC Patch Cord":
       case "Ethernet Patch Cord":
       case "Node":
@@ -168,7 +176,7 @@ export function InventoryForm({ formData, handleInputChange, isEditing, supplier
             </div>
           </div>
         )
-      
+
       case "Switches":
         return (
           <div className="space-y-2">
@@ -181,7 +189,7 @@ export function InventoryForm({ formData, handleInputChange, isEditing, supplier
                 type="text"
                 name="switch_type"
                 value={attributes.switch_type || ""}
-                onChange={(e) => handleAttributeChange({ target: { name: 'type', value: e.target.value } })}
+                onChange={(e) => handleAttributeChange({ target: { name: "type", value: e.target.value } })}
                 placeholder="Enter switch type"
                 className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg shadow-sm bg-white/50 
                          text-gray-900 placeholder-gray-400 
@@ -191,7 +199,7 @@ export function InventoryForm({ formData, handleInputChange, isEditing, supplier
             </div>
           </div>
         )
-      
+
       case "Dish":
         return (
           <>
@@ -236,7 +244,7 @@ export function InventoryForm({ formData, handleInputChange, isEditing, supplier
             </div>
           </>
         )
-      
+
       case "Adopter":
         return (
           <>
@@ -280,7 +288,7 @@ export function InventoryForm({ formData, handleInputChange, isEditing, supplier
             </div>
           </>
         )
-      
+
       case "Cable Ties":
         return (
           <>
@@ -324,7 +332,7 @@ export function InventoryForm({ formData, handleInputChange, isEditing, supplier
             </div>
           </>
         )
-      
+
       default:
         return null
     }

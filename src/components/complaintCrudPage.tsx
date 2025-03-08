@@ -3,7 +3,7 @@
 import type React from "react"
 import { useState, useEffect, useMemo } from "react"
 import type { ColumnDef } from "@tanstack/react-table"
-import { FaPlus, FaPen, FaTrash } from "react-icons/fa"
+import { FaPlus, FaPen, FaTrash, FaEye } from "react-icons/fa"
 import { Table } from "./table/table.tsx"
 import { Modal } from "./modal.tsx"
 import { Topbar } from "./topNavbar.tsx"
@@ -58,7 +58,7 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
     setIsLoading(true)
     try {
       const token = getToken()
-      const response = await axiosInstance.get(`https://mbanet.com.pk/api/${endpoint}/list`, {
+      const response = await axiosInstance.get(`http://127.0.0.1:5000/${endpoint}/list`, {
         headers: { Authorization: `Bearer ${token}` },
       })
       setData(response.data)
@@ -83,7 +83,7 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
     try {
       const token = getToken()
       await axiosInstance.put(
-        `https://mbanet.com.pk/api/${endpoint}/update/${id}`,
+        `http://127.0.0.1:5000/${endpoint}/update/${id}`,
         { is_active: !currentStatus },
         { headers: { Authorization: `Bearer ${token}` } },
       )
@@ -105,7 +105,7 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
       await Promise.all(
         selectedRows.map((id) =>
           axiosInstance.put(
-            `https://mbanet.com.pk/api/${endpoint}/update/${id}`,
+            `http://127.0.0.1:5000/${endpoint}/update/${id}`,
             { is_active: newStatus },
             { headers: { Authorization: `Bearer ${token}` } },
           ),
@@ -153,10 +153,7 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
 
       Object.keys(formData).forEach((key) => {
         if (formData[key] != null) {
-          if (
-            (key === "attachment") &&
-            formData[key] instanceof File
-          ) {
+          if (key === "attachment" && formData[key] instanceof File) {
             formDataToSend.append(key, formData[key], formData[key].name)
           } else {
             formDataToSend.append(key, formData[key])
@@ -170,7 +167,7 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
       }
 
       if (editingItem) {
-        await axiosInstance.put(`https://mbanet.com.pk/api/${endpoint}/update/${editingItem.id}`, formDataToSend, {
+        await axiosInstance.put(`http://127.0.0.1:5000/${endpoint}/update/${editingItem.id}`, formDataToSend, {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "multipart/form-data",
@@ -180,7 +177,7 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
           style: { background: "#E5E1DA", color: "#89A8B2" },
         })
       } else {
-        await axiosInstance.post(`https://mbanet.com.pk/api/${endpoint}/add`, formDataToSend, {
+        await axiosInstance.post(`http://127.0.0.1:5000/${endpoint}/add`, formDataToSend, {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "multipart/form-data",
@@ -206,7 +203,7 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
     if (window.confirm(`Are you sure you want to delete this ${title.toLowerCase()}?`)) {
       try {
         const token = getToken()
-        await axiosInstance.delete(`https://mbanet.com.pk/api/${endpoint}/delete/${id}`, {
+        await axiosInstance.delete(`http://127.0.0.1:5000/${endpoint}/delete/${id}`, {
           headers: { Authorization: `Bearer ${token}` },
         })
         toast.success(`${title} deleted successfully`, {
@@ -259,6 +256,12 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
             </button>
             <button onClick={() => handleDelete(info.row.original.id)} className="text-red-600 hover:text-red-900">
               <FaTrash />
+            </button>
+            <button
+              onClick={() => navigate(`/complaints/${info.row.original.id}`)}
+              className="text-blue-600 hover:text-blue-900"
+            >
+              <FaEye />
             </button>
           </div>
         ),
@@ -427,7 +430,7 @@ const ComplaintManagement: React.FC = () => {
             onClick={() => {
               if (info.getValue()) {
                 const token = getToken()
-                fetch(`https://mbanet.com.pk/api/complaints/attachment/${info.row.original.id}`, {
+                fetch(`http://127.0.0.1:5000/complaints/attachment/${info.row.original.id}`, {
                   method: "GET",
                   headers: {
                     Authorization: `Bearer ${token}`,
