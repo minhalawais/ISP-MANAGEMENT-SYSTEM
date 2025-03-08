@@ -16,6 +16,7 @@ import PaymentManagement from "./pages/crud_pages/paymentCrud.tsx"
 import InvoiceManagement from "./pages/crud_pages/invoiceCrud.tsx"
 import InvoiceGeneration from "./pages/invoiceGeneration.tsx"
 import CustomerDetailPage from "./pages/customerDetailPage.tsx"
+import ComplaintDetailPage from "./pages/complaint-detail-page.tsx"
 import Dashboard from "./components/dashboard_components/Dashboard.tsx"
 import MessageManagement from "./pages/crud_pages/messageCrud.tsx"
 import UserProfile from "./pages/userProfile.tsx"
@@ -52,6 +53,7 @@ const App: React.FC = () => {
         <Route path="/service-plan-management" element={<PrivateRoute element={<ServicePlanManagement />} />} />
         <Route path="/complaint-management" element={<PrivateRoute element={<ComplaintManagement />} />} />
         <Route path="/complaints/new" element={<PrivateRoute element={<NewComplaintPage />} />} />
+        <Route path="/complaints/:id" element={<PrivateRoute element={<ComplaintDetailPage />} />} />
         <Route path="/complaints/ticket/:ticketNumber" element={<PrivateRoute element={<TicketDisplayPage />} />} />
         <Route path="/inventory-management" element={<PrivateRoute element={<InventoryManagement />} />} />
         <Route path="/supplier-management" element={<PrivateRoute element={<SupplierManagement />} />} />
