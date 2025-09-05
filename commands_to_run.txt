@@ -1,0 +1,15 @@
+rm -rf ISP-MANAGEMENT-SYSTEM
+
+cd /var/www/html/ISP-MANAGEMENT-SYSTEM
+git clone https://github.com/minhalawais/ISP-MANAGEMENT-SYSTEM.git
+git clone https://github.com/minhalawais/MBA-NET-BACKED
+npm install --legacy-peer-deps
+npm install typescript --legacy-peer-deps --save-dev
+npm install @babel/plugin-proposal-private-property-in-object --save-dev --legacy-peer-deps
+
+pm2 serve build 3000 --name "react-app"
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+pm2 start "flask run --host=0.0.0.0 --port=5000" --name "flask-app"
+sudo systemctl restart nginx
