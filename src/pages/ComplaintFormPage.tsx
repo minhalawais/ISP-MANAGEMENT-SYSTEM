@@ -44,7 +44,7 @@ const NewComplaintPage: React.FC = () => {
     })
     try {
       const token = getToken()
-      const response = await axiosInstance.post(`http://127.0.0.1:8000/complaints/add`, formDataToSend, {
+      const response = await axiosInstance.post(`/complaints/add`, formDataToSend, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "multipart/form-data",
@@ -68,7 +68,7 @@ const NewComplaintPage: React.FC = () => {
     try {
       const token = getToken()
       const response = await axiosInstance.get(
-        `http://127.0.0.1:8000/complaints/search-customer?search_term=${searchTerm}`,
+        `/complaints/search-customer?search_term=${searchTerm}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         },

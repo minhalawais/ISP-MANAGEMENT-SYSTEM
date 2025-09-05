@@ -15,6 +15,8 @@ import {
   Legend,
   Cell,
 } from "recharts"
+import axios from "axios"
+import axiosInstance from "../../utils/axiosConfig.ts"
 
 interface CustomersData {
   servicePlanDistribution: Array<{
@@ -34,10 +36,18 @@ export default function CustomersTab() {
   const [data, setData] = useState<CustomersData | null>(null)
 
   useEffect(() => {
-    fetch("http://127.0.0.1:8000/dashboard/customers")
-      .then((response) => response.json())
-      .then((data) => setData(data))
+    const getData = async () => {
+      try {
+        const response = await axiosInstance.get("/dashboard/customers")
+        setData(response.data)
+      } catch (error) {
+        console.error("Failed to fetch customers", error)
+      }
+    }
+  
+    getData()
   }, [])
+  
 
   if (!data) return <div className="p-4 text-[#4A5568]">Loading...</div>
 

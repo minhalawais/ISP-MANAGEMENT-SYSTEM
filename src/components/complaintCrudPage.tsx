@@ -27,7 +27,6 @@ import axiosInstance from "../utils/axiosConfig.ts"
 import { CredentialsModal } from "./modals/CredentialsModal.tsx"
 import { useNavigate } from "react-router-dom"
 import { ComplaintForm } from "./forms/complaintForm.tsx" // Import ComplaintForm
-
 interface CRUDPageProps<T> {
   title: string
   endpoint: string
@@ -78,7 +77,7 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
     setIsLoading(true)
     try {
       const token = getToken()
-      const response = await axiosInstance.get(`http://127.0.0.1:8000/${endpoint}/list`, {
+      const response = await axiosInstance.get(`/${endpoint}/list`, {
         headers: { Authorization: `Bearer ${token}` },
       })
       setData(response.data)
@@ -119,7 +118,7 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
     try {
       const token = getToken()
       await axiosInstance.put(
-        `http://127.0.0.1:8000/${endpoint}/update/${id}`,
+        `/${endpoint}/update/${id}`,
         { is_active: !currentStatus },
         { headers: { Authorization: `Bearer ${token}` } },
       )
@@ -144,7 +143,7 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
       await Promise.all(
         selectedRows.map((id) =>
           axiosInstance.put(
-            `http://127.0.0.1:8000/${endpoint}/update/${id}`,
+            `/${endpoint}/update/${id}`,
             { is_active: newStatus },
             { headers: { Authorization: `Bearer ${token}` } },
           ),
@@ -213,7 +212,7 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
       }
 
       if (editingItem) {
-        await axiosInstance.put(`http://127.0.0.1:8000/${endpoint}/update/${editingItem.id}`, formDataToSend, {
+        await axiosInstance.put(`/${endpoint}/update/${editingItem.id}`, formDataToSend, {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "multipart/form-data",
@@ -223,7 +222,7 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
           style: { background: "#D1FAE5", color: "#10B981" },
         })
       } else {
-        await axiosInstance.post(`http://127.0.0.1:8000/${endpoint}/add`, formDataToSend, {
+        await axiosInstance.post(`/${endpoint}/add`, formDataToSend, {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "multipart/form-data",
@@ -250,7 +249,7 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
       try {
         setIsLoading(true)
         const token = getToken()
-        await axiosInstance.delete(`http://127.0.0.1:8000/${endpoint}/delete/${id}`, {
+        await axiosInstance.delete(`/${endpoint}/delete/${id}`, {
           headers: { Authorization: `Bearer ${token}` },
         })
         toast.success(`${title} deleted successfully`, {
@@ -684,39 +683,41 @@ const ComplaintManagement: React.FC = () => {
         accessorKey: "attachment_path",
         cell: (info: any) => (
           <button
-            onClick={() => {
-              if (info.getValue()) {
-                const token = getToken()
-                fetch(`http://127.0.0.1:8000/complaints/attachment/${info.row.original.id}`, {
-                  method: "GET",
-                  headers: {
-                    Authorization: `Bearer ${token}`,
-                  },
+          onClick={() => {
+            if (info.getValue()) {
+              axiosInstance
+                .get(`/complaints/attachment/${info.row.original.id}`, {
+                  responseType: 'blob', // Important for file downloads
+                  params: {}
                 })
-                  .then((response) => response.blob())
-                  .then((blob) => {
-                    const url = window.URL.createObjectURL(blob)
-                    const a = document.createElement("a")
-                    a.style.display = "none"
-                    a.href = url
-                    a.download = `complaint_attachment_${info.row.original.id}`
-                    document.body.appendChild(a)
-                    a.click()
-                    window.URL.revokeObjectURL(url)
-                  })
-                  .catch((error) => console.error("Error:", error))
-              }
-            }}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all ${
-              info.getValue()
-                ? "bg-electric-blue/10 text-electric-blue hover:bg-electric-blue/20"
-                : "bg-slate-gray/10 text-slate-gray cursor-not-allowed"
-            }`}
-            disabled={!info.getValue()}
-          >
-            <FileText className="h-3.5 w-3.5" />
-            {info.getValue() ? "Download" : "No File"}
-          </button>
+                .then((response) => {
+                  const blob = new Blob([response.data]);
+                  const url = window.URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.style.display = 'none';
+                  a.href = url;
+                  a.download = `complaint_attachment_${info.row.original.id}`;
+                  document.body.appendChild(a);
+                  a.click();
+                  window.URL.revokeObjectURL(url);
+                  document.body.removeChild(a);
+                })
+                .catch((error) => {
+                  console.error('Error:', error);
+                  toast.error('Failed to download file');
+                });
+            }
+          }}
+          className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all ${
+            info.getValue()
+              ? 'bg-electric-blue/10 text-electric-blue hover:bg-electric-blue/20'
+              : 'bg-slate-gray/10 text-slate-gray cursor-not-allowed'
+          }`}
+          disabled={!info.getValue()}
+        >
+          <FileText className="h-3.5 w-3.5" />
+          {info.getValue() ? 'Download' : 'No File'}
+        </button>
         ),
       },
     ],

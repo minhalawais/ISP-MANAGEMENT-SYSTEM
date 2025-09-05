@@ -135,7 +135,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar, setIsOp
 
   const handleLogout = async () => {
     try {
-      await axiosInstance.post("http://127.0.0.1:8000/auth/logout")
+      await axiosInstance.post("/auth/logout")
       removeToken()
       navigate("/login")
     } catch (error) {

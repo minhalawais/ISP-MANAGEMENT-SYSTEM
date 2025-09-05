@@ -53,7 +53,7 @@ export function BulkAddModal({ isVisible, onClose, endpoint, entityName, onSucce
   const downloadTemplate = async () => {
     try {
       const token = getToken()
-      const response = await axiosInstance.get(`http://127.0.0.1:8000/${endpoint}/template`, {
+      const response = await axiosInstance.get(`/${endpoint}/template`, {
         headers: { Authorization: `Bearer ${token}` },
         responseType: "blob",
       })
@@ -91,7 +91,7 @@ export function BulkAddModal({ isVisible, onClose, endpoint, entityName, onSucce
 
     try {
       const token = getToken()
-      const response = await axiosInstance.post(`http://127.0.0.1:8000/${endpoint}/bulk-add`, formData, {
+      const response = await axiosInstance.post(`/${endpoint}/bulk-add`, formData, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "multipart/form-data",

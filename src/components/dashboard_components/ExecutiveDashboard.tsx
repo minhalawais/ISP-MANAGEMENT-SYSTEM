@@ -40,7 +40,7 @@ export const ExecutiveSummary: React.FC = () => {
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        const response = await axiosInstance.get("http://127.0.0.1:8000/dashboard/executive-summary", {
+        const response = await axiosInstance.get("/dashboard/executive-summary", {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },

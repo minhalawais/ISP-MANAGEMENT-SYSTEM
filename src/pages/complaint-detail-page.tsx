@@ -71,7 +71,7 @@ const ComplaintDetailPage = () => {
       try {
         setLoading(true)
         const token = getToken()
-        const response = await axiosInstance.get(`http://127.0.0.1:8000/complaints/${id}`, {
+        const response = await axiosInstance.get(`/complaints/${id}`, {
           headers: { Authorization: `Bearer ${token}` },
         })
         setComplaint(response.data)
@@ -99,7 +99,7 @@ const ComplaintDetailPage = () => {
   const handleDownloadAttachment = () => {
     if (complaint?.attachment_path) {
       const token = getToken()
-      fetch(`http://127.0.0.1:8000/complaints/attachment/${id}`, {
+      fetch(`/complaints/attachment/${id}`, {
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -136,7 +136,7 @@ const ComplaintDetailPage = () => {
       setIsSavingRemarks(true)
       const token = getToken()
       await axiosInstance.put(
-        `http://127.0.0.1:8000/complaints/update-remarks/${id}`,
+        `/complaints/update-remarks/${id}`,
         { remarks },
         { headers: { Authorization: `Bearer ${token}` } },
       )
@@ -515,7 +515,7 @@ const ComplaintDetailPage = () => {
                       <button
                         onClick={() => {
                           const token = getToken()
-                          fetch(`http://127.0.0.1:8000/complaints/resolution-proof/${id}`, {
+                          fetch(`/complaints/resolution-proof/${id}`, {
                             headers: { Authorization: `Bearer ${token}` },
                           })
                             .then((response) => response.blob())

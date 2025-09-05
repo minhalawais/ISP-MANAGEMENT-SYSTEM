@@ -6,7 +6,7 @@ import type { ColumnDef } from "@tanstack/react-table"
 import { CRUDPage } from "../../components/complaintCrudPage.tsx"
 import { ComplaintForm } from "../../components/forms/complaintForm.tsx"
 import { useNavigate } from "react-router-dom"
-import { getToken } from "../../utils/auth.ts"
+import axiosInstance from "../../utils/axiosConfig.ts"
 
 interface Complaint {
   id: string
@@ -98,27 +98,25 @@ const ComplaintManagement: React.FC = () => {
         accessorKey: "attachment_path",
         cell: (info: any) => (
           <button
-            onClick={() => {
+            onClick={async () => {
               if (info.getValue()) {
-                const token = getToken()
-                fetch(`http://127.0.0.1:8000/complaints/attachment/${info.row.original.id}`, {
-                  method: "GET",
-                  headers: {
-                    Authorization: `Bearer ${token}`,
-                  },
-                })
-                .then((response) => response.blob())
-                .then((blob) => {
-                  const url = window.URL.createObjectURL(blob)
-                  const a = document.createElement("a")
-                  a.style.display = "none"
-                  a.href = url
-                  a.target = "_blank"
-                  document.body.appendChild(a)
-                  a.click()
-                  window.URL.revokeObjectURL(url)
-                })
-                .catch((error) => console.error("Error:", error))
+                try {
+                  const response = await axiosInstance.get(
+                    `/complaints/attachment/${info.row.original.id}`,
+                    { responseType: "blob" } // 👈 important for files
+                  );
+
+                  const url = window.URL.createObjectURL(response.data);
+                  const a = document.createElement("a");
+                  a.style.display = "none";
+                  a.href = url;
+                  a.target = "_blank";
+                  document.body.appendChild(a);
+                  a.click();
+                  window.URL.revokeObjectURL(url);
+                } catch (error) {
+                  console.error("Error fetching attachment:", error);
+                }
               }
             }}
             className="px-2 py-1 bg-[#89A8B2] text-white text-sm rounded-md shadow-md hover:bg-[#B3C8CF] transition duration-300 ease-in-out transform hover:-translate-y-1 hover:scale-105"
@@ -126,6 +124,7 @@ const ComplaintManagement: React.FC = () => {
           >
             {info.getValue() ? "View Attachment" : "No Attachment"}
           </button>
+
         ),
       },
     ],

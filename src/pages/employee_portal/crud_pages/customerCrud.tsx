@@ -101,34 +101,36 @@ const CustomerManagement: React.FC = () => {
         accessorKey: "cnic_front_image",
         cell: (info: any) => (
           <button
-            onClick={() => {
-              if (info.getValue()) {
-                const token = getToken()
-                fetch(`http://127.0.0.1:8000/customers/cnic-front-image/${info.row.original.id}`, {
-                  method: "GET",
-                  headers: {
-                    Authorization: `Bearer ${token}`,
-                  },
-                })
-                  .then((response) => response.blob())
-                  .then((blob) => {
-                    const url = window.URL.createObjectURL(blob)
-                    const a = document.createElement("a")
-                    a.style.display = "none"
-                    a.href = url
-                    a.target = "_blank"
-                    document.body.appendChild(a)
-                    a.click()
-                    window.URL.revokeObjectURL(url)
-                  })
-                  .catch((error) => console.error("Error:", error))
-              }
-            }}
-            className="px-2 py-1 bg-[#89A8B2] text-white text-sm rounded-md shadow-md hover:bg-[#B3C8CF] transition duration-300 ease-in-out transform hover:-translate-y-1 hover:scale-105"
-            disabled={!info.getValue()}
-          >
-            {info.getValue() ? "View Front CNIC" : "No Image"}
-          </button>
+  onClick={async () => {
+    if (info.getValue()) {
+      try {
+        const response = await axiosInstance.get(
+          `/customers/cnic-front-image/${info.row.original.id}`,
+          { responseType: "blob" } // 👈 important for images
+        );
+
+        const url = window.URL.createObjectURL(response.data);
+        const a = document.createElement("a");
+        a.style.display = "none";
+        a.href = url;
+        a.target = "_blank";
+        document.body.appendChild(a);
+        a.click();
+
+        // cleanup
+        window.URL.revokeObjectURL(url);
+      } catch (error) {
+        console.error("Error fetching CNIC front image:", error);
+        alert("Failed to load CNIC front image. Please try again.");
+      }
+    }
+  }}
+  className="px-2 py-1 bg-[#89A8B2] text-white text-sm rounded-md shadow-md hover:bg-[#B3C8CF] transition duration-300 ease-in-out transform hover:-translate-y-1 hover:scale-105"
+  disabled={!info.getValue()}
+>
+  {info.getValue() ? "View Front CNIC" : "No Image"}
+</button>
+
         ),
       },
       {
@@ -136,70 +138,67 @@ const CustomerManagement: React.FC = () => {
         accessorKey: "cnic_back_image",
         cell: (info: any) => (
           <button
-            onClick={() => {
-              if (info.getValue()) {
-                const token = getToken()
-                fetch(`http://127.0.0.1:8000/customers/cnic-back-image/${info.row.original.id}`, {
-                  method: "GET",
-                  headers: {
-                    Authorization: `Bearer ${token}`,
-                  },
-                })
-                  .then((response) => response.blob())
-                  .then((blob) => {
-                    const url = window.URL.createObjectURL(blob)
-                    const a = document.createElement("a")
-                    a.style.display = "none"
-                    a.href = url
-                    a.target = "_blank"
-                    document.body.appendChild(a)
-                    a.click()
-                    window.URL.revokeObjectURL(url)
-                  })
-                  .catch((error) => console.error("Error:", error))
-              }
-            }}
-            className="px-2 py-1 bg-[#89A8B2] text-white text-sm rounded-md shadow-md hover:bg-[#B3C8CF] transition duration-300 ease-in-out transform hover:-translate-y-1 hover:scale-105"
-            disabled={!info.getValue()}
-          >
-            {info.getValue() ? "View Back CNIC" : "No Image"}
-          </button>
+  onClick={async () => {
+    if (!info.getValue()) return;
+
+    try {
+      const response = await axiosInstance.get(
+        `/customers/cnic-back-image/${info.row.original.id}`,
+        { responseType: "blob" }
+      );
+
+      const url = window.URL.createObjectURL(response.data);
+      const a = document.createElement("a");
+      a.style.display = "none";
+      a.href = url;
+      a.target = "_blank";
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Error fetching CNIC Back Image:", error);
+      alert("Failed to load image. Please try again.");
+    }
+  }}
+  className="px-2 py-1 bg-[#89A8B2] text-white text-sm rounded-md shadow-md hover:bg-[#B3C8CF] transition duration-300 ease-in-out transform hover:-translate-y-1 hover:scale-105"
+  disabled={!info.getValue()}
+>
+  {info.getValue() ? "View Back CNIC" : "No Image"}
+</button>
         ),
       },
       {
         header: "Agreement Document",
         accessorKey: "agreement_document",
-        cell: (info: any) => (
-          <button
-            onClick={() => {
-              if (info.getValue()) {
-                const token = getToken()
-                fetch(`http://127.0.0.1:8000/customers/agreement-document/${info.row.original.id}`, {
-                  method: "GET",
-                  headers: {
-                    Authorization: `Bearer ${token}`,
-                  },
-                })
-                .then((response) => response.blob())
-                .then((blob) => {
-                  console.log('blob',blob)
-                  const url = window.URL.createObjectURL(blob)
-                  const a = document.createElement("a")
-                  a.style.display = "none"
-                  a.href = url
-                  a.target = "_blank"
-                  document.body.appendChild(a)
-                  a.click()
-                  window.URL.revokeObjectURL(url)
-                })
-                .catch((error) => console.error("Error:", error))
-              }
-            }}
-            className="px-2 py-1 bg-[#89A8B2] text-white text-sm rounded-md shadow-md hover:bg-[#B3C8CF] transition duration-300 ease-in-out transform hover:-translate-y-1 hover:scale-105"
-            disabled={!info.getValue()}
-          >
-            {info.getValue() ? "View Agreement" : "No Agreement"}
-          </button>
+        cell: (info: any) => ( 
+<button
+  onClick={async () => {
+    if (!info.getValue()) return;
+
+    try {
+      const response = await axiosInstance.get(
+        `/customers/agreement-document/${info.row.original.id}`,
+        { responseType: "blob" }
+      );
+
+      const url = window.URL.createObjectURL(response.data);
+      const a = document.createElement("a");
+      a.style.display = "none";
+      a.href = url;
+      a.target = "_blank";
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Error fetching agreement document:", error);
+      alert("Failed to load document. Please try again.");
+    }
+  }}
+  className="px-2 py-1 bg-[#89A8B2] text-white text-sm rounded-md shadow-md hover:bg-[#B3C8CF] transition duration-300 ease-in-out transform hover:-translate-y-1 hover:scale-105"
+  disabled={!info.getValue()}
+>
+  {info.getValue() ? "View Agreement" : "No Agreement"}
+</button>
         ),
       },
     ],

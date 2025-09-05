@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react"
 import { useNavigate, Link } from "react-router-dom"
 import { Eye, EyeOff, Lock, User, LogIn } from "lucide-react"
 import MBALogo from "../assets/mba_logo.tsx"
-
+import axiosInstance from "../utils/axiosConfig.ts"
 const Login = () => {
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
@@ -13,40 +13,37 @@ const Login = () => {
   useEffect(() => {
     document.title = "MBA NET - Login"
   }, [])
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
     setIsLoading(true)
-
+  
     try {
-      const response = await fetch("http://127.0.0.1:8000/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ username, password }),
+      const response = await axiosInstance.post("/auth/login", {
+        username,
+        password,
       })
-
-      const data = await response.json()
-
-      if (!response.ok) throw new Error(data.message || "Login failed")
-
+  
+      const data = response.data
+  
       localStorage.setItem("token", data.token)
       localStorage.setItem("role", data.role)
       localStorage.setItem("company_id", data.company_id)
       localStorage.setItem("id", data.id)
-
+  
       if (data.role === "company_owner" || data.role === "super_admin" || data.role === "auditor") {
         navigate("/reporting-analytics")
       } else if (data.role === "employee") {
         navigate("/employee_portal")
       }
-    } catch (err) {
+    } catch (err: any) {
+      console.error("Login failed", err)
       setError("Invalid credentials")
+    } finally {
       setIsLoading(false)
     }
   }
-
+  
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-indigo-100">
       <div className="max-w-md w-full mx-4">

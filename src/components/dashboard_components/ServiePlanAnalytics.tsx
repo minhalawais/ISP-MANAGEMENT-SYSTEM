@@ -75,7 +75,7 @@ export const ServicePlanAnalytics: React.FC = () => {
     const fetchData = async () => {
       try {
         const response = await axiosInstance.get<ServicePlanData>(
-          "http://127.0.0.1:8000/dashboard/service-plan-analytics",
+          "/dashboard/service-plan-analytics",
           {
             headers: {
               Authorization: `Bearer ${localStorage.getItem("token")}`,

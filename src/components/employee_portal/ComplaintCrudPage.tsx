@@ -58,7 +58,7 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
     setIsLoading(true)
     try {
       const token = getToken()
-      const response = await axiosInstance.get(`http://127.0.0.1:8000/${endpoint}/list`, {
+      const response = await axiosInstance.get(`/${endpoint}/list`, {
         headers: { Authorization: `Bearer ${token}` },
       })
       setData(response.data)
@@ -83,7 +83,7 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
     try {
       const token = getToken()
       await axiosInstance.put(
-        `http://127.0.0.1:8000/${endpoint}/update/${id}`,
+        `/${endpoint}/update/${id}`,
         { is_active: !currentStatus },
         { headers: { Authorization: `Bearer ${token}` } },
       )
@@ -105,7 +105,7 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
       await Promise.all(
         selectedRows.map((id) =>
           axiosInstance.put(
-            `http://127.0.0.1:8000/${endpoint}/update/${id}`,
+            `/${endpoint}/update/${id}`,
             { is_active: newStatus },
             { headers: { Authorization: `Bearer ${token}` } },
           ),
@@ -170,7 +170,7 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
       }
 
       if (editingItem) {
-        await axiosInstance.put(`http://127.0.0.1:8000/${endpoint}/update/${editingItem.id}`, formDataToSend, {
+        await axiosInstance.put(`/${endpoint}/update/${editingItem.id}`, formDataToSend, {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "multipart/form-data",
@@ -180,7 +180,7 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
           style: { background: "#E5E1DA", color: "#89A8B2" },
         })
       } else {
-        await axiosInstance.post(`http://127.0.0.1:8000/${endpoint}/add`, formDataToSend, {
+        await axiosInstance.post(`/${endpoint}/add`, formDataToSend, {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "multipart/form-data",
@@ -206,7 +206,7 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
     if (window.confirm(`Are you sure you want to delete this ${title.toLowerCase()}?`)) {
       try {
         const token = getToken()
-        await axiosInstance.delete(`http://127.0.0.1:8000/${endpoint}/delete/${id}`, {
+        await axiosInstance.delete(`/${endpoint}/delete/${id}`, {
           headers: { Authorization: `Bearer ${token}` },
         })
         toast.success(`${title} deleted successfully`, {
@@ -424,34 +424,36 @@ const ComplaintManagement: React.FC = () => {
         accessorKey: "attachment_path",
         cell: (info: any) => (
           <button
-            onClick={() => {
-              if (info.getValue()) {
-                const token = getToken()
-                fetch(`http://127.0.0.1:8000/complaints/attachment/${info.row.original.id}`, {
-                  method: "GET",
-                  headers: {
-                    Authorization: `Bearer ${token}`,
-                  },
+          onClick={() => {
+            if (info.getValue()) {
+              axiosInstance
+                .get(`/complaints/attachment/${info.row.original.id}`, {
+                  responseType: 'blob', // Important for file downloads
+                  params: {}
                 })
-                  .then((response) => response.blob())
-                  .then((blob) => {
-                    const url = window.URL.createObjectURL(blob)
-                    const a = document.createElement("a")
-                    a.style.display = "none"
-                    a.href = url
-                    a.download = `complaint_attachment_${info.row.original.id}`
-                    document.body.appendChild(a)
-                    a.click()
-                    window.URL.revokeObjectURL(url)
-                  })
-                  .catch((error) => console.error("Error:", error))
-              }
-            }}
-            className="px-2 py-1 bg-[#89A8B2] text-white text-sm rounded-md shadow-md hover:bg-[#B3C8CF] transition duration-300 ease-in-out transform hover:-translate-y-1 hover:scale-105"
-            disabled={!info.getValue()}
-          >
-            {info.getValue() ? "View Attachment" : "No Attachment"}
-          </button>
+                .then((response) => {
+                  const blob = new Blob([response.data]);
+                  const url = window.URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.style.display = 'none';
+                  a.href = url;
+                  a.download = `complaint_attachment_${info.row.original.id}`;
+                  document.body.appendChild(a);
+                  a.click();
+                  window.URL.revokeObjectURL(url);
+                  document.body.removeChild(a);
+                })
+                .catch((error) => {
+                  console.error('Error:', error);
+                  toast.error('Failed to download attachment');
+                });
+            }
+          }}
+          className="px-2 py-1 bg-[#89A8B2] text-white text-sm rounded-md shadow-md hover:bg-[#B3C8CF] transition duration-300 ease-in-out transform hover:-translate-y-1 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+          disabled={!info.getValue()}
+        >
+          {info.getValue() ? "View Attachment" : "No Attachment"}
+        </button>
         ),
       },
     ],

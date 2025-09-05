@@ -69,7 +69,7 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
     setIsLoading(true)
     try {
       const token = getToken()
-      const response = await axiosInstance.get(`http://127.0.0.1:8000/${endpoint}/list`, {
+      const response = await axiosInstance.get(`/${endpoint}/list`, {
         headers: { Authorization: `Bearer ${token}` },
       })
       setData(response.data)
@@ -104,7 +104,7 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
     try {
       const token = getToken()
       await axiosInstance.put(
-        `http://127.0.0.1:8000/${endpoint}/update/${id}`,
+        `/${endpoint}/update/${id}`,
         { is_active: !currentStatus },
         { headers: { Authorization: `Bearer ${token}` } },
       )
@@ -129,7 +129,7 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
       await Promise.all(
         selectedRows.map((id) =>
           axiosInstance.put(
-            `http://127.0.0.1:8000/${endpoint}/update/${id}`,
+            `/${endpoint}/update/${id}`,
             { is_active: newStatus },
             { headers: { Authorization: `Bearer ${token}` } },
           ),
@@ -184,14 +184,14 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
       const token = getToken()
       let response
       if (editingItem) {
-        response = await axiosInstance.put(`http://127.0.0.1:8000/${endpoint}/update/${editingItem.id}`, formData, {
+        response = await axiosInstance.put(`/${endpoint}/update/${editingItem.id}`, formData, {
           headers: { Authorization: `Bearer ${token}` },
         })
         toast.success(`${title} updated successfully`, {
           style: { background: "#D1FAE5", color: "#10B981" },
         })
       } else {
-        response = await axiosInstance.post(`http://127.0.0.1:8000/${endpoint}/add`, formData, {
+        response = await axiosInstance.post(`/${endpoint}/add`, formData, {
           headers: { Authorization: `Bearer ${token}` },
         })
         toast.success(`${title} added successfully`, {
@@ -220,7 +220,7 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
       try {
         setIsLoading(true)
         const token = getToken()
-        await axiosInstance.delete(`http://127.0.0.1:8000/${endpoint}/delete/${id}`, {
+        await axiosInstance.delete(`/${endpoint}/delete/${id}`, {
           headers: { Authorization: `Bearer ${token}` },
         })
         toast.success(`${title} deleted successfully`, {

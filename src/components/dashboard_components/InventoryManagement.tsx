@@ -44,7 +44,7 @@ export const InventoryManagement: React.FC = () => {
   useEffect(() => {
     const fetchInventoryData = async () => {
       try {
-        const response = await axiosInstance.get("http://127.0.0.1:8000/dashboard/inventory-management", {
+        const response = await axiosInstance.get("/dashboard/inventory-management", {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },

@@ -29,7 +29,7 @@ const UserProfile: React.FC = () => {
     try {
       setIsLoading(true)
       const token = getToken()
-      const response = await axiosInstance.get("http://127.0.0.1:8000/user/profile", {
+      const response = await axiosInstance.get("/user/profile", {
         headers: {
           Authorization: `Bearer ${token}`,
         },

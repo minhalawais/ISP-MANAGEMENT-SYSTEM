@@ -41,13 +41,13 @@ export function FileUploadField({ label, name, onChange, currentImage, currentDo
       // If we have a customer ID, we can construct a URL to fetch the file
       if (customerId) {
         if (name === "cnic_front_image") {
-          setPreviewUrl(`http://127.0.0.1:8000/customers/cnic-front-image/${customerId}`)
+          setPreviewUrl(`/customers/cnic-front-image/${customerId}`)
           setFileType("image")
         } else if (name === "cnic_back_image") {
-          setPreviewUrl(`http://127.0.0.1:8000/customers/cnic-back-image/${customerId}`)
+          setPreviewUrl(`/customers/cnic-back-image/${customerId}`)
           setFileType("image")
         } else if (name === "agreement_document") {
-          setPreviewUrl(`http://127.0.0.1:8000/customers/agreement-document/${customerId}`)
+          setPreviewUrl(`/customers/agreement-document/${customerId}`)
           setFileType("document")
         }
       } else {
@@ -95,7 +95,7 @@ export function FileUploadField({ label, name, onChange, currentImage, currentDo
       try {
         const token = getToken();
         const response = await axiosInstance.post(
-          `http://127.0.0.1:8000/customers/upload-file/${name}`,
+          `/customers/upload-file/${name}`,
           formData,
           {
             headers: {

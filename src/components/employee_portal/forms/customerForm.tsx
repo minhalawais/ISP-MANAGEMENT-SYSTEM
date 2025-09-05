@@ -48,12 +48,12 @@ export function CustomerForm({
       const token = getToken()
       try {
         const [areasResponse, servicePlansResponse, ispsResponse, inventoryResponse] = await Promise.all([
-          axiosInstance.get("http://127.0.0.1:8000/areas/list", { headers: { Authorization: `Bearer ${token}` } }),
-          axiosInstance.get("http://127.0.0.1:8000/service-plans/list", {
+          axiosInstance.get("/areas/list", { headers: { Authorization: `Bearer ${token}` } }),
+          axiosInstance.get("/service-plans/list", {
             headers: { Authorization: `Bearer ${token}` },
           }),
-          axiosInstance.get("http://127.0.0.1:8000/isps/list", { headers: { Authorization: `Bearer ${token}` } }),
-          axiosInstance.get("http://127.0.0.1:8000/inventory/list", { headers: { Authorization: `Bearer ${token}` } }),
+          axiosInstance.get("/isps/list", { headers: { Authorization: `Bearer ${token}` } }),
+          axiosInstance.get("/inventory/list", { headers: { Authorization: `Bearer ${token}` } }),
         ])
         setAreas(areasResponse.data)
         setServicePlans(servicePlansResponse.data)
@@ -746,7 +746,7 @@ export function CustomerForm({
           name="cnic_front_image"
           onChange={memoizedHandleFileChange}
           currentImage={
-            formData.cnic_front_image ? `http://127.0.0.1:8000/customers/cnic-front-image/${formData.id}` : undefined
+            formData.cnic_front_image ? `/customers/cnic-front-image/${formData.id}` : undefined
           }
         />
         <FileUploadField
@@ -754,7 +754,7 @@ export function CustomerForm({
           name="cnic_back_image"
           onChange={memoizedHandleFileChange}
           currentImage={
-            formData.cnic_back_image ? `http://127.0.0.1:8000/customers/cnic-back-image/${formData.id}` : undefined
+            formData.cnic_back_image ? `/customers/cnic-back-image/${formData.id}` : undefined
           }
         />
         <FileUploadField
@@ -763,7 +763,7 @@ export function CustomerForm({
           onChange={memoizedHandleFileChange}
           currentDocument={
             formData.agreement_document
-              ? `http://127.0.0.1:8000/customers/agreement-document/${formData.id}`
+              ? `/customers/agreement-document/${formData.id}`
               : undefined
           }
         />

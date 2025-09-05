@@ -39,16 +39,14 @@ export function CRUDPage<T extends { id: string }>({ title, endpoint, columns, F
 
   const fetchData = async () => {
     try {
-      const token = getToken();
-      const response = await axios.get(`http://127.0.0.1:8000/${endpoint}/list`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setData(response.data);
+      const response = await axiosInstance.get(`/${endpoint}/list`)
+      setData(response.data)
     } catch (error) {
-      console.error(`Failed to fetch ${title}`, error);
-      toast.error(`Failed to fetch ${title}`);
+      console.error(`Failed to fetch ${title}`, error)
+      toast.error(`Failed to fetch ${title}`)
     }
-  };
+  }
+  
 
   const showModal = (item: T | null) => {
     setEditingItem(item);
@@ -78,7 +76,7 @@ export function CRUDPage<T extends { id: string }>({ title, endpoint, columns, F
   
       if (editingItem) {
         await axiosInstance.put(
-          `http://127.0.0.1:8000/${endpoint}/update/${editingItem.id}`, 
+          `/${endpoint}/update/${editingItem.id}`, 
           formDataToSend,
           {
             headers: { 
@@ -90,7 +88,7 @@ export function CRUDPage<T extends { id: string }>({ title, endpoint, columns, F
         toast.success(`${title} updated successfully`);
       } else {
         await axiosInstance.post(
-          `http://127.0.0.1:8000/${endpoint}/add`,
+          `/${endpoint}/add`,
           formDataToSend,
           {
             headers: { 
@@ -112,7 +110,7 @@ export function CRUDPage<T extends { id: string }>({ title, endpoint, columns, F
     if (window.confirm(`Are you sure you want to delete this ${title.toLowerCase()}?`)) {
       try {
         const token = getToken();
-        await axiosInstance.delete(`http://127.0.0.1:8000/${endpoint}/delete/${id}`, {
+        await axiosInstance.delete(`/${endpoint}/delete/${id}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         toast.success(`${title} deleted successfully`);
@@ -127,7 +125,7 @@ export function CRUDPage<T extends { id: string }>({ title, endpoint, columns, F
   const handleToggleStatus = async (id: string, currentStatus: boolean) => {
     try {
       const token = getToken();
-      await axiosInstance.patch(`http://127.0.0.1:8000/${endpoint}/toggle-status/${id}`, {}, {
+      await axiosInstance.patch(`/${endpoint}/toggle-status/${id}`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
       toast.success(`${title} status updated successfully`);

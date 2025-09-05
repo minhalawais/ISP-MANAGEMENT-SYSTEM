@@ -44,7 +44,7 @@ const TaskManagement: React.FC = () => {
     const fetchEmployees = async () => {
       try {
         const token = getToken();
-        const response = await axiosInstance.get('http://127.0.0.1:8000/employees/list', {
+        const response = await axiosInstance.get('/employees/list', {
           headers: { Authorization: `Bearer ${token}` }
         });
         setEmployees(response.data);
@@ -72,7 +72,7 @@ const TaskManagement: React.FC = () => {
   const handleProcessTask = async () => {
     try {
       const token = getToken();
-      await axiosInstance.put(`http://127.0.0.1:8000/tasks/update/${selectedTask?.id}`, 
+      await axiosInstance.put(`/tasks/update/${selectedTask?.id}`, 
         { status: 'in_progress' },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -88,7 +88,7 @@ const TaskManagement: React.FC = () => {
   const handleCompleteTask = async (completionData: { notes: string }) => {
     try {
       const token = getToken();
-      await axiosInstance.put(`http://127.0.0.1:8000/tasks/update/${selectedTask?.id}`, 
+      await axiosInstance.put(`/tasks/update/${selectedTask?.id}`, 
         { 
           status: 'completed',
           notes: completionData.notes

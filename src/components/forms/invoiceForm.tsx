@@ -21,7 +21,7 @@ export function InvoiceForm({ formData, handleInputChange, isEditing }: InvoiceF
   const fetchCustomers = async () => {
     try {
       const token = getToken()
-      const response = await axiosInstance.get("http://127.0.0.1:8000/customers/list", {
+      const response = await axiosInstance.get("/customers/list", {
         headers: { Authorization: `Bearer ${token}` },
       })
       setCustomers(

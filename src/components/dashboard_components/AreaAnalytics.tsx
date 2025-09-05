@@ -40,7 +40,7 @@ export const AreaAnalysis: React.FC = () => {
   useEffect(() => {
     const fetchAnalyticsData = async () => {
       try {
-        const response = await axiosInstance.get("http://127.0.0.1:8000/dashboard/area-analytics", {
+        const response = await axiosInstance.get("/dashboard/area-analytics", {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },

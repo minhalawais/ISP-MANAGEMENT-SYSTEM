@@ -3,6 +3,7 @@ import { useState, useEffect } from "react"
 import { useNavigate, useParams } from "react-router-dom"
 import { Lock } from "lucide-react"
 import axios from "axios"
+import axiosInstance from "../utils/axiosConfig.ts"
 
 const ResetPasswordPage: React.FC = () => {
   const [password, setPassword] = useState("")
@@ -17,44 +18,49 @@ const ResetPasswordPage: React.FC = () => {
   useEffect(() => {
     const validateToken = async () => {
       try {
-        await axios.get(`http://127.0.0.1:8000/auth/reset-password/${token}`)
+        await axiosInstance.get(`/auth/reset-password/${token}`);
       } catch (err) {
-        setIsValidToken(false)
+        setIsValidToken(false);
         if (axios.isAxiosError(err) && err.response) {
-          setError(err.response.data.error || "Invalid or expired token")
+          setError(err.response.data.error || "Invalid or expired token");
         } else {
-          setError("An error occurred. Please try again.")
+          setError("An error occurred. Please try again.");
         }
       }
-    }
+    };
+    
 
     validateToken()
   }, [token])
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
+  
     if (password !== confirmPassword) {
-      setError("Passwords do not match")
-      return
+      setError("Passwords do not match");
+      return;
     }
-    setIsLoading(true)
-    setMessage("")
-    setError("")
-
+  
+    setIsLoading(true);
+    setMessage("");
+    setError("");
+  
     try {
-      const response = await axios.post(`http://127.0.0.1:8000/auth/reset-password/${token}`, { password })
-      setMessage(response.data.message)
-      setTimeout(() => navigate("/login"), 3000)
+      const response = await axiosInstance.post(`/auth/reset-password/${token}`, { password });
+      setMessage(response.data.message);
+  
+      setTimeout(() => navigate("/login"), 3000);
     } catch (err) {
       if (axios.isAxiosError(err) && err.response) {
-        setError(err.response.data.error || "An error occurred. Please try again.")
+        setError(err.response.data.error || "An error occurred. Please try again.");
       } else {
-        setError("An error occurred. Please try again.")
+        setError("An error occurred. Please try again.");
       }
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
+  
 
   if (!isValidToken) {
     return (

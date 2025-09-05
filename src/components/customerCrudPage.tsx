@@ -74,35 +74,32 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
   }, [])
 
   const fetchData = async () => {
-    setIsLoading(true)
+    setIsLoading(true);
     try {
-      const token = getToken()
-      const response = await axios.get(`http://127.0.0.1:8000/${endpoint}/list`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      setData(response.data)
-
+      const response = await axiosInstance.get(`/${endpoint}/list`);
+      setData(response.data);
+  
       // Calculate stats
-      const total = response.data.length
-      const active = response.data.filter((item: any) => item.is_active).length
+      const total = response.data.length;
+      const active = response.data.filter((item: any) => item.is_active).length;
       setStats({
         total,
         active,
         inactive: total - active,
-      })
-
+      });
+  
       if (onDataChange) {
-        onDataChange()
+        onDataChange();
       }
     } catch (error) {
-      console.error(`Failed to fetch ${title}`, error)
+      console.error(`Failed to fetch ${title}`, error);
       toast.error(`Failed to fetch ${title}`, {
         style: { background: "#FEE2E2", color: "#EF4444" },
-      })
+      });
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
   const handleBulkStatusChange = async (newStatus: boolean) => {
     if (selectedRows.length === 0) return
 
@@ -112,7 +109,7 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
       await Promise.all(
         selectedRows.map((id) =>
           axiosInstance.put(
-            `http://127.0.0.1:8000/${endpoint}/update/${id}`,
+            `/${endpoint}/update/${id}`,
             { is_active: newStatus },
             { headers: { Authorization: `Bearer ${token}` } },
           ),
@@ -171,7 +168,7 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
   
       if (editingItem) {
         await axiosInstance.put(
-          `http://127.0.0.1:8000/${endpoint}/update/${editingItem.id}`,
+          `/${endpoint}/update/${editingItem.id}`,
           formDataToSend,
           {
             headers: {
@@ -185,7 +182,7 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
         });
       } else {
         await axiosInstance.post(
-          `http://127.0.0.1:8000/${endpoint}/add`,
+          `/${endpoint}/add`,
           formDataToSend,
           {
             headers: {
@@ -215,7 +212,7 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
       try {
         setIsLoading(true)
         const token = getToken()
-        await axiosInstance.delete(`http://127.0.0.1:8000/${endpoint}/delete/${id}`, {
+        await axiosInstance.delete(`/${endpoint}/delete/${id}`, {
           headers: { Authorization: `Bearer ${token}` },
         })
         toast.success(`${title} deleted successfully`, {
@@ -238,7 +235,7 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
       setIsLoading(true)
       const token = getToken()
       await axiosInstance.patch(
-        `http://127.0.0.1:8000/${endpoint}/toggle-status/${id}`,
+        `/${endpoint}/toggle-status/${id}`,
         {},
         {
           headers: { Authorization: `Bearer ${token}` },

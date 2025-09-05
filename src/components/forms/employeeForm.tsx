@@ -80,7 +80,7 @@ export function EmployeeForm({ formData, handleInputChange, isEditing }: Employe
       try {
         const token = getToken()
         const response = await axiosInstance.post(
-          "http://127.0.0.1:8000/employees/verify-username",
+          "/employees/verify-username",
           { username },
           {
             headers: { Authorization: `Bearer ${token}` },
@@ -105,7 +105,7 @@ export function EmployeeForm({ formData, handleInputChange, isEditing }: Employe
       try {
         const token = getToken()
         const response = await axiosInstance.post(
-          "http://127.0.0.1:8000/employees/verify-email",
+          "/employees/verify-email",
           { email },
           {
             headers: { Authorization: `Bearer ${token}` },

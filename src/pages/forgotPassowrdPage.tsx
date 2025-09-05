@@ -2,7 +2,7 @@ import type React from "react"
 import { useState } from "react"
 import { Link } from "react-router-dom"
 import { Mail } from "lucide-react"
-import axios from "axios"
+import axiosInstance from "../utils/axiosConfig.ts"
 
 const ForgotPasswordPage: React.FC = () => {
   const [email, setEmail] = useState("")
@@ -11,20 +11,20 @@ const ForgotPasswordPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
-    setMessage("")
-    setError("")
-
+    e.preventDefault();
+    setIsLoading(true);
+    setMessage("");
+    setError("");
+  
     try {
-      const response = await axios.post("http://127.0.0.1:8000/auth/forgot-password", { email })
-      setMessage(response.data.message)
+      const response = await axiosInstance.post("/auth/forgot-password", { email });
+      setMessage(response.data.message);
     } catch (err) {
-      setError("An error occurred. Please try again.")
+      setError("An error occurred. Please try again.");
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-indigo-100">

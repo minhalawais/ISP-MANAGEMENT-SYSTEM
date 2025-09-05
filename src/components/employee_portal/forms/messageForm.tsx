@@ -25,7 +25,7 @@ export function MessageForm({ formData, handleInputChange, isEditing }: MessageF
     const fetchCustomers = async () => {
       const token = getToken();
       try {
-        const response = await axiosInstance.get('http://127.0.0.1:8000/customers/list', {
+        const response = await axiosInstance.get('/customers/list', {
           headers: { Authorization: `Bearer ${token}` }
         });
         setCustomers(response.data);
