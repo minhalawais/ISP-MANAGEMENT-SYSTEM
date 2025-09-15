@@ -4,8 +4,8 @@ import type React from "react"
 import { useEffect, useState } from "react"
 import { getToken } from "../../utils/auth.ts"
 import axiosInstance from "../../utils/axiosConfig.ts"
-import { FileText, DollarSign, Calendar, CreditCard, Hash, User, ChevronDown, MessageSquare } from "lucide-react"
-
+import { FileText, DollarSign, Building, Calendar, CreditCard, Hash, User, ChevronDown, MessageSquare } from "lucide-react"
+import {SearchableSelect} from "../SearchableSelect.tsx"
 interface PaymentFormProps {
   formData: any
   handleInputChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void
@@ -19,29 +19,76 @@ interface Invoice {
   customer_name: string
   total_amount: number
 }
+interface BankAccount {
+  id: string
+  bank_name: string
+  account_title: string
+  account_number: string
+  iban?: string
+}
 
 export function PaymentForm({ formData, handleInputChange, handleSubmit, isEditing }: PaymentFormProps) {
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [employees, setEmployees] = useState<{ id: string; name: string }[]>([])
+  const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([])
   const [errors, setErrors] = useState<{ [key: string]: string }>({})
 
   useEffect(() => {
+    if (!formData.payment_date) {
+      handleInputChange({
+        target: {
+          name: "payment_date",
+          value: new Date().toISOString().split("T")[0],
+        },
+      } as React.ChangeEvent<HTMLInputElement>)
+    }
+    
+    // Set default status if not already set
+    if (!formData.status) {
+      handleInputChange({
+        target: {
+          name: "status",
+          value: "paid",
+        },
+      } as React.ChangeEvent<HTMLInputElement>)
+    }
+    
     fetchInvoices()
     fetchEmployees()
-  }, [])
+    fetchBankAccounts()
+  }, []);
 
+  const fetchBankAccounts = async () => {
+    try {
+      const token = getToken()
+      const response = await axiosInstance.get("/bank-accounts/list", {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      setBankAccounts(response.data)
+    } catch (error) {
+      console.error("Failed to fetch bank accounts", error)
+    }
+  }
   const fetchInvoices = async () => {
     try {
       const token = getToken()
       const response = await axiosInstance.get("/invoices/list", {
         headers: { Authorization: `Bearer ${token}` },
       })
+      const pendingInvoices = response.data.filter((invoice: any) => 
+        invoice.status === 'pending' || invoice.status === 'Pending'
+      )
       setInvoices(
-        response.data.map((invoice: any) => ({
+        pendingInvoices.map((invoice: any) => ({
           id: invoice.id,
           invoice_number: invoice.invoice_number,
           customer_name: invoice.customer_name,
+          customer_internet_id: invoice.customer_internet_id || "N/A", // Add this
           total_amount: invoice.total_amount,
+          due_date: invoice.due_date, // Add this if available
+          status: invoice.status, // Add this if available
+          billing_end_date: invoice.billing_end_date, // Add this if available
+          billing_start_date: invoice.billing_start_date, // Add this if available
         })),
       )
     } catch (error) {
@@ -102,6 +149,9 @@ export function PaymentForm({ formData, handleInputChange, handleSubmit, isEditi
     if (!formData.payment_method) newErrors.payment_method = "Payment method is required"
     if (!formData.status) newErrors.status = "Status is required"
     if (!formData.received_by) newErrors.received_by = "Receiver is required"
+    if (formData.payment_method === "bank_transfer" && !formData.bank_account_id) {
+      newErrors.bank_account_id = "Bank account is required for bank transfers"
+    }
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
@@ -112,31 +162,13 @@ export function PaymentForm({ formData, handleInputChange, handleSubmit, isEditi
         <label htmlFor="invoice_id" className="block text-sm font-medium text-deep-ocean">
           Invoice
         </label>
-        <div className="relative">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <FileText className="h-5 w-5 text-slate-gray/60" />
-          </div>
-          <select
-            id="invoice_id"
-            name="invoice_id"
-            value={formData.invoice_id || ""}
-            onChange={handleInvoiceChange}
-            className={`w-full pl-10 pr-10 py-2.5 border ${
-              errors.invoice_id ? "border-coral-red" : "border-slate-gray/20"
-            } rounded-lg bg-light-sky/30 text-deep-ocean placeholder-slate-gray/50 focus:outline-none focus:ring-2 focus:ring-electric-blue/30 focus:border-transparent transition-all duration-200 appearance-none`}
-            required
-          >
-            <option value="">Select Invoice</option>
-            {invoices.map((invoice) => (
-              <option key={invoice.id} value={invoice.id}>
-                {`${invoice.invoice_number} - ${invoice.customer_name}`}
-              </option>
-            ))}
-          </select>
-          <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-            <ChevronDown className="h-5 w-5 text-slate-gray/60" />
-          </div>
-        </div>
+        <SearchableSelect
+          options={invoices}
+          value={formData.invoice_id || ""}
+          onChange={handleInvoiceChange}
+          error={errors.invoice_id}
+          placeholder="Search and select invoice"
+        />
         {errors.invoice_id && <p className="text-coral-red text-xs mt-1">{errors.invoice_id}</p>}
       </div>
 
@@ -220,7 +252,38 @@ export function PaymentForm({ formData, handleInputChange, handleSubmit, isEditi
           </div>
           {errors.payment_method && <p className="text-coral-red text-xs mt-1">{errors.payment_method}</p>}
         </div>
-
+        {formData.payment_method === "bank_transfer" && (
+          <div className="space-y-2">
+            <label htmlFor="bank_account_id" className="block text-sm font-medium text-deep-ocean">
+              Bank Account
+            </label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Building className="h-5 w-5 text-slate-gray/60" />
+              </div>
+              <select
+                id="bank_account_id"
+                name="bank_account_id"
+                value={formData.bank_account_id || ""}
+                onChange={handleInputChange}
+                className={`w-full pl-10 pr-10 py-2.5 border ${
+                  errors.bank_account_id ? "border-coral-red" : "border-slate-gray/20"
+                } rounded-lg bg-light-sky/30 text-deep-ocean placeholder-slate-gray/50 focus:outline-none focus:ring-2 focus:ring-electric-blue/30 focus:border-transparent transition-all duration-200 appearance-none`}
+              >
+                <option value="">Select Bank Account</option>
+                {bankAccounts.map((account) => (
+                  <option key={account.id} value={account.id}>
+                    {account.bank_name} - {account.account_number} ({account.account_title})
+                  </option>
+                ))}
+              </select>
+              <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                <ChevronDown className="h-5 w-5 text-slate-gray/60" />
+              </div>
+            </div>
+            {errors.bank_account_id && <p className="text-coral-red text-xs mt-1">{errors.bank_account_id}</p>}
+          </div>
+        )}
         <div className="space-y-2">
           <label htmlFor="transaction_id" className="block text-sm font-medium text-deep-ocean">
             Transaction ID
@@ -261,10 +324,7 @@ export function PaymentForm({ formData, handleInputChange, handleSubmit, isEditi
             required
           >
             <option value="">Select Status</option>
-            <option value="partially_paid">Partially Paid</option>
             <option value="paid">Paid</option>
-            <option value="overdue">Overdue</option>
-            <option value="cancelled">Cancelled</option>
             <option value="refunded">Refunded</option>
           </select>
           <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">

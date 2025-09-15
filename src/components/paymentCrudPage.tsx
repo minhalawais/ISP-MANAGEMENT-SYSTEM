@@ -394,7 +394,7 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
                     <div>
                       <p className="text-slate-gray text-sm">Total Amount</p>
                       <h3 className="text-2xl font-bold text-electric-blue mt-1">
-                        ${stats.totalAmount.toLocaleString()}
+                        PKR{stats.totalAmount.toLocaleString()}
                       </h3>
                     </div>
                     <div className="bg-electric-blue/10 p-3 rounded-full">

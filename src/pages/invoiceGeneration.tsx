@@ -301,14 +301,14 @@ const InvoiceGenerationPage: React.FC = () => {
                           </div>
                         </td>
                         <td className="py-6 text-right text-[#3A86FF] font-medium">
-                          ${invoiceData?.subtotal.toFixed(2)}
+                          PKR{invoiceData?.subtotal.toFixed(2)}
                         </td>
                       </tr>
                       {invoiceData?.discount_percentage > 0 && (
                         <tr>
                           <td className="py-6 text-[#3A86FF]">Discount</td>
                           <td className="py-6 text-right text-[#10B981] font-medium">
-                            -${(invoiceData.subtotal * (invoiceData.discount_percentage / 100)).toFixed(2)}
+                            -PKR{(invoiceData.subtotal * (invoiceData.discount_percentage / 100)).toFixed(2)}
                             <span className="text-sm text-[#4A5568] ml-1">({invoiceData.discount_percentage}%)</span>
                           </td>
                         </tr>
@@ -321,7 +321,7 @@ const InvoiceGenerationPage: React.FC = () => {
                         </td>
                         <td className="pt-6 text-right">
                           <div className="text-3xl font-bold text-[#3A86FF]">
-                            ${invoiceData?.total_amount.toFixed(2)}
+                            PKR{invoiceData?.total_amount.toFixed(2)}
                           </div>
                         </td>
                       </tr>

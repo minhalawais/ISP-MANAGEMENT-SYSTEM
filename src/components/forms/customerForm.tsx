@@ -1,7 +1,9 @@
 "use client"
 
-import type React from "react"
-import { useState, useEffect, useCallback, useRef } from "react"
+import React from "react"
+
+import type { ReactElement } from "react"
+import { useState, useEffect, useCallback, useRef, useMemo } from "react"
 import { getToken } from "../../utils/auth.ts"
 import axiosInstance from "../../utils/axiosConfig.ts"
 import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet"
@@ -25,15 +27,69 @@ import {
   Package,
   DollarSign,
   Loader,
+  XCircle,
+  CheckCircle2,
 } from "lucide-react"
 import { FileUploadField } from "./FileUploadField.tsx"
 
 interface CustomerFormProps {
-  formData: any
+  formData: Partial<Customer>
   handleInputChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void
   handleFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void
-  handleSubmit: (e: React.FormEvent<HTMLFormElement>) => void
   isEditing: boolean
+  validationErrors?: Record<string, string>
+}
+
+interface Customer {
+  first_name: string
+  last_name: string
+  email: string
+  internet_id: string
+  phone_1: string
+  phone_2?: string
+  installation_address: string
+  gps_coordinates?: string
+  cnic: string
+  area_id: string
+  service_plan_id: string
+  isp_id: string
+  connection_type: string
+  internet_connection_type?: string
+  wire_length?: string
+  wire_ownership?: string
+  router_ownership?: string
+  router_id?: string
+  router_serial_number?: string
+  patch_cord_ownership?: string
+  patch_cord_count?: string
+  patch_cord_ethernet_ownership?: string
+  patch_cord_ethernet_count?: string
+  splicing_box_ownership?: string
+  splicing_box_serial_number?: string
+  tv_cable_connection_type?: string
+  node_count?: string
+  stb_serial_number?: string
+  cnic_front_image?: string
+  cnic_back_image?: string
+  agreement_document?: string
+  discount_amount?: string
+  installation_date: string
+  recharge_date?: string
+}
+
+interface Area {
+  id: string
+  name: string
+}
+
+interface ServicePlan {
+  id: string
+  name: string
+}
+
+interface ISP {
+  id: string
+  name: string
 }
 
 interface InventoryItem {
@@ -45,20 +101,232 @@ interface InventoryItem {
   item_type: string
 }
 
+interface InputFieldProps {
+  label: string
+  name: string
+  type?: string
+  value: string
+  onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void
+  placeholder?: string
+  required?: boolean
+  className?: string
+  options?: { value: string; label: string }[]
+  icon?: ReactElement
+  showInternetIdStatus?: boolean
+  internetIdStatus?: {
+    checking: boolean
+    available: boolean | null
+    message: string
+  }
+  cnicStatus?: {
+    checking: boolean
+    available: boolean | null
+    message: string
+  }
+  submitErrors?: Record<string, string>
+  toggleMap?: () => void
+}
+
+const InputField = React.memo(
+  ({
+    label,
+    name,
+    type = "text",
+    value,
+    onChange,
+    placeholder,
+    required = false,
+    className = "",
+    options = [],
+    icon,
+    showInternetIdStatus = false,
+    internetIdStatus,
+    cnicStatus,
+    submitErrors,
+    toggleMap,
+  }: {
+    label: string
+    name: string
+    type?: string
+    value: string
+    onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void
+    placeholder?: string
+    required?: boolean
+    className?: string
+    options?: { value: string; label: string }[]
+    icon?: ReactElement
+    showInternetIdStatus?: boolean
+    internetIdStatus?: {
+      checking: boolean
+      available: boolean | null
+      message: string
+    }
+    submitErrors?: Record<string, string>
+    toggleMap?: () => void
+  }) => (
+    <div className="mb-4">
+      <label htmlFor={name} className="block text-sm font-medium text-slate-gray mb-1">
+        {label}
+      </label>
+      <div className="relative">
+        {type === "select" ? (
+          <>
+            {icon && <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">{icon}</div>}
+            <select
+              id={name}
+              name={name}
+              value={value || ""}
+              onChange={onChange}
+              required={required}
+              className={`w-full ${icon ? "pl-10" : "pl-4"} pr-4 py-2.5 border ${
+                submitErrors?.[name] ? "border-coral-red" : "border-slate-gray/30"
+              } rounded-lg shadow-sm focus:ring-2 focus:ring-electric-blue focus:border-transparent bg-white text-slate-gray appearance-none ${className}`}
+            >
+              <option value="">Select {label}</option>
+              {options.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+            <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+              <svg className="h-5 w-5 text-slate-gray/70" viewBox="0 0 20 20" fill="currentColor">
+                <path
+                  fillRule="evenodd"
+                  d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </div>
+          </>
+        ) : name === "gps_coordinates" ? (
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <MapPin className="h-5 w-5 text-slate-gray/70" />
+            </div>
+            <input
+              id={name}
+              type={type}
+              name={name}
+              value={value || ""}
+              onChange={onChange}
+              placeholder={placeholder}
+              required={required}
+              className={`w-full pl-10 pr-10 py-2.5 border border-slate-gray/30 rounded-lg shadow-sm 
+                     focus:ring-2 focus:ring-electric-blue focus:border-transparent bg-white 
+                     text-slate-gray placeholder-slate-gray/50 ${className}`}
+            />
+            <button
+              type="button"
+              onClick={toggleMap}
+              className="absolute right-2 top-1/2 transform -translate-y-1/2 text-electric-blue hover:text-deep-ocean transition-colors p-1 rounded-full hover:bg-light-sky"
+            >
+              <Globe className="w-5 h-5" />
+            </button>
+          </div>
+        ) : name === "phone_1" || name === "phone_2" ? (
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Phone className="h-5 w-5 text-slate-gray/70" />
+            </div>
+            <input
+              id={name}
+              type="tel"
+              name={name}
+              value={value || ""}
+              onChange={onChange}
+              placeholder="+92 (xxx)-xxxxxxx"
+              required={required}
+              className={`w-full pl-10 pr-4 py-2.5 border border-slate-gray/30 rounded-lg shadow-sm 
+                     focus:ring-2 focus:ring-electric-blue focus:border-transparent bg-white 
+                     text-slate-gray placeholder-slate-gray/50 ${className}`}
+              onKeyPress={(e) => {
+                const pattern = /[\d\s()\-+]/
+                if (!pattern.test(e.key)) {
+                  e.preventDefault()
+                }
+              }}
+            />
+          </div>
+        ) : (
+          <>
+            {icon && <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">{icon}</div>}
+            <input
+              id={name}
+              type={type}
+              name={name}
+              value={value || ""}
+              onChange={onChange}
+              placeholder={placeholder}
+              required={required}
+              className={`w-full ${icon ? "pl-10" : "pl-4"} pr-4 py-2.5 border ${
+                submitErrors?.[name] ? "border-coral-red" : "border-slate-gray/30"
+              } rounded-lg shadow-sm focus:ring-2 focus:ring-electric-blue focus:border-transparent bg-white text-slate-gray placeholder-slate-gray/50 ${className}`}
+            />
+            {((showInternetIdStatus && name === "internet_id") || name === "cnic") && value && (
+  <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
+    {name === "internet_id" && internetIdStatus?.checking ? (
+      <Loader className="h-5 w-5 animate-spin text-slate-gray/70" />
+    ) : name === "cnic" && cnicStatus?.checking ? (
+      <Loader className="h-5 w-5 animate-spin text-slate-gray/70" />
+    ) : name === "internet_id" && internetIdStatus?.available !== null ? (
+      internetIdStatus?.available ? (
+        <CheckCircle2 className="h-5 w-5 text-emerald-green" />
+      ) : (
+        <XCircle className="h-5 w-5 text-coral-red" />
+      )
+    ) : name === "cnic" && cnicStatus?.available !== null ? (
+      cnicStatus?.available ? (
+        <CheckCircle2 className="h-5 w-5 text-emerald-green" />
+      ) : (
+        <XCircle className="h-5 w-5 text-coral-red" />
+      )
+    ) : null}
+  </div>
+)}
+          </>
+        )}
+      </div>
+      {submitErrors?.[name] && (
+        <p className="text-coral-red text-sm mt-1 flex items-center gap-1">
+          <XCircle className="h-4 w-4" />
+          {submitErrors[name]}
+        </p>
+      )}
+    </div>
+  ),
+)
+
+InputField.displayName = "InputField"
+
 export function CustomerForm({
   formData,
   handleInputChange,
   handleFileChange,
-  handleSubmit,
   isEditing,
+  validationErrors = {},
 }: CustomerFormProps) {
-  const [areas, setAreas] = useState([])
-  const [servicePlans, setServicePlans] = useState([])
-  const [isps, setIsps] = useState([])
+  const [areas, setAreas] = useState<Area[]>([])
+  const [servicePlans, setServicePlans] = useState<ServicePlan[]>([])
+  const [isps, setIsps] = useState<ISP[]>([])
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [showMap, setShowMap] = useState(false)
+  const [internetIdStatus, setInternetIdStatus] = useState<{
+    checking: boolean
+    available: boolean | null
+    message: string
+  }>({ checking: false, available: null, message: "" })
+  const [cnicStatus, setCnicStatus] = useState<{
+    checking: boolean
+    available: boolean | null
+    message: string
+  }>({ checking: false, available: null, message: "" })
+  const [submitErrors, setSubmitErrors] = useState<Record<string, string>>({})
   const mapRef = useRef(null)
+  const internetIdCheckTimeout = useRef<NodeJS.Timeout | null>(null)
+  const cnicCheckTimeout = useRef<NodeJS.Timeout | null>(null)
+  console.log('formData:', formData)
 
   useEffect(() => {
     const fetchData = async () => {
@@ -75,7 +343,7 @@ export function CustomerForm({
         setAreas(areasResponse.data)
         setServicePlans(servicePlansResponse.data)
         setIsps(ispsResponse.data)
-        console.log('inventoryResponse', inventoryResponse.data);
+        console.log("inventoryResponse", inventoryResponse.data)
         setInventoryItems(inventoryResponse.data)
       } catch (error) {
         console.error("Failed to fetch data", error)
@@ -85,6 +353,12 @@ export function CustomerForm({
     }
     fetchData()
   }, [])
+
+  useEffect(() => {
+    if (validationErrors && Object.keys(validationErrors).length > 0) {
+      setSubmitErrors((prev) => ({ ...prev, ...validationErrors }))
+    }
+  }, [validationErrors])
 
   const formatPhoneNumber = (value: string) => {
     const cleaned = value.replace(/\D/g, "")
@@ -98,6 +372,78 @@ export function CustomerForm({
     }
     return `+92 (${limited.slice(0, 3)})-${limited.slice(3, 10)}`
   }
+
+  const checkInternetIdAvailability = useCallback(async (internetId: string) => {
+    if (!internetId || internetId.length < 3) {
+      setInternetIdStatus({ checking: false, available: null, message: "" })
+      return
+    }
+
+    setInternetIdStatus((prev) =>
+      prev.checking ? prev : { checking: true, available: null, message: "Checking availability..." },
+    )
+
+    if (internetIdCheckTimeout.current) {
+      clearTimeout(internetIdCheckTimeout.current)
+    }
+
+    internetIdCheckTimeout.current = setTimeout(async () => {
+      try {
+        const token = getToken()
+        const response = await axiosInstance.get(`/customers/check-internet-id/${internetId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+
+        setInternetIdStatus({
+          checking: false,
+          available: response.data.available,
+          message: response.data.available ? "Internet ID is available" : "Internet ID is already taken",
+        })
+      } catch (error) {
+        setInternetIdStatus({
+          checking: false,
+          available: null,
+          message: "Error checking availability",
+        })
+      }
+    }, 500)
+  }, [])
+
+  const checkCnicAvailability = useCallback(async (cnic: string) => {
+    if (!cnic || cnic.length < 13) {
+      setCnicStatus({ checking: false, available: null, message: "" })
+      return
+    }
+
+    setCnicStatus((prev) =>
+      prev.checking ? prev : { checking: true, available: null, message: "Checking CNIC availability..." },
+    )
+
+    if (cnicCheckTimeout.current) {
+      clearTimeout(cnicCheckTimeout.current)
+    }
+
+    cnicCheckTimeout.current = setTimeout(async () => {
+      try {
+        const token = getToken()
+        const response = await axiosInstance.get(`/customers/check-cnic/${cnic}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+
+        setCnicStatus({
+          checking: false,
+          available: response.data.available,
+          message: response.data.available ? "CNIC is available" : "CNIC is already registered",
+        })
+      } catch (error) {
+        setCnicStatus({
+          checking: false,
+          available: null,
+          message: "Error checking CNIC availability",
+        })
+      }
+    }, 500)
+  }, [])
 
   const memoizedHandleInputChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -118,8 +464,26 @@ export function CustomerForm({
           value: formattedValue,
         },
       } as React.ChangeEvent<HTMLInputElement | HTMLSelectElement>)
+
+      // Check internet ID availability in real-time
+      if (name === "internet_id") {
+        checkInternetIdAvailability(formattedValue)
+      }
+
+      if (name === "cnic") {
+        checkCnicAvailability(formattedValue)
+      }
+
+      // Clear errors when user types
+      if (submitErrors[name]) {
+        setSubmitErrors((prev) => {
+          const newErrors = { ...prev }
+          delete newErrors[name]
+          return newErrors
+        })
+      }
     },
-    [handleInputChange],
+    [handleInputChange, checkInternetIdAvailability, checkCnicAvailability, submitErrors],
   )
 
   const memoizedHandleFileChange = useCallback(
@@ -132,6 +496,94 @@ export function CustomerForm({
   const toggleMap = useCallback(() => {
     setShowMap((prev) => !prev)
   }, [])
+
+  const handleFormSubmit = useCallback(
+    async (e: React.FormEvent<HTMLFormElement>) => {
+      e.preventDefault()
+      setSubmitErrors({})
+
+      const validationErrors: Record<string, string> = {}
+
+      // Required field validation
+      const requiredFields = [
+        { key: "first_name", label: "First Name" },
+        { key: "last_name", label: "Last Name" },
+        { key: "email", label: "Email" },
+        { key: "internet_id", label: "Internet ID" },
+        { key: "phone_1", label: "Phone 1" },
+        { key: "installation_address", label: "Installation Address" },
+        { key: "installation_date", label: "Installation Date" },
+        { key: "cnic", label: "CNIC" },
+        { key: "area_id", label: "Service Area" },
+        { key: "service_plan_id", label: "Package" },
+        { key: "isp_id", label: "ISP" },
+        { key: "connection_type", label: "Connection Type" },
+      ]
+
+      requiredFields.forEach(({ key, label }) => {
+        if (!formData[key] || String(formData[key]).trim() === "") {
+          validationErrors[key] = `${label} is required`
+        }
+      })
+
+      // Validate internet ID
+      if (!isEditing && internetIdStatus.available === false) {
+        validationErrors.internet_id = "Internet ID is already taken. Please choose a different one."
+      }
+
+      if (!isEditing && cnicStatus.available === false) {
+        validationErrors.cnic = "CNIC is already registered. Please check the CNIC number."
+      }
+
+      // Email format validation
+      if (formData.email) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+        if (!emailRegex.test(formData.email)) {
+          validationErrors.email = "Please enter a valid email address"
+        }
+      }
+
+      // CNIC format validation
+      if (formData.cnic) {
+        const cnicDigits = formData.cnic.replace(/\D/g, "")
+        if (cnicDigits.length !== 13) {
+          validationErrors.cnic = "CNIC must be exactly 13 digits"
+        }
+      }
+
+      // Connection type specific validations
+      if (formData.connection_type === "internet" || formData.connection_type === "both") {
+        if (!formData.internet_connection_type) {
+          validationErrors.internet_connection_type = "Internet Connection Type is required"
+        }
+      }
+
+      if (formData.connection_type === "tv_cable" || formData.connection_type === "both") {
+        if (!formData.tv_cable_connection_type) {
+          validationErrors.tv_cable_connection_type = "TV Cable Connection Type is required"
+        }
+      }
+
+      if (Object.keys(validationErrors).length > 0) {
+        setSubmitErrors(validationErrors)
+        return
+      }
+
+      // Declare handleSubmit here or import it from another module
+      const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+        // Your form submission logic here
+      }
+
+      try {
+        await handleSubmit(e)
+      } catch (error: any) {
+        if (!error.response?.data?.errors) {
+          setSubmitErrors({ general: "An unexpected error occurred. Please try again." })
+        }
+      }
+    },
+    [formData, isEditing, internetIdStatus.available, cnicStatus.available],
+  )
 
   const MapEvents = () => {
     const map = useMapEvents({
@@ -146,7 +598,6 @@ export function CustomerForm({
         setShowMap(false)
       },
     })
-
     useEffect(() => {
       if (map) {
         const provider = new OpenStreetMapProvider()
@@ -172,133 +623,21 @@ export function CustomerForm({
     return null
   }
 
-  const InputField = useCallback(
-    ({
-      label,
-      name,
-      type = "text",
-      value,
-      onChange,
-      placeholder,
-      required = false,
-      className = "",
-      options = [],
-      icon,
-    }: {
-      label: string
-      name: string
-      type?: string
-      value: string
-      onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void
-      placeholder?: string
-      required?: boolean
-      className?: string
-      options?: { value: string; label: string }[]
-      icon?: React.ReactNode
-    }) => (
-      <div className="mb-4">
-        <label htmlFor={name} className="block text-sm font-medium text-slate-gray mb-1">
-          {label}
-        </label>
-        {type === "select" ? (
-          <div className="relative">
-            {icon && <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">{icon}</div>}
-            <select
-              id={name}
-              name={name}
-              value={value || ""}
-              onChange={onChange}
-              required={required}
-              className={`w-full ${icon ? "pl-10" : "pl-4"} pr-4 py-2.5 border border-slate-gray/30 rounded-lg shadow-sm 
-                       focus:ring-2 focus:ring-electric-blue focus:border-transparent bg-white 
-                       text-slate-gray appearance-none ${className}`}
-            >
-              <option value="">Select {label}</option>
-              {options.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-            <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-              <svg className="h-5 w-5 text-slate-gray/70" viewBox="0 0 20 20" fill="currentColor">
-                <path
-                  fillRule="evenodd"
-                  d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-                  clipRule="evenodd"
-                />
-              </svg>
-            </div>
-          </div>
-        ) : name === "gps_coordinates" ? (
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <MapPin className="h-5 w-5 text-slate-gray/70" />
-            </div>
-            <input
-              id={name}
-              type={type}
-              name={name}
-              value={value || ""}
-              onChange={onChange}
-              placeholder={placeholder}
-              required={required}
-              className={`w-full pl-10 pr-10 py-2.5 border border-slate-gray/30 rounded-lg shadow-sm 
-                       focus:ring-2 focus:ring-electric-blue focus:border-transparent bg-white 
-                       text-slate-gray placeholder-slate-gray/50 ${className}`}
-            />
-            <button
-              type="button"
-              onClick={toggleMap}
-              className="absolute right-2 top-1/2 transform -translate-y-1/2 text-electric-blue hover:text-deep-ocean transition-colors p-1 rounded-full hover:bg-light-sky"
-            >
-              <Globe className="w-5 h-5" />
-            </button>
-          </div>
-        ) : name === "phone_1" || name === "phone_2" ? (
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Phone className="h-5 w-5 text-slate-gray/70" />
-            </div>
-            <input
-              id={name}
-              type="tel"
-              name={name}
-              value={value || ""}
-              onChange={onChange}
-              placeholder="+92 (xxx)-xxxxxxx"
-              required={required}
-              className={`w-full pl-10 pr-4 py-2.5 border border-slate-gray/30 rounded-lg shadow-sm 
-                       focus:ring-2 focus:ring-electric-blue focus:border-transparent bg-white 
-                       text-slate-gray placeholder-slate-gray/50 ${className}`}
-              onKeyPress={(e) => {
-                const pattern = /[\d\s()\-+]/
-                if (!pattern.test(e.key)) {
-                  e.preventDefault()
-                }
-              }}
-            />
-          </div>
-        ) : (
-          <div className="relative">
-            {icon && <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">{icon}</div>}
-            <input
-              id={name}
-              type={type}
-              name={name}
-              value={value || ""}
-              onChange={onChange}
-              placeholder={placeholder}
-              required={required}
-              className={`w-full ${icon ? "pl-10" : "pl-4"} pr-4 py-2.5 border border-slate-gray/30 rounded-lg shadow-sm 
-                       focus:ring-2 focus:ring-electric-blue focus:border-transparent bg-white 
-                       text-slate-gray placeholder-slate-gray/50 ${className}`}
-            />
-          </div>
-        )}
-      </div>
-    ),
-    [toggleMap],
+  const inputFieldProps = useMemo(
+    () => ({
+      internetIdStatus,
+      cnicStatus, // Add this
+      submitErrors,
+      toggleMap,
+    }),
+    [internetIdStatus, cnicStatus, submitErrors, toggleMap], // Add cnicStatus
+  );
+  const cnicInputFieldProps = useMemo(
+    () => ({
+      cnicStatus,
+      submitErrors,
+    }),
+    [cnicStatus, submitErrors],
   )
 
   if (isLoading) {
@@ -313,39 +652,55 @@ export function CustomerForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="bg-white rounded-xl px-8 pt-6 pb-8 mb-4 shadow-sm">
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold text-deep-ocean mb-6 border-b border-slate-gray/10 pb-2">
-          Customer Information
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <InputField
-            label="Internet ID"
-            name="internet_id"
-            value={formData.internet_id || ""}
-            onChange={memoizedHandleInputChange}
-            placeholder="Enter Internet ID"
-            required
-            icon={<Hash className="h-5 w-5 text-slate-gray/70" />}
-          />
-          <InputField
-            label="First Name"
-            name="first_name"
-            value={formData.first_name || ""}
-            onChange={memoizedHandleInputChange}
-            placeholder="Enter first name"
-            required
-            icon={<User className="h-5 w-5 text-slate-gray/70" />}
-          />
-          <InputField
-            label="Last Name"
-            name="last_name"
-            value={formData.last_name || ""}
-            onChange={memoizedHandleInputChange}
-            placeholder="Enter last name"
-            required
-            icon={<User className="h-5 w-5 text-slate-gray/70" />}
-          />
+    <form onSubmit={handleFormSubmit} className="bg-white rounded-xl px-8 pt-6 pb-8 mb-4 shadow-sm">
+      {(submitErrors.general || submitErrors.error) && (
+        <div className="mb-6 p-4 bg-coral-red/10 border border-coral-red/20 rounded-lg">
+          <p className="text-coral-red flex items-center gap-2">
+            <XCircle className="h-5 w-5" />
+            {submitErrors.general || submitErrors.error}
+          </p>
+        </div>
+      )}
+
+      <InputField
+        label="Internet ID"
+        name="internet_id"
+        value={formData.internet_id || ""}
+        onChange={memoizedHandleInputChange}
+        placeholder="Enter Internet ID"
+        required
+        icon={<Hash className="h-5 w-5 text-slate-gray/70" />}
+        showInternetIdStatus={true} // Add this line
+        {...inputFieldProps}
+      />
+
+      <InputField
+        label="First Name"
+        name="first_name"
+        value={formData.first_name || ""}
+        onChange={memoizedHandleInputChange}
+        placeholder="Enter first name"
+        required
+        icon={<User className="h-5 w-5 text-slate-gray/70" />}
+        {...inputFieldProps}
+      />
+
+      <InputField
+        label="Last Name"
+        name="last_name"
+        value={formData.last_name || ""}
+        onChange={memoizedHandleInputChange}
+        placeholder="Enter last name"
+        required
+        icon={<User className="h-5 w-5 text-slate-gray/70" />}
+        {...inputFieldProps}
+      />
+
+      <div className="mb-4">
+        <div className="relative">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <Hash className="h-5 w-5 text-slate-gray/70" />
+          </div>
           <InputField
             label="CNIC Number"
             name="cnic"
@@ -354,62 +709,83 @@ export function CustomerForm({
             placeholder="Enter 13-digit CNIC number"
             required
             icon={<Hash className="h-5 w-5 text-slate-gray/70" />}
-          />
-          <InputField
-            label="Phone 1"
-            name="phone_1"
-            type="tel"
-            value={formData.phone_1 || ""}
-            onChange={memoizedHandleInputChange}
-            placeholder="92(xxx)xxx-xxxx"
-            required
-          />
-          <InputField
-            label="Whatsapp Number"
-            name="phone_2"
-            type="tel"
-            value={formData.phone_2 || ""}
-            onChange={memoizedHandleInputChange}
-            placeholder="92(xxx)xxx-xxxx"
-          />
-          <InputField
-            label="Email"
-            name="email"
-            type="email"
-            value={formData.email || ""}
-            onChange={memoizedHandleInputChange}
-            placeholder="Enter email address"
-            required
-            icon={<Mail className="h-5 w-5 text-slate-gray/70" />}
-          />
-          <InputField
-            label="Service Area"
-            name="area_id"
-            type="select"
-            value={formData.area_id || ""}
-            onChange={memoizedHandleInputChange}
-            required
-            options={areas.map((area: any) => ({ value: area.id, label: area.name }))}
-            icon={<MapPin className="h-5 w-5 text-slate-gray/70" />}
-          />
-          <InputField
-            label="Installation Address"
-            name="installation_address"
-            value={formData.installation_address || ""}
-            onChange={memoizedHandleInputChange}
-            placeholder="Enter installation address"
-            required
-            icon={<Home className="h-5 w-5 text-slate-gray/70" />}
-          />
-          <InputField
-            label="GPS Coordinates"
-            name="gps_coordinates"
-            value={formData.gps_coordinates || ""}
-            onChange={memoizedHandleInputChange}
-            placeholder="Enter GPS coordinates"
+            showInternetIdStatus={true}
+            internetIdStatus={cnicStatus} // Use internetIdStatus prop for CNIC status
+            {...inputFieldProps}
           />
         </div>
+        {submitErrors?.cnic && (
+          <p className="text-coral-red text-sm mt-1 flex items-center gap-1">
+            <XCircle className="h-4 w-4" />
+            {submitErrors.cnic}
+          </p>
+        )}
       </div>
+
+      <InputField
+        label="Phone 1"
+        name="phone_1"
+        type="tel"
+        value={formData.phone_1 || ""}
+        onChange={memoizedHandleInputChange}
+        placeholder="92(xxx)xxx-xxxx"
+        required
+        {...inputFieldProps}
+      />
+
+      <InputField
+        label="Whatsapp Number"
+        name="phone_2"
+        type="tel"
+        value={formData.phone_2 || ""}
+        onChange={memoizedHandleInputChange}
+        placeholder="92(xxx)xxx-xxxx"
+        {...inputFieldProps}
+      />
+
+      <InputField
+        label="Email"
+        name="email"
+        type="email"
+        value={formData.email || ""}
+        onChange={memoizedHandleInputChange}
+        placeholder="Enter email address"
+        required
+        icon={<Mail className="h-5 w-5 text-slate-gray/70" />}
+        {...inputFieldProps}
+      />
+
+      <InputField
+        label="Service Area"
+        name="area_id"
+        type="select"
+        value={formData.area_id || ""}
+        onChange={memoizedHandleInputChange}
+        required
+        options={areas.map((area: Area) => ({ value: area.id, label: area.name }))}
+        icon={<MapPin className="h-5 w-5 text-slate-gray/70" />}
+        {...inputFieldProps}
+      />
+
+      <InputField
+        label="Installation Address"
+        name="installation_address"
+        value={formData.installation_address || ""}
+        onChange={memoizedHandleInputChange}
+        placeholder="Enter installation address"
+        required
+        icon={<Home className="h-5 w-5 text-slate-gray/70" />}
+        {...inputFieldProps}
+      />
+
+      <InputField
+        label="GPS Coordinates"
+        name="gps_coordinates"
+        value={formData.gps_coordinates || ""}
+        onChange={memoizedHandleInputChange}
+        placeholder="Enter GPS coordinates"
+        {...inputFieldProps}
+      />
 
       {showMap && (
         <div className="mb-6 rounded-lg overflow-hidden shadow-md border border-slate-gray/20">
@@ -446,8 +822,9 @@ export function CustomerForm({
             value={formData.isp_id || ""}
             onChange={memoizedHandleInputChange}
             required
-            options={isps.map((isp: any) => ({ value: isp.id, label: isp.name }))}
+            options={isps.map((isp: ISP) => ({ value: isp.id, label: isp.name }))}
             icon={<Globe className="h-5 w-5 text-slate-gray/70" />}
+            {...inputFieldProps}
           />
           <InputField
             label="Connection Type"
@@ -462,6 +839,7 @@ export function CustomerForm({
               { value: "both", label: "Both" },
             ]}
             icon={<Wifi className="h-5 w-5 text-slate-gray/70" />}
+            {...inputFieldProps}
           />
         </div>
       </div>
@@ -482,6 +860,7 @@ export function CustomerForm({
                 { value: "wireless", label: "Wireless" },
               ]}
               icon={<Wifi className="h-5 w-5 text-slate-gray/70" />}
+              {...inputFieldProps}
             />
             {formData.internet_connection_type === "wire" && (
               <>
@@ -494,6 +873,7 @@ export function CustomerForm({
                   placeholder="Enter wire length"
                   required
                   icon={<Box className="h-5 w-5 text-slate-gray/70" />}
+                  {...inputFieldProps}
                 />
                 <InputField
                   label="Wire Ownership"
@@ -507,6 +887,7 @@ export function CustomerForm({
                     { value: "customer", label: "Customer" },
                   ]}
                   icon={<User className="h-5 w-5 text-slate-gray/70" />}
+                  {...inputFieldProps}
                 />
                 <InputField
                   label="Router Ownership"
@@ -520,6 +901,7 @@ export function CustomerForm({
                     { value: "customer", label: "Customer" },
                   ]}
                   icon={<Router className="h-5 w-5 text-slate-gray/70" />}
+                  {...inputFieldProps}
                 />
                 {formData.router_ownership === "company" && (
                   <InputField
@@ -533,9 +915,10 @@ export function CustomerForm({
                       .filter((item) => item.item_type === "Router")
                       .map((item) => ({
                         value: item.id,
-                        label: `${item.item_type} - ${item.attributes?.serial_number || "No Serial"}`,
+                        label: `${item.item_type} - ${item.attributes.serial_number || "No Serial"}`,
                       }))}
                     icon={<Router className="h-5 w-5 text-slate-gray/70" />}
+                    {...inputFieldProps}
                   />
                 )}
                 {formData.router_ownership === "customer" && (
@@ -547,6 +930,7 @@ export function CustomerForm({
                     placeholder="Enter router serial number"
                     required
                     icon={<Hash className="h-5 w-5 text-slate-gray/70" />}
+                    {...inputFieldProps}
                   />
                 )}
                 <InputField
@@ -561,6 +945,7 @@ export function CustomerForm({
                     { value: "customer", label: "Customer" },
                   ]}
                   icon={<User className="h-5 w-5 text-slate-gray/70" />}
+                  {...inputFieldProps}
                 />
                 {formData.patch_cord_ownership === "company" && (
                   <InputField
@@ -572,6 +957,7 @@ export function CustomerForm({
                     placeholder="Enter number of patch cords"
                     required
                     icon={<Hash className="h-5 w-5 text-slate-gray/70" />}
+                    {...inputFieldProps}
                   />
                 )}
                 <InputField
@@ -586,6 +972,7 @@ export function CustomerForm({
                     { value: "customer", label: "Customer" },
                   ]}
                   icon={<User className="h-5 w-5 text-slate-gray/70" />}
+                  {...inputFieldProps}
                 />
                 {formData.patch_cord_ethernet_ownership === "company" && (
                   <InputField
@@ -597,6 +984,7 @@ export function CustomerForm({
                     placeholder="Enter number of patch cord ethernet"
                     required
                     icon={<Hash className="h-5 w-5 text-slate-gray/70" />}
+                    {...inputFieldProps}
                   />
                 )}
                 <InputField
@@ -611,6 +999,7 @@ export function CustomerForm({
                     { value: "customer", label: "Customer" },
                   ]}
                   icon={<User className="h-5 w-5 text-slate-gray/70" />}
+                  {...inputFieldProps}
                 />
                 {formData.splicing_box_ownership === "company" && (
                   <InputField
@@ -621,6 +1010,7 @@ export function CustomerForm({
                     placeholder="Enter splicing box serial number"
                     required
                     icon={<Hash className="h-5 w-5 text-slate-gray/70" />}
+                    {...inputFieldProps}
                   />
                 )}
               </>
@@ -639,6 +1029,7 @@ export function CustomerForm({
                     { value: "customer", label: "Customer" },
                   ]}
                   icon={<User className="h-5 w-5 text-slate-gray/70" />}
+                  {...inputFieldProps}
                 />
                 <InputField
                   label="Ethernet Cable Length (feet)"
@@ -649,6 +1040,7 @@ export function CustomerForm({
                   placeholder="Enter ethernet cable length"
                   required
                   icon={<Box className="h-5 w-5 text-slate-gray/70" />}
+                  {...inputFieldProps}
                 />
                 <InputField
                   label="Dish Ownership"
@@ -662,6 +1054,7 @@ export function CustomerForm({
                     { value: "customer", label: "Customer" },
                   ]}
                   icon={<User className="h-5 w-5 text-slate-gray/70" />}
+                  {...inputFieldProps}
                 />
                 {formData.dish_ownership === "company" && (
                   <InputField
@@ -675,6 +1068,7 @@ export function CustomerForm({
                       .filter((item) => item.item_type === "Dish")
                       .map((item) => ({ value: item.id, label: `${item.name} - ${item.serial_number}` }))}
                     icon={<Package className="h-5 w-5 text-slate-gray/70" />}
+                    {...inputFieldProps}
                   />
                 )}
                 {formData.dish_ownership === "customer" && (
@@ -686,6 +1080,7 @@ export function CustomerForm({
                     placeholder="Enter dish MAC address"
                     required
                     icon={<Hash className="h-5 w-5 text-slate-gray/70" />}
+                    {...inputFieldProps}
                   />
                 )}
               </>
@@ -710,6 +1105,7 @@ export function CustomerForm({
                 { value: "digital", label: "Digital" },
               ]}
               icon={<Tv className="h-5 w-5 text-slate-gray/70" />}
+              {...inputFieldProps}
             />
             {formData.tv_cable_connection_type === "analog" && (
               <InputField
@@ -721,6 +1117,7 @@ export function CustomerForm({
                 placeholder="Enter number of nodes"
                 required
                 icon={<Hash className="h-5 w-5 text-slate-gray/70" />}
+                {...inputFieldProps}
               />
             )}
             {formData.tv_cable_connection_type === "digital" && (
@@ -734,6 +1131,7 @@ export function CustomerForm({
                   placeholder="Enter number of nodes"
                   required
                   icon={<Hash className="h-5 w-5 text-slate-gray/70" />}
+                  {...inputFieldProps}
                 />
                 <InputField
                   label="STB Serial Number"
@@ -743,6 +1141,7 @@ export function CustomerForm({
                   placeholder="Enter STB serial number"
                   required
                   icon={<Hash className="h-5 w-5 text-slate-gray/70" />}
+                  {...inputFieldProps}
                 />
               </>
             )}
@@ -762,8 +1161,9 @@ export function CustomerForm({
             value={formData.service_plan_id || ""}
             onChange={memoizedHandleInputChange}
             required
-            options={servicePlans.map((plan: any) => ({ value: plan.id, label: plan.name }))}
+            options={servicePlans.map((plan: ServicePlan) => ({ value: plan.id, label: plan.name }))}
             icon={<Package className="h-5 w-5 text-slate-gray/70" />}
+            {...inputFieldProps}
           />
           <InputField
             label="Discount Amount"
@@ -773,6 +1173,7 @@ export function CustomerForm({
             onChange={memoizedHandleInputChange}
             placeholder="Enter discount amount"
             icon={<DollarSign className="h-5 w-5 text-slate-gray/70" />}
+            {...inputFieldProps}
           />
           <InputField
             label="Installation Date"
@@ -782,6 +1183,7 @@ export function CustomerForm({
             onChange={memoizedHandleInputChange}
             required
             icon={<Calendar className="h-5 w-5 text-slate-gray/70" />}
+            {...inputFieldProps}
           />
           <InputField
             label="Recharge Date"
@@ -790,6 +1192,7 @@ export function CustomerForm({
             value={formData.recharge_date || ""}
             onChange={memoizedHandleInputChange}
             icon={<Calendar className="h-5 w-5 text-slate-gray/70" />}
+            {...inputFieldProps}
           />
         </div>
       </div>
@@ -801,31 +1204,22 @@ export function CustomerForm({
             label="CNIC Front Image"
             name="cnic_front_image"
             onChange={memoizedHandleFileChange}
-            currentImage={
-              formData.cnic_front_image ? `/customers/cnic-front-image/${formData.id}` : undefined
-            }
+            currentImage={formData.cnic_front_image ? `/customers/cnic-front-image/${formData.id}` : undefined}
           />
           <FileUploadField
             label="CNIC Back Image"
             name="cnic_back_image"
             onChange={memoizedHandleFileChange}
-            currentImage={
-              formData.cnic_back_image ? `/customers/cnic-back-image/${formData.id}` : undefined
-            }
+            currentImage={formData.cnic_back_image ? `/customers/cnic-back-image/${formData.id}` : undefined}
           />
           <FileUploadField
             label="Agreement Document"
             name="agreement_document"
             onChange={memoizedHandleFileChange}
-            currentDocument={
-              formData.agreement_document
-                ? `/customers/agreement-document/${formData.id}`
-                : undefined
-            }
+            currentDocument={formData.agreement_document ? `/customers/agreement-document/${formData.id}` : undefined}
           />
         </div>
       </div>
-
     </form>
   )
 }

@@ -17,6 +17,8 @@ interface Payment {
   payment_proof: string;
   received_by: string;
   is_active: boolean;
+  bank_account_id?: string
+  bank_account_details?: string
 }
 
 const PaymentManagement: React.FC = () => {
@@ -42,6 +44,11 @@ const PaymentManagement: React.FC = () => {
       {
         header: 'Payment Method',
         accessorKey: 'payment_method',
+      },
+      {
+        header: 'Bank Account',
+        accessorKey: 'bank_account_details',
+        cell: info => info.getValue() || 'N/A',
       },
       {
         header: 'Status',

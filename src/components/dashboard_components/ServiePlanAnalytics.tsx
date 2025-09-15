@@ -174,19 +174,20 @@ export const ServicePlanAnalytics: React.FC = () => {
               labelStyle={{ color: "#2A5C8A", fontWeight: "bold" }}
             />
             <Legend wrapperStyle={{ paddingTop: "10px" }} />
-            {Object.keys(data.planAdoptionTrendData[0])
-              .filter((key) => key !== "month")
-              .map((plan, index) => (
-                <Line
-                  key={plan}
-                  type="monotone"
-                  dataKey={plan}
-                  stroke={CHART_COLORS.planColors[index % CHART_COLORS.planColors.length]}
-                  strokeWidth={2}
-                  dot={{ r: 4, strokeWidth: 2 }}
-                  activeDot={{ r: 6, strokeWidth: 2 }}
-                />
-              ))}
+            {data.planAdoptionTrendData.length > 0 &&
+              Object.keys(data.planAdoptionTrendData[0])
+                .filter((key) => key !== "month")
+                .map((plan, index) => (
+                  <Line
+                    key={plan}
+                    type="monotone"
+                    dataKey={plan}
+                    stroke={CHART_COLORS.planColors[index % CHART_COLORS.planColors.length]}
+                    strokeWidth={2}
+                    dot={{ r: 4, strokeWidth: 2 }}
+                    activeDot={{ r: 6, strokeWidth: 2 }}
+                  />
+                ))}
           </LineChart>
         </ResponsiveContainer>
       </div>

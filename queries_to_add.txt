@@ -24,3 +24,6 @@ ALTER COLUMN ticket_number SET NOT NULL,
 ADD CONSTRAINT complaints_ticket_number_unique UNIQUE (ticket_number);
 
 ALTER TABLE complaints ADD COLUMN remarks TEXT;
+-- 1. Drop unique constraint on email
+ALTER TABLE customers DROP CONSTRAINT IF EXISTS customers_email_unique;
+

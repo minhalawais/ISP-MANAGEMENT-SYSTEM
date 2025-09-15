@@ -2,7 +2,6 @@
 
 import type React from "react"
 import { useState, useEffect, useMemo } from "react"
-import axios from "axios"
 import { CSVLink } from "react-csv"
 import type { ColumnDef } from "@tanstack/react-table"
 import {
@@ -39,6 +38,7 @@ interface CRUDPageProps<T> {
     isEditing: boolean
     validateBeforeSubmit?: (formData: Partial<T>) => string | null
     supportsBulkAdd?: boolean
+    validationErrors?: Record<string, string>
   }>
   onDataChange?: () => void
   validateBeforeSubmit?: (formData: Partial<T>) => string | null
@@ -63,6 +63,7 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
   const [isLoading, setIsLoading] = useState(false)
   const [selectedRows, setSelectedRows] = useState<string[]>([])
   const [isBulkAddModalVisible, setIsBulkAddModalVisible] = useState(false)
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({})
   const [stats, setStats] = useState({
     total: 0,
     active: 0,
@@ -74,32 +75,32 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
   }, [])
 
   const fetchData = async () => {
-    setIsLoading(true);
+    setIsLoading(true)
     try {
-      const response = await axiosInstance.get(`/${endpoint}/list`);
-      setData(response.data);
-  
+      const response = await axiosInstance.get(`/${endpoint}/list`)
+      setData(response.data)
+
       // Calculate stats
-      const total = response.data.length;
-      const active = response.data.filter((item: any) => item.is_active).length;
+      const total = response.data.length
+      const active = response.data.filter((item: any) => item.is_active).length
       setStats({
         total,
         active,
         inactive: total - active,
-      });
-  
+      })
+
       if (onDataChange) {
-        onDataChange();
+        onDataChange()
       }
     } catch (error) {
-      console.error(`Failed to fetch ${title}`, error);
+      console.error(`Failed to fetch ${title}`, error)
       toast.error(`Failed to fetch ${title}`, {
         style: { background: "#FEE2E2", color: "#EF4444" },
-      });
+      })
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
   const handleBulkStatusChange = async (newStatus: boolean) => {
     if (selectedRows.length === 0) return
 
@@ -135,6 +136,7 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
   const showModal = (item: T | null) => {
     setEditingItem(item)
     setFormData(item || {})
+    setValidationErrors({})
     setIsModalVisible(true)
   }
 
@@ -142,15 +144,18 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
     setIsModalVisible(false)
     setEditingItem(null)
     setFormData({})
+    setValidationErrors({})
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
+    e.preventDefault()
+    setIsLoading(true)
+    setValidationErrors({})
+
     try {
-      const token = getToken();
-      const formDataToSend = new FormData();
-  
+      const token = getToken()
+      const formDataToSend = new FormData()
+
       // Add all form data to FormData object
       Object.keys(formData).forEach((key) => {
         if (formData[key] != null && formData[key] !== "") {
@@ -159,53 +164,55 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
             !["cnic_front_image", "cnic_back_image", "agreement_document"].includes(key) ||
             typeof formData[key] === "string"
           ) {
-            formDataToSend.append(key, formData[key]);
+            formDataToSend.append(key, formData[key])
           }
         }
-      });
-  
-      console.log("FormData to send:", Object.fromEntries(formDataToSend.entries()));
-  
+      })
+
       if (editingItem) {
-        await axiosInstance.put(
-          `/${endpoint}/update/${editingItem.id}`,
-          formDataToSend,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "multipart/form-data",
-            },
-          }
-        );
+        await axiosInstance.put(`/${endpoint}/update/${editingItem.id}`, formDataToSend, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
+          },
+        })
         toast.success(`${title} updated successfully`, {
           style: { background: "#D1FAE5", color: "#10B981" },
-        });
+        })
       } else {
-        await axiosInstance.post(
-          `/${endpoint}/add`,
-          formDataToSend,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "multipart/form-data",
-            },
-          }
-        );
+        await axiosInstance.post(`/${endpoint}/add`, formDataToSend, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
+          },
+        })
         toast.success(`${title} added successfully`, {
           style: { background: "#D1FAE5", color: "#10B981" },
-        });
+        })
       }
-      fetchData();
-      handleCancel();
-    } catch (error) {
-      console.error("Operation failed", error);
-      toast.error("Operation failed", {
-        style: { background: "#FEE2E2", color: "#EF4444" },
-      });
+      fetchData()
+      handleCancel()
+    } catch (error: any) {
+      console.error("Operation failed", error)
+
+      if (error.response?.data?.errors) {
+        setValidationErrors(error.response.data.errors)
+        toast.error("Please fix the validation errors below", {
+          style: { background: "#FEE2E2", color: "#EF4444" },
+        })
+      } else if (error.response?.data?.message) {
+        toast.error(error.response.data.message, {
+          style: { background: "#FEE2E2", color: "#EF4444" },
+        })
+      } else {
+        toast.error("Operation failed", {
+          style: { background: "#FEE2E2", color: "#EF4444" },
+        })
+      }
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
 
   const handleDelete = async (id: string) => {
     if (window.confirm(`Are you sure you want to delete this ${title.toLowerCase()}?`)) {
@@ -261,11 +268,9 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
   }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // For file inputs, we'll get the value directly from the FileUploadField
-    // which will be the file path after upload
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
+    const { name, value } = e.target
+    setFormData((prev) => ({ ...prev, [name]: value }))
+  }
 
   const toggleSidebar = () => {
     setIsSidebarOpen((prev) => !prev)
@@ -453,6 +458,7 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
             handleInputChange={handleInputChange}
             handleFileChange={handleFileChange}
             isEditing={!!editingItem}
+            validationErrors={validationErrors}
           />
           <div className="mt-6 flex justify-end gap-3">
             <button
