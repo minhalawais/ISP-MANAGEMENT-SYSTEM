@@ -7,8 +7,8 @@ import { removeToken, getToken, getRefreshToken } from "./auth.ts";
 const getBaseURL = () => {
   return process.env.REACT_APP_API_BASE_URL || 
     (process.env.NODE_ENV === "development" 
-      ? "http://127.0.0.1:8000/"  // REMOVE /api/ from here
-      : "http://127.0.0.1:8000/"
+      ? "https://mbanet.com.pk/api/"  // REMOVE /api/ from here
+      : "https://mbanet.com.pk/api/"
     );
 };
 
