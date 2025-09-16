@@ -151,11 +151,11 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
     e.preventDefault()
     setIsLoading(true)
     setValidationErrors({})
-
+  
     try {
       const token = getToken()
       const formDataToSend = new FormData()
-
+  
       // Add all form data to FormData object
       Object.keys(formData).forEach((key) => {
         if (formData[key] != null && formData[key] !== "") {
@@ -168,7 +168,7 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
           }
         }
       })
-
+  
       if (editingItem) {
         await axiosInstance.put(`/${endpoint}/update/${editingItem.id}`, formDataToSend, {
           headers: {
@@ -194,18 +194,33 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
       handleCancel()
     } catch (error: any) {
       console.error("Operation failed", error)
-
+  
+      // Handle different error response formats
       if (error.response?.data?.errors) {
+        // Field-specific validation errors
         setValidationErrors(error.response.data.errors)
-        toast.error("Please fix the validation errors below", {
+        toast.error("Please fix the validation errors", {
           style: { background: "#FEE2E2", color: "#EF4444" },
         })
       } else if (error.response?.data?.message) {
+        // General error message
         toast.error(error.response.data.message, {
           style: { background: "#FEE2E2", color: "#EF4444" },
         })
+      } else if (error.response?.data?.error) {
+        // Error object with message
+        if (typeof error.response.data.error === 'string') {
+          toast.error(error.response.data.error, {
+            style: { background: "#FEE2E2", color: "#EF4444" },
+          })
+        } else if (error.response.data.error.message) {
+          toast.error(error.response.data.error.message, {
+            style: { background: "#FEE2E2", color: "#EF4444" },
+          })
+        }
       } else {
-        toast.error("Operation failed", {
+        // Generic error
+        toast.error("Operation failed. Please try again.", {
           style: { background: "#FEE2E2", color: "#EF4444" },
         })
       }

@@ -497,94 +497,6 @@ export function CustomerForm({
     setShowMap((prev) => !prev)
   }, [])
 
-  const handleFormSubmit = useCallback(
-    async (e: React.FormEvent<HTMLFormElement>) => {
-      e.preventDefault()
-      setSubmitErrors({})
-
-      const validationErrors: Record<string, string> = {}
-
-      // Required field validation
-      const requiredFields = [
-        { key: "first_name", label: "First Name" },
-        { key: "last_name", label: "Last Name" },
-        { key: "email", label: "Email" },
-        { key: "internet_id", label: "Internet ID" },
-        { key: "phone_1", label: "Phone 1" },
-        { key: "installation_address", label: "Installation Address" },
-        { key: "installation_date", label: "Installation Date" },
-        { key: "cnic", label: "CNIC" },
-        { key: "area_id", label: "Service Area" },
-        { key: "service_plan_id", label: "Package" },
-        { key: "isp_id", label: "ISP" },
-        { key: "connection_type", label: "Connection Type" },
-      ]
-
-      requiredFields.forEach(({ key, label }) => {
-        if (!formData[key] || String(formData[key]).trim() === "") {
-          validationErrors[key] = `${label} is required`
-        }
-      })
-
-      // Validate internet ID
-      if (!isEditing && internetIdStatus.available === false) {
-        validationErrors.internet_id = "Internet ID is already taken. Please choose a different one."
-      }
-
-      if (!isEditing && cnicStatus.available === false) {
-        validationErrors.cnic = "CNIC is already registered. Please check the CNIC number."
-      }
-
-      // Email format validation
-      if (formData.email) {
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-        if (!emailRegex.test(formData.email)) {
-          validationErrors.email = "Please enter a valid email address"
-        }
-      }
-
-      // CNIC format validation
-      if (formData.cnic) {
-        const cnicDigits = formData.cnic.replace(/\D/g, "")
-        if (cnicDigits.length !== 13) {
-          validationErrors.cnic = "CNIC must be exactly 13 digits"
-        }
-      }
-
-      // Connection type specific validations
-      if (formData.connection_type === "internet" || formData.connection_type === "both") {
-        if (!formData.internet_connection_type) {
-          validationErrors.internet_connection_type = "Internet Connection Type is required"
-        }
-      }
-
-      if (formData.connection_type === "tv_cable" || formData.connection_type === "both") {
-        if (!formData.tv_cable_connection_type) {
-          validationErrors.tv_cable_connection_type = "TV Cable Connection Type is required"
-        }
-      }
-
-      if (Object.keys(validationErrors).length > 0) {
-        setSubmitErrors(validationErrors)
-        return
-      }
-
-      // Declare handleSubmit here or import it from another module
-      const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-        // Your form submission logic here
-      }
-
-      try {
-        await handleSubmit(e)
-      } catch (error: any) {
-        if (!error.response?.data?.errors) {
-          setSubmitErrors({ general: "An unexpected error occurred. Please try again." })
-        }
-      }
-    },
-    [formData, isEditing, internetIdStatus.available, cnicStatus.available],
-  )
-
   const MapEvents = () => {
     const map = useMapEvents({
       click(e) {
@@ -652,7 +564,7 @@ export function CustomerForm({
   }
 
   return (
-    <form onSubmit={handleFormSubmit} className="bg-white rounded-xl px-8 pt-6 pb-8 mb-4 shadow-sm">
+    <form className="bg-white rounded-xl px-8 pt-6 pb-8 mb-4 shadow-sm">
       {(submitErrors.general || submitErrors.error) && (
         <div className="mb-6 p-4 bg-coral-red/10 border border-coral-red/20 rounded-lg">
           <p className="text-coral-red flex items-center gap-2">

@@ -6,25 +6,26 @@ git clone https://github.com/minhalawais/ISP-MANAGEMENT-SYSTEM.git
 npm install --legacy-peer-deps
 npm install typescript --legacy-peer-deps --save-dev
 npm install @babel/plugin-proposal-private-property-in-object --save-dev --legacy-peer-deps
-
+npm run build
 pm2 serve build 3000 --name "react-app"
 cd ..
 mkdir backend
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
+pip install asgiref
 pm2 start "flask run --host=0.0.0.0 --port=5000" --name "flask-app"
 sudo systemctl restart nginx
 sudo nano /etc/nginx/sites-available/default
 
 
 
-sudo -u postgres psql -h localhost -U postgres -d isp_management
+sudo -u postgres psql -h localhost -U root -d isp_management
 
 SQLALCHEMY_DATABASE_URI = 'postgresql://root:M.m03007493358@localhost:5432/isp_management'
 
 -- 1. Drop unique constraint on email
-ALTER TABLE customers DROP CONSTRAINT IF EXISTS customers_email_unique;
+ALTER TABLE customers DROP CONSTRAINT IF EXISTS customers_email_key;
 
 CREATE TABLE bank_accounts (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
