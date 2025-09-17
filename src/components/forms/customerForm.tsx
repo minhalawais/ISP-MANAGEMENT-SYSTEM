@@ -125,6 +125,7 @@ interface InputFieldProps {
   }
   submitErrors?: Record<string, string>
   toggleMap?: () => void
+  validationErrors?: Record<string, string>
 }
 
 const InputField = React.memo(
@@ -144,26 +145,8 @@ const InputField = React.memo(
     cnicStatus,
     submitErrors,
     toggleMap,
-  }: {
-    label: string
-    name: string
-    type?: string
-    value: string
-    onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void
-    placeholder?: string
-    required?: boolean
-    className?: string
-    options?: { value: string; label: string }[]
-    icon?: ReactElement
-    showInternetIdStatus?: boolean
-    internetIdStatus?: {
-      checking: boolean
-      available: boolean | null
-      message: string
-    }
-    submitErrors?: Record<string, string>
-    toggleMap?: () => void
-  }) => (
+    validationErrors,
+  }: InputFieldProps) => (
     <div className="mb-4">
       <label htmlFor={name} className="block text-sm font-medium text-slate-gray mb-1">
         {label}
@@ -179,7 +162,7 @@ const InputField = React.memo(
               onChange={onChange}
               required={required}
               className={`w-full ${icon ? "pl-10" : "pl-4"} pr-4 py-2.5 border ${
-                submitErrors?.[name] ? "border-coral-red" : "border-slate-gray/30"
+                submitErrors?.[name] || validationErrors?.[name] ? "border-coral-red" : "border-slate-gray/30"
               } rounded-lg shadow-sm focus:ring-2 focus:ring-electric-blue focus:border-transparent bg-white text-slate-gray appearance-none ${className}`}
             >
               <option value="">Select {label}</option>
@@ -260,37 +243,37 @@ const InputField = React.memo(
               placeholder={placeholder}
               required={required}
               className={`w-full ${icon ? "pl-10" : "pl-4"} pr-4 py-2.5 border ${
-                submitErrors?.[name] ? "border-coral-red" : "border-slate-gray/30"
+                submitErrors?.[name] || validationErrors?.[name] ? "border-coral-red" : "border-slate-gray/30"
               } rounded-lg shadow-sm focus:ring-2 focus:ring-electric-blue focus:border-transparent bg-white text-slate-gray placeholder-slate-gray/50 ${className}`}
             />
             {((showInternetIdStatus && name === "internet_id") || name === "cnic") && value && (
-  <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
-    {name === "internet_id" && internetIdStatus?.checking ? (
-      <Loader className="h-5 w-5 animate-spin text-slate-gray/70" />
-    ) : name === "cnic" && cnicStatus?.checking ? (
-      <Loader className="h-5 w-5 animate-spin text-slate-gray/70" />
-    ) : name === "internet_id" && internetIdStatus?.available !== null ? (
-      internetIdStatus?.available ? (
-        <CheckCircle2 className="h-5 w-5 text-emerald-green" />
-      ) : (
-        <XCircle className="h-5 w-5 text-coral-red" />
-      )
-    ) : name === "cnic" && cnicStatus?.available !== null ? (
-      cnicStatus?.available ? (
-        <CheckCircle2 className="h-5 w-5 text-emerald-green" />
-      ) : (
-        <XCircle className="h-5 w-5 text-coral-red" />
-      )
-    ) : null}
-  </div>
-)}
+              <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
+                {name === "internet_id" && internetIdStatus?.checking ? (
+                  <Loader className="h-5 w-5 animate-spin text-slate-gray/70" />
+                ) : name === "cnic" && cnicStatus?.checking ? (
+                  <Loader className="h-5 w-5 animate-spin text-slate-gray/70" />
+                ) : name === "internet_id" && internetIdStatus?.available !== null ? (
+                  internetIdStatus?.available ? (
+                    <CheckCircle2 className="h-5 w-5 text-emerald-green" />
+                  ) : (
+                    <XCircle className="h-5 w-5 text-coral-red" />
+                  )
+                ) : name === "cnic" && cnicStatus?.available !== null ? (
+                  cnicStatus?.available ? (
+                    <CheckCircle2 className="h-5 w-5 text-emerald-green" />
+                  ) : (
+                    <XCircle className="h-5 w-5 text-coral-red" />
+                  )
+                ) : null}
+              </div>
+            )}
           </>
         )}
       </div>
-      {submitErrors?.[name] && (
+      {(submitErrors?.[name] || validationErrors?.[name]) && (
         <p className="text-coral-red text-sm mt-1 flex items-center gap-1">
           <XCircle className="h-4 w-4" />
-          {submitErrors[name]}
+          {submitErrors[name] || validationErrors[name]}
         </p>
       )}
     </div>
@@ -326,7 +309,7 @@ export function CustomerForm({
   const mapRef = useRef(null)
   const internetIdCheckTimeout = useRef<NodeJS.Timeout | null>(null)
   const cnicCheckTimeout = useRef<NodeJS.Timeout | null>(null)
-  console.log('formData:', formData)
+  console.log("formData:", formData)
 
   useEffect(() => {
     const fetchData = async () => {
@@ -373,77 +356,93 @@ export function CustomerForm({
     return `+92 (${limited.slice(0, 3)})-${limited.slice(3, 10)}`
   }
 
-  const checkInternetIdAvailability = useCallback(async (internetId: string) => {
-    if (!internetId || internetId.length < 3) {
-      setInternetIdStatus({ checking: false, available: null, message: "" })
-      return
-    }
-
-    setInternetIdStatus((prev) =>
-      prev.checking ? prev : { checking: true, available: null, message: "Checking availability..." },
-    )
-
-    if (internetIdCheckTimeout.current) {
-      clearTimeout(internetIdCheckTimeout.current)
-    }
-
-    internetIdCheckTimeout.current = setTimeout(async () => {
-      try {
-        const token = getToken()
-        const response = await axiosInstance.get(`/customers/check-internet-id/${internetId}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        })
-
-        setInternetIdStatus({
-          checking: false,
-          available: response.data.available,
-          message: response.data.available ? "Internet ID is available" : "Internet ID is already taken",
-        })
-      } catch (error) {
-        setInternetIdStatus({
-          checking: false,
-          available: null,
-          message: "Error checking availability",
-        })
+  const checkInternetIdAvailability = useCallback(
+    async (internetId: string) => {
+      if (!internetId || internetId.length < 3) {
+        setInternetIdStatus({ checking: false, available: null, message: "" })
+        return
       }
-    }, 500)
-  }, [])
 
-  const checkCnicAvailability = useCallback(async (cnic: string) => {
-    if (!cnic || cnic.length < 13) {
-      setCnicStatus({ checking: false, available: null, message: "" })
-      return
-    }
-
-    setCnicStatus((prev) =>
-      prev.checking ? prev : { checking: true, available: null, message: "Checking CNIC availability..." },
-    )
-
-    if (cnicCheckTimeout.current) {
-      clearTimeout(cnicCheckTimeout.current)
-    }
-
-    cnicCheckTimeout.current = setTimeout(async () => {
-      try {
-        const token = getToken()
-        const response = await axiosInstance.get(`/customers/check-cnic/${cnic}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        })
-
-        setCnicStatus({
-          checking: false,
-          available: response.data.available,
-          message: response.data.available ? "CNIC is available" : "CNIC is already registered",
-        })
-      } catch (error) {
-        setCnicStatus({
-          checking: false,
-          available: null,
-          message: "Error checking CNIC availability",
-        })
+      if (isEditing && formData.internet_id === internetId) {
+        setInternetIdStatus({ checking: false, available: true, message: "Current Internet ID" })
+        return
       }
-    }, 500)
-  }, [])
+
+      setInternetIdStatus((prev) =>
+        prev.checking ? prev : { checking: true, available: null, message: "Checking availability..." },
+      )
+
+      if (internetIdCheckTimeout.current) {
+        clearTimeout(internetIdCheckTimeout.current)
+      }
+
+      internetIdCheckTimeout.current = setTimeout(async () => {
+        try {
+          const token = getToken()
+          const response = await axiosInstance.get(`/customers/check-internet-id/${internetId}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          })
+
+          setInternetIdStatus({
+            checking: false,
+            available: response.data.available,
+            message: response.data.available ? "Internet ID is available" : "Internet ID is already taken",
+          })
+        } catch (error) {
+          setInternetIdStatus({
+            checking: false,
+            available: null,
+            message: "Error checking availability",
+          })
+        }
+      }, 500)
+    },
+    [isEditing, formData.internet_id],
+  )
+
+  const checkCnicAvailability = useCallback(
+    async (cnic: string) => {
+      if (!cnic || cnic.length < 13) {
+        setCnicStatus({ checking: false, available: null, message: "" })
+        return
+      }
+
+      if (isEditing && formData.cnic === cnic) {
+        setCnicStatus({ checking: false, available: true, message: "Current CNIC" })
+        return
+      }
+
+      setCnicStatus((prev) =>
+        prev.checking ? prev : { checking: true, available: null, message: "Checking CNIC availability..." },
+      )
+
+      if (cnicCheckTimeout.current) {
+        clearTimeout(cnicCheckTimeout.current)
+      }
+
+      cnicCheckTimeout.current = setTimeout(async () => {
+        try {
+          const token = getToken()
+          const response = await axiosInstance.get(`/customers/check-cnic/${cnic}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          })
+
+          setCnicStatus({
+            checking: false,
+            available: response.data.available,
+            message: response.data.available ? "CNIC is available" : "CNIC is already registered",
+          })
+        } catch (error) {
+          setCnicStatus({
+            checking: false,
+            available: null,
+            message: "Error checking CNIC availability",
+          })
+        }
+      }, 500)
+    },
+    [isEditing, formData.cnic],
+  )
 
   const memoizedHandleInputChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -465,7 +464,6 @@ export function CustomerForm({
         },
       } as React.ChangeEvent<HTMLInputElement | HTMLSelectElement>)
 
-      // Check internet ID availability in real-time
       if (name === "internet_id") {
         checkInternetIdAvailability(formattedValue)
       }
@@ -474,7 +472,6 @@ export function CustomerForm({
         checkCnicAvailability(formattedValue)
       }
 
-      // Clear errors when user types
       if (submitErrors[name]) {
         setSubmitErrors((prev) => {
           const newErrors = { ...prev }
@@ -482,8 +479,12 @@ export function CustomerForm({
           return newErrors
         })
       }
+
+      if (validationErrors && validationErrors[name]) {
+        // This will be handled by the parent component
+      }
     },
-    [handleInputChange, checkInternetIdAvailability, checkCnicAvailability, submitErrors],
+    [handleInputChange, checkInternetIdAvailability, checkCnicAvailability, submitErrors, validationErrors],
   )
 
   const memoizedHandleFileChange = useCallback(
@@ -538,18 +539,12 @@ export function CustomerForm({
   const inputFieldProps = useMemo(
     () => ({
       internetIdStatus,
-      cnicStatus, // Add this
-      submitErrors,
-      toggleMap,
-    }),
-    [internetIdStatus, cnicStatus, submitErrors, toggleMap], // Add cnicStatus
-  );
-  const cnicInputFieldProps = useMemo(
-    () => ({
       cnicStatus,
       submitErrors,
+      toggleMap,
+      validationErrors,
     }),
-    [cnicStatus, submitErrors],
+    [internetIdStatus, cnicStatus, submitErrors, toggleMap, validationErrors],
   )
 
   if (isLoading) {
@@ -582,7 +577,9 @@ export function CustomerForm({
         placeholder="Enter Internet ID"
         required
         icon={<Hash className="h-5 w-5 text-slate-gray/70" />}
-        showInternetIdStatus={true} // Add this line
+        showInternetIdStatus={true}
+        internetIdStatus={internetIdStatus}
+        validationErrors={validationErrors}
         {...inputFieldProps}
       />
 
@@ -622,14 +619,15 @@ export function CustomerForm({
             required
             icon={<Hash className="h-5 w-5 text-slate-gray/70" />}
             showInternetIdStatus={true}
-            internetIdStatus={cnicStatus} // Use internetIdStatus prop for CNIC status
+            internetIdStatus={cnicStatus}
+            validationErrors={validationErrors}
             {...inputFieldProps}
           />
         </div>
-        {submitErrors?.cnic && (
+        {(submitErrors?.cnic || validationErrors?.cnic) && (
           <p className="text-coral-red text-sm mt-1 flex items-center gap-1">
             <XCircle className="h-4 w-4" />
-            {submitErrors.cnic}
+            {submitErrors.cnic || validationErrors.cnic}
           </p>
         )}
       </div>
@@ -827,7 +825,7 @@ export function CustomerForm({
                       .filter((item) => item.item_type === "Router")
                       .map((item) => ({
                         value: item.id,
-                        label: `${item.item_type} - ${item.attributes.serial_number || "No Serial"}`,
+                        label: `${item.item_type} - ${item.serial_number || "No Serial"}`,
                       }))}
                     icon={<Router className="h-5 w-5 text-slate-gray/70" />}
                     {...inputFieldProps}
@@ -1117,18 +1115,21 @@ export function CustomerForm({
             name="cnic_front_image"
             onChange={memoizedHandleFileChange}
             currentImage={formData.cnic_front_image ? `/customers/cnic-front-image/${formData.id}` : undefined}
+            disabled={false}
           />
           <FileUploadField
             label="CNIC Back Image"
             name="cnic_back_image"
             onChange={memoizedHandleFileChange}
             currentImage={formData.cnic_back_image ? `/customers/cnic-back-image/${formData.id}` : undefined}
+            disabled={false}
           />
           <FileUploadField
             label="Agreement Document"
             name="agreement_document"
             onChange={memoizedHandleFileChange}
-            currentDocument={formData.agreement_document ? `/customers/agreement-document/${formData.id}` : undefined}
+            currentImage={formData.agreement_document ? `/customers/agreement-document/${formData.id}` : undefined}
+            disabled={false}
           />
         </div>
       </div>

@@ -151,11 +151,11 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
     e.preventDefault()
     setIsLoading(true)
     setValidationErrors({})
-  
+
     try {
       const token = getToken()
       const formDataToSend = new FormData()
-  
+
       // Add all form data to FormData object
       Object.keys(formData).forEach((key) => {
         if (formData[key] != null && formData[key] !== "") {
@@ -168,7 +168,7 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
           }
         }
       })
-  
+
       if (editingItem) {
         await axiosInstance.put(`/${endpoint}/update/${editingItem.id}`, formDataToSend, {
           headers: {
@@ -194,8 +194,7 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
       handleCancel()
     } catch (error: any) {
       console.error("Operation failed", error)
-  
-      // Handle different error response formats
+
       if (error.response?.data?.errors) {
         // Field-specific validation errors
         setValidationErrors(error.response.data.errors)
@@ -209,7 +208,7 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
         })
       } else if (error.response?.data?.error) {
         // Error object with message
-        if (typeof error.response.data.error === 'string') {
+        if (typeof error.response.data.error === "string") {
           toast.error(error.response.data.error, {
             style: { background: "#FEE2E2", color: "#EF4444" },
           })
@@ -283,8 +282,10 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
   }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target
-    setFormData((prev) => ({ ...prev, [name]: value }))
+    const { name, files } = e.target
+    if (files && files.length > 0) {
+      setFormData((prev) => ({ ...prev, [name]: files[0] }))
+    }
   }
 
   const toggleSidebar = () => {
