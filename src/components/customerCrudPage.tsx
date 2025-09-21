@@ -25,7 +25,7 @@ import { getToken } from "../utils/auth.ts"
 import { toast, ToastContainer } from "react-toastify"
 import "react-toastify/dist/ReactToastify.css"
 import axiosInstance from "../utils/axiosConfig.ts"
-import { BulkAddModal } from "./modals/BulkAddModal.tsx"
+import { EnhancedBulkAddModal } from "./modals/EnhancedBulkAddModal.tsx"
 
 interface CRUDPageProps<T> {
   title: string
@@ -526,7 +526,7 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
           </div>
         </form>
       </Modal>
-      <BulkAddModal
+      <EnhancedBulkAddModal
         isVisible={isBulkAddModalVisible}
         onClose={() => setIsBulkAddModalVisible(false)}
         endpoint={endpoint}

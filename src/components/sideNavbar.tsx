@@ -19,6 +19,8 @@ import {
   Search,
   ChevronLeft,
   Clipboard,
+  Banknote,
+  Receipt
 } from "lucide-react"
 import { removeToken } from "../utils/auth.ts"
 import axiosInstance from "../utils/axiosConfig.ts"
@@ -50,9 +52,15 @@ export const menuItems = [
   },
   {
     title: "Billing & Invoices",
-    icon: CreditCard,
+    icon: Receipt,
     description: "Handle financial transactions and billing cycles",
     path: "/billing-invoices",
+  },
+  {
+    title: "Bank Accounts",
+    icon: Banknote,
+    description: "Handle bank accounts",
+    path: "/bank-management", 
   },
   {
     title: "Complaint Management",

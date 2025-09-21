@@ -1,5 +1,8 @@
-import React, { useState } from "react"
-import { Download, Upload, AlertCircle, CheckCircle, X, FileText, Loader } from 'lucide-react'
+"use client"
+
+import type React from "react"
+import { useState } from "react"
+import { Download, Upload, AlertCircle, CheckCircle, X, FileText, Loader } from "lucide-react"
 import { getToken } from "../../utils/auth.ts"
 import axiosInstance from "../../utils/axiosConfig.ts"
 import { toast } from "react-toastify"
@@ -110,7 +113,7 @@ export function BulkAddModal({ isVisible, onClose, endpoint, entityName, onSucce
           `Successfully added ${response.data.successCount} out of ${response.data.totalRecords} ${entityName.toLowerCase()}s`,
           {
             style: { background: "#D1FAE5", color: "#10B981" },
-          }
+          },
         )
         onSuccess()
       } else {
@@ -120,7 +123,7 @@ export function BulkAddModal({ isVisible, onClose, endpoint, entityName, onSucce
           } errors`,
           {
             style: { background: "#FEF3C7", color: "#D97706" },
-          }
+          },
         )
       }
     } catch (error) {
@@ -209,12 +212,7 @@ export function BulkAddModal({ isVisible, onClose, endpoint, entityName, onSucce
                           <Upload className="h-4 w-4" />
                           {file ? file.name : "Choose file"}
                         </span>
-                        <input
-                          type="file"
-                          className="hidden"
-                          accept=".csv,.xls,.xlsx"
-                          onChange={handleFileChange}
-                        />
+                        <input type="file" className="hidden" accept=".csv,.xls,.xlsx" onChange={handleFileChange} />
                       </label>
                     </div>
                   </div>
@@ -226,15 +224,10 @@ export function BulkAddModal({ isVisible, onClose, endpoint, entityName, onSucce
                   <div className="flex items-center">
                     <FileText className="h-5 w-5 text-electric-blue mr-2" />
                     <span className="text-sm font-medium text-deep-ocean">{file.name}</span>
-                    <span className="ml-2 text-xs text-slate-gray">
-                      ({(file.size / 1024).toFixed(2)} KB)
-                    </span>
+                    <span className="ml-2 text-xs text-slate-gray">({(file.size / 1024).toFixed(2)} KB)</span>
                   </div>
                   <div className="flex gap-2">
-                    <button
-                      onClick={resetForm}
-                      className="p-1 text-slate-gray hover:text-coral-red transition-colors"
-                    >
+                    <button onClick={resetForm} className="p-1 text-slate-gray hover:text-coral-red transition-colors">
                       <X className="h-4 w-4" />
                     </button>
                   </div>
@@ -266,8 +259,8 @@ export function BulkAddModal({ isVisible, onClose, endpoint, entityName, onSucce
                   <div>
                     <h3 className="font-medium text-amber-800">Validation Results</h3>
                     <p className="mt-1 text-sm text-amber-700">
-                      {validationResult.successCount} out of {validationResult.totalRecords} records were
-                      successfully added. {validationResult.failedCount} records had errors.
+                      {validationResult.successCount} out of {validationResult.totalRecords} records were successfully
+                      added. {validationResult.failedCount} records had errors.
                     </p>
                   </div>
                 </div>

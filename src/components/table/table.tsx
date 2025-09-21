@@ -11,6 +11,7 @@ import {
   type ColumnDef,
   type RowSelectionState,
   type FilterFn,
+  type ColumnFiltersState,
 } from "@tanstack/react-table"
 import { useVirtual } from "react-virtual"
 import {
@@ -56,38 +57,15 @@ export function Table<T>({
   isLoading = false,
 }: TableProps<T>) {
   const [globalFilter, setGlobalFilter] = useState("")
-  const [columnFilters, setColumnFilters] = useState<Record<string, string>>({})
+  const [localGlobalFilter, setLocalGlobalFilter] = useState("")
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
+  const [localColumnFilters, setLocalColumnFilters] = useState<Record<string, string>>({})
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
-  const [activeSearchColumn, setActiveSearchColumn] = useState<string | null>(null)
   const [distinctValues, setDistinctValues] = useState<Record<string, Set<any>>>({})
   const [showFilters, setShowFilters] = useState(false)
 
-  // Memoize the filtered data
-  const filteredData = useMemo(() => {
-    if (!globalFilter && Object.keys(columnFilters).length === 0) return data
-
-    return data.filter((row) => {
-      // Check global filter
-      if (globalFilter) {
-        const matchesGlobal = Object.values(row as any).some((value) =>
-          String(value).toLowerCase().includes(globalFilter.toLowerCase()),
-        )
-        if (!matchesGlobal) return false
-      }
-
-      // Check column filters
-      for (const [columnId, filterValue] of Object.entries(columnFilters)) {
-        if (!filterValue) continue
-        const cellValue = String((row as any)[columnId] || "").toLowerCase()
-        if (!cellValue.includes(filterValue.toLowerCase())) return false
-      }
-
-      return true
-    })
-  }, [data, globalFilter, columnFilters])
-
   const table = useReactTable({
-    data: filteredData,
+    data, // Use original data, let TanStack Table handle filtering
     columns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
@@ -97,8 +75,13 @@ export function Table<T>({
       fuzzy: fuzzyFilter,
     },
     onRowSelectionChange: setRowSelection,
+    onColumnFiltersChange: setColumnFilters,
+    onGlobalFilterChange: setGlobalFilter,
+    globalFilterFn: fuzzyFilter,
     state: {
       rowSelection,
+      globalFilter,
+      columnFilters,
     },
     initialState: {
       pagination: {
@@ -107,25 +90,49 @@ export function Table<T>({
     },
   })
 
-  // Debounced search handlers
+  // Debounced search handlers with reduced delay
   const debouncedGlobalSearch = useMemo(
     () =>
       debounce((value: string) => {
         setGlobalFilter(value)
-      }, 300),
+      }, 150), // Reduced from 300ms to 150ms
     [],
   )
 
   const debouncedColumnSearch = useMemo(
     () =>
       debounce((columnId: string, value: string) => {
-        setColumnFilters((prev) => ({
-          ...prev,
-          [columnId]: value,
-        }))
-      }, 300),
+        setColumnFilters((prev) => {
+          const existingFilter = prev.find((filter) => filter.id === columnId)
+          if (value === "") {
+            // Remove filter if value is empty
+            return prev.filter((filter) => filter.id !== columnId)
+          }
+          if (existingFilter) {
+            // Update existing filter
+            return prev.map((filter) =>
+              filter.id === columnId ? { ...filter, value } : filter
+            )
+          } else {
+            // Add new filter
+            return [...prev, { id: columnId, value }]
+          }
+        })
+      }, 150), // Reduced from 300ms to 150ms
     [],
   )
+
+  // Handle global filter changes
+  const handleGlobalFilterChange = useCallback((value: string) => {
+    setLocalGlobalFilter(value)
+    debouncedGlobalSearch(value)
+  }, [debouncedGlobalSearch])
+
+  // Handle column filter changes
+  const handleColumnFilterChange = useCallback((columnId: string, value: string) => {
+    setLocalColumnFilters(prev => ({ ...prev, [columnId]: value }))
+    debouncedColumnSearch(columnId, value)
+  }, [debouncedColumnSearch])
 
   // Cleanup debounced functions
   useEffect(() => {
@@ -133,7 +140,7 @@ export function Table<T>({
       debouncedGlobalSearch.cancel()
       debouncedColumnSearch.cancel()
     }
-  }, [])
+  }, [debouncedGlobalSearch, debouncedColumnSearch])
 
   // Calculate distinct values for column filters
   useEffect(() => {
@@ -156,7 +163,7 @@ export function Table<T>({
       )
       setExternalSelectedRows(selectedIds)
     }
-  }, [rowSelection, table])
+  }, [rowSelection, table, setExternalSelectedRows])
 
   const tableContainerRef = React.useRef<HTMLDivElement>(null)
 
@@ -174,9 +181,10 @@ export function Table<T>({
     return Object.keys(rowSelection).map((key) => rows[Number.parseInt(key)].original)
   }, [rowSelection, rows])
 
-  const toggleColumnSearch = useCallback((columnId: string) => {
-    setActiveSearchColumn((prev) => (prev === columnId ? null : columnId))
-  }, [])
+  // Get current column filter value (use local state for immediate feedback)
+  const getColumnFilterValue = useCallback((columnId: string) => {
+    return localColumnFilters[columnId] || ""
+  }, [localColumnFilters])
 
   return (
     <div className="space-y-6">
@@ -185,7 +193,8 @@ export function Table<T>({
           <div className="relative">
             <input
               type="text"
-              onChange={(e) => debouncedGlobalSearch(e.target.value)}
+              value={localGlobalFilter}
+              onChange={(e) => handleGlobalFilterChange(e.target.value)}
               className="w-full pl-10 pr-4 py-2.5 border border-slate-gray/20 rounded-lg bg-light-sky/30 text-deep-ocean placeholder-slate-gray/50 focus:outline-none focus:ring-2 focus:ring-electric-blue/30 focus:border-transparent transition-all duration-200"
               placeholder="Search all columns..."
             />
@@ -215,7 +224,6 @@ export function Table<T>({
                 ? "bg-slate-gray/10 text-slate-gray/50 cursor-not-allowed"
                 : "bg-electric-blue text-white hover:bg-btn-hover shadow-sm"
             }`}
-            disabled={selectedRowsData.length === 0}
           >
             <FileDown className="h-4 w-4" />
             <span>Export {selectedRowsData.length > 0 ? `(${selectedRowsData.length})` : ""}</span>
@@ -227,28 +235,32 @@ export function Table<T>({
         <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-gray/10 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {columns
             .filter((col) => col.accessorKey && col.header !== "Actions")
-            .map((column) => (
-              <div key={column.id} className="space-y-1">
-                <label className="text-xs font-medium text-slate-gray/70 uppercase tracking-wide">
-                  {column.header as string}
-                </label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    onChange={(e) => debouncedColumnSearch(column.id, e.target.value)}
-                    placeholder={`Filter ${column.header as string}...`}
-                    className="w-full pl-3 pr-8 py-2 text-sm border border-slate-gray/20 rounded-md bg-light-sky/20 text-deep-ocean placeholder-slate-gray/40 focus:outline-none focus:ring-1 focus:ring-electric-blue/30"
-                    list={`options-${column.id}`}
-                  />
-                  <Search className="absolute right-2.5 top-1/2 transform -translate-y-1/2 text-slate-gray/40 h-3.5 w-3.5" />
-                  <datalist id={`options-${column.id}`}>
-                    {Array.from(distinctValues[column.id as string] || []).map((value) => (
-                      <option key={value} value={value} />
-                    ))}
-                  </datalist>
+            .map((column) => {
+              const columnId = column.accessorKey as string
+              return (
+                <div key={columnId} className="space-y-1">
+                  <label className="text-xs font-medium text-slate-gray/70 uppercase tracking-wide">
+                    {column.header as string}
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={getColumnFilterValue(columnId)}
+                      onChange={(e) => handleColumnFilterChange(columnId, e.target.value)}
+                      placeholder={`Filter ${column.header as string}...`}
+                      className="w-full pl-3 pr-8 py-2 text-sm border border-slate-gray/20 rounded-md bg-light-sky/20 text-deep-ocean placeholder-slate-gray/40 focus:outline-none focus:ring-1 focus:ring-electric-blue/30"
+                      list={`options-${columnId}`}
+                    />
+                    <Search className="absolute right-2.5 top-1/2 transform -translate-y-1/2 text-slate-gray/40 h-3.5 w-3.5" />
+                    <datalist id={`options-${columnId}`}>
+                      {Array.from(distinctValues[columnId] || []).map((value) => (
+                        <option key={value} value={value} />
+                      ))}
+                    </datalist>
+                  </div>
                 </div>
-              </div>
-            ))}
+              )
+            })}
         </div>
       )}
 
@@ -265,6 +277,7 @@ export function Table<T>({
                     <input
                       type="checkbox"
                       checked={table.getIsAllRowsSelected()}
+                      indeterminate={table.getIsSomeRowsSelected()}
                       onChange={table.getToggleAllRowsSelectedHandler()}
                       className="rounded border-slate-gray/30 text-electric-blue focus:ring-electric-blue/50"
                     />
@@ -316,7 +329,7 @@ export function Table<T>({
                   </div>
                 </td>
               </tr>
-            ) : data.length === 0 ? (
+            ) : rows.length === 0 ? (
               <tr>
                 <td colSpan={columns.length + 1} className="px-6 py-12 whitespace-nowrap text-center">
                   <div className="flex flex-col items-center justify-center">
@@ -387,7 +400,7 @@ export function Table<T>({
               </option>
             ))}
           </select>
-          <span>of {data.length} entries</span>
+          <span>of {table.getFilteredRowModel().rows.length} entries</span>
         </div>
 
         <div className="flex items-center">
