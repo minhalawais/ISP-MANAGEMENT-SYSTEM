@@ -13,6 +13,7 @@ import { OperationalMetrics } from "./OperationaMetrices.tsx"
 import { BankAccountAnalysis } from "./BankAccountAnalysis.tsx"
 import { Sidebar } from "../sideNavbar.tsx"
 import { Topbar } from "../topNavbar.tsx"
+import { UnifiedFinancialDashboard } from "./UnifiedFinancialDashboard.tsx"
 
 const sections = [
   { 
@@ -36,7 +37,7 @@ const sections = [
   { 
     id: "financial", 
     name: "Financial Analytics", 
-    component: FinancialAnalytics,
+    component: UnifiedFinancialDashboard,
     category: "Financial"
   },
   { 
