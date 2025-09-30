@@ -4,7 +4,7 @@ import React from "react"
 
 import { useEffect } from "react"
 import type { ColumnDef } from "@tanstack/react-table"
-import { CRUDPage } from "../../components/crudPage.tsx"
+import { CRUDPage } from "../../components/table/invoiceTable.tsx"
 import { InvoiceForm } from "../../components/forms/invoiceForm.tsx"
 
 interface Invoice {

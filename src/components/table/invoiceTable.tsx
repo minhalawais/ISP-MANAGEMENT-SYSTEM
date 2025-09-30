@@ -4,7 +4,21 @@ import type React from "react"
 import { useState, useEffect, useMemo } from "react"
 import { CSVLink } from "react-csv"
 import type { ColumnDef } from "@tanstack/react-table"
-import { FaPlus, FaFileExport, FaPen, FaTrash, FaFileInvoice, FaEye } from "react-icons/fa"
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  Check,
+  X,
+  CheckCircle2,
+  XCircle,
+  Users,
+  LayoutDashboard,
+  ChevronRight,
+  FileText,
+  Eye,
+  Share2,
+} from "lucide-react"
 import { Table } from "../table/table.tsx"
 import { Modal } from "../modal.tsx"
 import { Topbar } from "../topNavbar.tsx"
@@ -29,23 +43,45 @@ export function CRUDPage<T extends { id: string }>({ title, endpoint, columns, F
   const [isModalVisible, setIsModalVisible] = useState(false)
   const [editingItem, setEditingItem] = useState<T | null>(null)
   const [formData, setFormData] = useState<Partial<T>>({})
-  const [searchTerm, setSearchTerm] = useState("")
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+  const [selectedRows, setSelectedRows] = useState<string[]>([])
+  const [isLoading, setIsLoading] = useState(false)
+  const [stats, setStats] = useState({
+    total: 0,
+    paid: 0,
+    pending: 0,
+  })
 
   useEffect(() => {
     fetchData()
   }, [])
 
   const fetchData = async () => {
+    setIsLoading(true)
     try {
       const token = getToken()
       const response = await axiosInstance.get(`/${endpoint}/list`, {
         headers: { Authorization: `Bearer ${token}` },
       })
       setData(response.data)
+
+      // Calculate stats
+      const total = response.data.length
+      const paid = response.data.filter((item: any) => item.status === 'paid').length
+      const pending = response.data.filter((item: any) => item.status === 'pending').length
+      
+      setStats({
+        total,
+        paid,
+        pending,
+      })
     } catch (error) {
       console.error(`Failed to fetch ${title}`, error)
-      toast.error(`Failed to fetch ${title}`)
+      toast.error(`Failed to fetch ${title}`, {
+        style: { background: "#FEE2E2", color: "#EF4444" },
+      })
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -63,59 +99,57 @@ export function CRUDPage<T extends { id: string }>({ title, endpoint, columns, F
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setIsLoading(true)
     try {
       const token = getToken()
       if (editingItem) {
         await axiosInstance.put(`/${endpoint}/update/${editingItem.id}`, formData, {
           headers: { Authorization: `Bearer ${token}` },
         })
-        toast.success(`${title} updated successfully`)
+        toast.success(`${title} updated successfully`, {
+          style: { background: "#D1FAE5", color: "#10B981" },
+        })
       } else {
         console.log("formData", formData)
         await axiosInstance.post(`/${endpoint}/add`, formData, {
           headers: { Authorization: `Bearer ${token}` },
         })
-        toast.success(`${title} added successfully`)
+        toast.success(`${title} added successfully`, {
+          style: { background: "#D1FAE5", color: "#10B981" },
+        })
       }
-      fetchData()
+      await fetchData()
       handleCancel()
     } catch (error) {
       console.error("Operation failed", error)
-      toast.error("Operation failed")
+      toast.error("Operation failed", {
+        style: { background: "#FEE2E2", color: "#EF4444" },
+      })
+    } finally {
+      setIsLoading(false)
     }
   }
 
   const handleDelete = async (id: string) => {
     if (window.confirm(`Are you sure you want to delete this ${title.toLowerCase()}?`)) {
       try {
+        setIsLoading(true)
         const token = getToken()
         await axiosInstance.delete(`/${endpoint}/delete/${id}`, {
           headers: { Authorization: `Bearer ${token}` },
         })
-        toast.success(`${title} deleted successfully`)
-        fetchData()
+        toast.success(`${title} deleted successfully`, {
+          style: { background: "#D1FAE5", color: "#10B981" },
+        })
+        await fetchData()
       } catch (error) {
         console.error("Delete operation failed", error)
-        toast.error("Delete operation failed")
+        toast.error("Delete operation failed", {
+          style: { background: "#FEE2E2", color: "#EF4444" },
+        })
+      } finally {
+        setIsLoading(false)
       }
-    }
-  }
-
-  const handleToggleStatus = async (id: string, currentStatus: boolean) => {
-    try {
-      const token = getToken()
-      await axiosInstance.patch(
-        `/${endpoint}/toggle-status/${id}`,
-        {},
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        },
-      )
-      toast.success(`${title} status updated successfully`)
-      fetchData()
-    } catch (error) {
-      console.error("Toggle status failed", error)
-      toast.error("Failed to update status")
     }
   }
 
@@ -166,10 +200,10 @@ Thank you for choosing MBA Communications!`
           <div className="flex justify-center">
             <button
               onClick={() => window.open(`/${endpoint}/${info.row.original.id}`, "_blank")}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 text-sm shadow-md hover:shadow-lg"
+              className="flex items-center gap-2 px-4 py-2 bg-electric-blue text-white rounded-lg hover:bg-btn-hover transition-colors duration-200 text-sm shadow-sm"
               title="View Invoice"
             >
-              <FaEye className="w-4 h-4" />
+              <Eye className="w-4 h-4" />
               View Invoice
             </button>
           </div>
@@ -181,12 +215,10 @@ Thank you for choosing MBA Communications!`
           <div className="flex justify-center">
             <button
               onClick={() => handleWhatsAppShare(info.row.original)}
-              className="flex items-center gap-2 px-3 py-2 bg-[#25D366] text-white rounded-lg hover:bg-[#128C7E] transition-colors duration-200 text-sm shadow-md hover:shadow-lg"
+              className="flex items-center gap-2 px-4 py-2 bg-emerald-green text-white rounded-lg hover:bg-emerald-green/90 transition-colors duration-200 text-sm shadow-sm"
               title="Share via WhatsApp"
             >
-              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893A11.821 11.821 0 0020.885 3.488z" />
-              </svg>
+              <Share2 className="w-4 h-4" />
               Share
             </button>
           </div>
@@ -195,20 +227,20 @@ Thank you for choosing MBA Communications!`
       {
         header: "Actions",
         cell: (info: any) => (
-          <div className="flex space-x-3 justify-center">
+          <div className="flex items-center gap-2 justify-center">
             <button
               onClick={() => showModal(info.row.original)}
-              className="text-blue-600 hover:text-blue-800 transition-colors duration-200 p-2 rounded-lg hover:bg-blue-50"
+              className="p-2 text-white bg-electric-blue rounded-md hover:bg-btn-hover transition-colors"
               title="Edit"
             >
-              <FaPen className="w-4 h-4" />
+              <Pencil className="h-4 w-4" />
             </button>
             <button
               onClick={() => handleDelete(info.row.original.id)}
-              className="text-red-500 hover:text-red-700 transition-colors duration-200 p-2 rounded-lg hover:bg-red-50"
+              className="p-2 text-white bg-coral-red rounded-md hover:bg-coral-red/80 transition-colors"
               title="Delete"
             >
-              <FaTrash className="w-4 h-4" />
+              <Trash2 className="h-4 w-4" />
             </button>
           </div>
         ),
@@ -217,55 +249,164 @@ Thank you for choosing MBA Communications!`
   }, [columns])
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen bg-light-sky/50">
       <Sidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} setIsOpen={setIsSidebarOpen} />
       <div className="flex-1 flex flex-col overflow-hidden">
         <Topbar toggleSidebar={toggleSidebar} />
         <main
-          className={`flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 p-6 pt-20 transition-all duration-300 ${isSidebarOpen ? "ml-72" : "ml-20"}`}
+          className={`flex-1 overflow-x-hidden overflow-y-auto bg-light-sky/50 p-6 pt-20 transition-all duration-300 ${
+            isSidebarOpen ? "ml-64" : "ml-20"
+          }`}
         >
           <div className="container mx-auto">
-            <div className="text-center mb-8">
-              <h1 className="text-4xl font-bold text-gray-800 mb-4 text-balance">{title} Management</h1>
-              <div className="w-24 h-1 bg-blue-600 mx-auto rounded-full"></div>
+            {/* Breadcrumb */}
+            <div className="flex items-center text-sm text-slate-gray mb-6">
+              <LayoutDashboard className="h-4 w-4 mr-1" />
+              <span>Dashboard</span>
+              <ChevronRight className="h-4 w-4 mx-1" />
+              <span className="text-deep-ocean font-medium">{title} Management</span>
             </div>
 
-            <div className="flex justify-end mb-6 space-x-4">
-              <button
-                onClick={() => showModal(null)}
-                className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors duration-200 flex items-center shadow-md hover:shadow-lg"
-              >
-                <FaPlus className="mr-2" /> Add New {title}
-              </button>
-              <CSVLink
+            {/* Header Section */}
+            <div className="bg-white rounded-xl shadow-md p-6 mb-6">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                <div>
+                  <h1 className="text-2xl md:text-3xl font-bold text-deep-ocean flex items-center gap-2">
+                    <FileText className="h-7 w-7 text-electric-blue" />
+                    {title} Management
+                  </h1>
+                  <p className="text-slate-gray mt-1">Manage your {title.toLowerCase()} records efficiently</p>
+                </div>
+                <div className="flex flex-wrap gap-3 self-start md:self-center">
+                  <CSVLink
+                    data={data}
+                    filename={`${title.toLowerCase()}.csv`}
+                    className="bg-slate-gray text-white px-4 py-2.5 rounded-lg hover:bg-slate-gray/80 transition-colors flex items-center justify-center gap-2 shadow-sm"
+                  >
+                    <FileText className="h-5 w-5" />
+                    Export CSV
+                  </CSVLink>
+                  <button
+                    onClick={() => showModal(null)}
+                    className="bg-electric-blue text-white px-4 py-2.5 rounded-lg hover:bg-btn-hover transition-colors flex items-center justify-center gap-2 shadow-sm"
+                  >
+                    <Plus className="h-5 w-5" />
+                    Add New {title}
+                  </button>
+                </div>
+              </div>
+
+              {/* Stats Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div className="bg-light-sky/50 rounded-lg p-4 border border-slate-gray/10">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-slate-gray text-sm">Total {title}s</p>
+                      <h3 className="text-2xl font-bold text-deep-ocean mt-1">{stats.total}</h3>
+                    </div>
+                    <div className="bg-deep-ocean/10 p-3 rounded-full">
+                      <FileText className="h-6 w-6 text-deep-ocean" />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-emerald-green/5 rounded-lg p-4 border border-emerald-green/10">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-slate-gray text-sm">Paid {title}s</p>
+                      <h3 className="text-2xl font-bold text-emerald-green mt-1">{stats.paid}</h3>
+                    </div>
+                    <div className="bg-emerald-green/10 p-3 rounded-full">
+                      <CheckCircle2 className="h-6 w-6 text-emerald-green" />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-coral-red/5 rounded-lg p-4 border border-coral-red/10">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-slate-gray text-sm">Pending {title}s</p>
+                      <h3 className="text-2xl font-bold text-coral-red mt-1">{stats.pending}</h3>
+                    </div>
+                    <div className="bg-coral-red/10 p-3 rounded-full">
+                      <XCircle className="h-6 w-6 text-coral-red" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Table Section */}
+            <div className="mb-8">
+              <Table
                 data={data}
-                filename={`${title.toLowerCase()}.csv`}
-                className="bg-gray-200 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-300 transition-colors duration-200 flex items-center shadow-md hover:shadow-lg"
-              >
-                <FaFileExport className="mr-2" /> Export to CSV
-              </CSVLink>
-            </div>
-
-            <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-              <Table data={data} columns={memoizedColumns} />
+                columns={memoizedColumns}
+                selectedRows={selectedRows}
+                setSelectedRows={setSelectedRows}
+                isLoading={isLoading}
+              />
             </div>
           </div>
         </main>
       </div>
 
+      {/* Modal */}
       <Modal
         isVisible={isModalVisible}
         onClose={handleCancel}
         title={editingItem ? `Edit ${title}` : `Add New ${title}`}
+        isLoading={isLoading}
       >
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="bg-white">
           <FormComponent formData={formData} handleInputChange={handleInputChange} isEditing={!!editingItem} />
-          <div className="flex justify-end pt-4 border-t border-gray-200">
+          <div className="mt-6 flex justify-end gap-3">
+            <button
+              type="button"
+              onClick={handleCancel}
+              className="px-4 py-2.5 border border-slate-gray/20 text-slate-gray rounded-lg hover:bg-light-sky/50 transition-colors"
+            >
+              Cancel
+            </button>
             <button
               type="submit"
-              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 font-medium"
+              disabled={isLoading}
+              className="px-4 py-2.5 bg-electric-blue text-white rounded-lg hover:bg-btn-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-electric-blue disabled:opacity-50 transition-colors flex items-center gap-2"
             >
-              {editingItem ? "Update" : "Add"} {title}
+              {isLoading ? (
+                <>
+                  <svg
+                    className="animate-spin h-5 w-5 text-white"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
+                  Processing...
+                </>
+              ) : editingItem ? (
+                <>
+                  <Check className="h-5 w-5" />
+                  Update {title}
+                </>
+              ) : (
+                <>
+                  <Plus className="h-5 w-5" />
+                  Create {title}
+                </>
+              )}
             </button>
           </div>
         </form>

@@ -18,7 +18,6 @@ export function SearchableSelect({
 }: SearchableSelectProps) {
   const [searchTerm, setSearchTerm] = useState("")
   const [isOpen, setIsOpen] = useState(false)
-    console.log('options', options)
   const filteredOptions = useMemo(() => {
     if (!searchTerm) return options
     

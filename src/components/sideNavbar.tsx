@@ -20,7 +20,8 @@ import {
   ChevronLeft,
   Clipboard,
   Banknote,
-  Receipt
+  Receipt,
+  NetworkIcon
 } from "lucide-react"
 import { removeToken } from "../utils/auth.ts"
 import axiosInstance from "../utils/axiosConfig.ts"
@@ -49,6 +50,12 @@ export const menuItems = [
     icon: CreditCard,
     description: "Track and manage customer payments",
     path: "/payment-management",
+  },
+  {
+    title: "ISP Payments",
+    icon: NetworkIcon,
+    description: "Track and manage ISP payments",
+    path: "/isp-payment-management",
   },
   {
     title: "Billing & Invoices",

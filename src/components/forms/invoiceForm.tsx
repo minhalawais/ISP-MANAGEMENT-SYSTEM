@@ -40,6 +40,14 @@ export function InvoiceForm({ formData, handleInputChange, isEditing }: InvoiceF
   ])
 
   useEffect(() => {
+    if (!formData.invoice_type) {
+      handleInputChange({
+        target: {
+          name: "invoice_type",
+          value: 'subscription',
+        },
+      } as React.ChangeEvent<HTMLInputElement>)
+    }
     fetchCustomers()
   }, [])
 
@@ -76,13 +84,18 @@ export function InvoiceForm({ formData, handleInputChange, isEditing }: InvoiceF
 
   const updatePrices = (customer: Customer) => {
     const subtotal = customer.servicePlanPrice
-    const discountPercentage = customer.discountAmount > 0 ? 
-      (customer.discountAmount / subtotal) * 100 : 0
-    const totalAmount = subtotal - customer.discountAmount
+    const discountAmount = customer.discountAmount
+    const discountPercentage = discountAmount > 0 ? 
+      (discountAmount / subtotal) * 100 : 0
+    const totalAmount = subtotal - discountAmount
 
     // Update form data
     handleInputChange({
       target: { name: "subtotal", value: subtotal.toString() }
+    } as React.ChangeEvent<HTMLInputElement>)
+    
+    handleInputChange({
+      target: { name: "discount_amount", value: discountAmount.toString() }
     } as React.ChangeEvent<HTMLInputElement>)
     
     handleInputChange({
@@ -151,6 +164,139 @@ export function InvoiceForm({ formData, handleInputChange, isEditing }: InvoiceF
     if (selectedCustomer) {
       updatePrices(selectedCustomer)
     }
+  }
+
+  const validateAmount = (value: number, fieldName: string): boolean => {
+    if (value < 0) {
+      alert(`${fieldName} cannot be less than 0`)
+      return false
+    }
+    return true
+  }
+
+  const handleDiscountAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const discountAmount = parseFloat(e.target.value) || 0
+    const subtotal = parseFloat(formData.subtotal) || 0
+    
+    // Validate discount amount
+    if (!validateAmount(discountAmount, "Discount amount")) return
+    
+    // Constraint: Discount cannot be greater than subtotal
+    if (discountAmount > subtotal) {
+      alert("Discount amount cannot be greater than subtotal")
+      return
+    }
+    
+    // Calculate discount percentage
+    const discountPercentage = subtotal > 0 ? (discountAmount / subtotal) * 100 : 0
+    const totalAmount = subtotal - discountAmount
+
+    // Update discount amount
+    handleInputChange(e)
+    
+    // Also update discount percentage and total amount
+    handleInputChange({
+      target: { 
+        name: "discount_percentage", 
+        value: discountPercentage.toFixed(2) 
+      }
+    } as React.ChangeEvent<HTMLInputElement>)
+    
+    handleInputChange({
+      target: { 
+        name: "total_amount", 
+        value: totalAmount.toFixed(2) 
+      }
+    } as React.ChangeEvent<HTMLInputElement>)
+  }
+
+  const handleSubtotalChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const subtotal = parseFloat(e.target.value) || 0
+    const discountAmount = parseFloat(formData.discount_amount) || 0
+    
+    // Validate subtotal
+    if (!validateAmount(subtotal, "Subtotal")) return
+    
+    // Constraint: Subtotal cannot be less than total amount
+    if (subtotal < (parseFloat(formData.total_amount) || 0)) {
+      alert("Subtotal cannot be less than total amount")
+      return
+    }
+    
+    // Recalculate discount percentage based on new subtotal
+    const discountPercentage = subtotal > 0 ? (discountAmount / subtotal) * 100 : 0
+    const totalAmount = subtotal - discountAmount
+
+    // Update subtotal
+    handleInputChange(e)
+    
+    // Also update discount percentage and total amount
+    handleInputChange({
+      target: { 
+        name: "discount_percentage", 
+        value: discountPercentage.toFixed(2) 
+      }
+    } as React.ChangeEvent<HTMLInputElement>)
+    
+    handleInputChange({
+      target: { 
+        name: "total_amount", 
+        value: totalAmount.toFixed(2) 
+      }
+    } as React.ChangeEvent<HTMLInputElement>)
+  }
+
+  const handleTotalAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const totalAmount = parseFloat(e.target.value) || 0
+    const subtotal = parseFloat(formData.subtotal) || 0
+    
+    // Validate total amount
+    if (!validateAmount(totalAmount, "Total amount")) return
+    
+    // Constraint: Total amount cannot be greater than subtotal
+    if (totalAmount > subtotal) {
+      alert("Total amount cannot be greater than subtotal")
+      return
+    }
+    
+    // Calculate discount amount from total and subtotal
+    const discountAmount = subtotal - totalAmount
+    const discountPercentage = subtotal > 0 ? (discountAmount / subtotal) * 100 : 0
+
+    // Update total amount
+    handleInputChange(e)
+    
+    // Also update discount amount and discount percentage
+    handleInputChange({
+      target: { 
+        name: "discount_amount", 
+        value: discountAmount.toFixed(2) 
+      }
+    } as React.ChangeEvent<HTMLInputElement>)
+    
+    handleInputChange({
+      target: { 
+        name: "discount_percentage", 
+        value: discountPercentage.toFixed(2) 
+      }
+    } as React.ChangeEvent<HTMLInputElement>)
+  }
+
+  const handleInputChangeWithValidation = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target
+    
+    // For number fields, validate immediately
+    if (name === 'subtotal' || name === 'discount_amount' || name === 'total_amount') {
+      const numValue = parseFloat(value) || 0
+      if (numValue < 0) {
+        alert(`${name.replace('_', ' ')} cannot be less than 0`, {
+          style: { background: "#FEE2E2", color: "#EF4444" },
+        })
+        return
+      }
+    }
+    
+    handleInputChange(e)
   }
 
   return (
@@ -275,7 +421,7 @@ export function InvoiceForm({ formData, handleInputChange, isEditing }: InvoiceF
               id="subtotal"
               name="subtotal"
               value={formData.subtotal || ""}
-              onChange={handleInputChange}
+              onChange={handleSubtotalChange}
               placeholder="Enter subtotal amount"
               step="0.01"
               min="0"
@@ -286,26 +432,29 @@ export function InvoiceForm({ formData, handleInputChange, isEditing }: InvoiceF
         </div>
 
         <div className="space-y-2">
-          <label htmlFor="discount_percentage" className="block text-sm font-medium text-deep-ocean">
-            Discount Percentage
+          <label htmlFor="discount_amount" className="block text-sm font-medium text-deep-ocean">
+            Discount Amount
           </label>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Percent className="h-5 w-5 text-slate-gray/60" />
+              <DollarSign className="h-5 w-5 text-slate-gray/60" />
             </div>
             <input
               type="number"
-              id="discount_percentage"
-              name="discount_percentage"
-              value={formData.discount_percentage || ""}
-              onChange={handleInputChange}
-              placeholder="Enter discount percentage"
+              id="discount_amount"
+              name="discount_amount"
+              value={formData.discount_amount || ""}
+              onChange={handleDiscountAmountChange}
+              placeholder="Enter discount amount"
               step="0.01"
               min="0"
-              max="100"
+              max={formData.subtotal || ""}
               className="w-full pl-10 pr-4 py-2.5 border border-slate-gray/20 rounded-lg bg-light-sky/30 text-deep-ocean placeholder-slate-gray/50 focus:outline-none focus:ring-2 focus:ring-electric-blue/30 focus:border-transparent transition-all duration-200"
             />
           </div>
+          <p className="text-xs text-slate-gray/70">
+            Max: ${formData.subtotal || 0}
+          </p>
         </div>
 
         <div className="space-y-2">
@@ -321,16 +470,27 @@ export function InvoiceForm({ formData, handleInputChange, isEditing }: InvoiceF
               id="total_amount"
               name="total_amount"
               value={formData.total_amount || ""}
-              onChange={handleInputChange}
+              onChange={handleTotalAmountChange}
               placeholder="Enter total amount"
               step="0.01"
               min="0"
+              max={formData.subtotal || ""}
               className="w-full pl-10 pr-4 py-2.5 border border-slate-gray/20 rounded-lg bg-light-sky/30 text-deep-ocean placeholder-slate-gray/50 focus:outline-none focus:ring-2 focus:ring-electric-blue/30 focus:border-transparent transition-all duration-200"
               required
             />
           </div>
+          <p className="text-xs text-slate-gray/70">
+            Max: ${formData.subtotal || 0}
+          </p>
         </div>
       </div>
+
+      {/* Hidden discount percentage field to maintain backward compatibility */}
+      <input
+        type="hidden"
+        name="discount_percentage"
+        value={formData.discount_percentage || ""}
+      />
 
       <div className="space-y-2">
         <label htmlFor="invoice_type" className="block text-sm font-medium text-deep-ocean">
@@ -344,7 +504,7 @@ export function InvoiceForm({ formData, handleInputChange, isEditing }: InvoiceF
             id="invoice_type"
             name="invoice_type"
             value={formData.invoice_type || ""}
-            onChange={handleInputChange}
+            onChange={handleInputChangeWithValidation}
             className="w-full pl-10 pr-10 py-2.5 border border-slate-gray/20 rounded-lg bg-light-sky/30 text-deep-ocean placeholder-slate-gray/50 focus:outline-none focus:ring-2 focus:ring-electric-blue/30 focus:border-transparent transition-all duration-200 appearance-none"
             required
           >
@@ -374,7 +534,7 @@ export function InvoiceForm({ formData, handleInputChange, isEditing }: InvoiceF
             id="notes"
             name="notes"
             value={formData.notes || ""}
-            onChange={handleInputChange}
+            onChange={handleInputChangeWithValidation}
             placeholder="Enter additional notes"
             rows={3}
             className="w-full pl-10 pr-4 py-2.5 border border-slate-gray/20 rounded-lg bg-light-sky/30 text-deep-ocean placeholder-slate-gray/50 focus:outline-none focus:ring-2 focus:ring-electric-blue/30 focus:border-transparent transition-all duration-200 resize-y"

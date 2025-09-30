@@ -34,6 +34,7 @@ import ISPManagement from "./pages/crud_pages/ispCrud.tsx"
 import NewComplaintPage from "./pages/ComplaintFormPage.tsx"
 import TicketDisplayPage from "./pages/TicketDisplayPage.tsx"
 import BankAccountManagement from "./pages/crud_pages/BankAccountCrud.tsx"
+import ISPPaymentManagement from "./pages/crud_pages/ISPPaymentCrud.tsx"
 import "./styles/toastStyles.css"
 
 const PrivateRoute: React.FC<{ element: React.ReactElement }> = ({ element }) => {
@@ -63,6 +64,7 @@ const App: React.FC = () => {
         <Route path="/task-management" element={<PrivateRoute element={<TaskManagement />} />} />
         <Route path="/bank-management" element={<PrivateRoute element={<BankAccountManagement />} />} />
         <Route path="/payment-management" element={<PrivateRoute element={<PaymentManagement />} />} />
+        <Route path="/isp-payment-management" element={<PrivateRoute element={<ISPPaymentManagement />} />} />
         <Route path="/billing-invoices" element={<PrivateRoute element={<InvoiceManagement />} />} />
         <Route path="/invoices/:id" element={<PrivateRoute element={<InvoiceGeneration />} />} />
         <Route path="/customers/:id" element={<PrivateRoute element={<CustomerDetailPage />} />} />

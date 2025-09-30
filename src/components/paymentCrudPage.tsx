@@ -160,26 +160,9 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
     setIsLoading(true)
     try {
       const token = getToken()
-      const formDataToSend = new FormData()
-
-      // Append all form fields to FormData
-      Object.keys(formData).forEach((key) => {
-        if (formData[key] != null) {
-          if (key === "payment_proof" && formData[key] instanceof File) {
-            formDataToSend.append(key, formData[key], formData[key].name)
-          } else {
-            formDataToSend.append(key, formData[key])
-          }
-        }
-      })
-
-      console.log("FormData contents:")
-      for (let [key, value] of formDataToSend.entries()) {
-        console.log(key, value)
-      }
-
+      let response;
       if (editingItem) {
-        await axiosInstance.put(`/${endpoint}/update/${editingItem.id}`, formDataToSend, {
+        response = await axiosInstance.put(`/${endpoint}/update/${editingItem.id}`, formData, {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "multipart/form-data",
@@ -189,7 +172,7 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
           style: { background: "#D1FAE5", color: "#10B981" },
         })
       } else {
-        await axiosInstance.post(`/${endpoint}/add`, formDataToSend, {
+        response = await axiosInstance.post(`/${endpoint}/add`, formData, {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "multipart/form-data",
@@ -203,7 +186,7 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
       handleCancel()
     } catch (error) {
       console.error("Operation failed", error)
-      toast.error("Operation failed", {
+      toast.error("Operation failed:" + error.toString(), {
         style: { background: "#FEE2E2", color: "#EF4444" },
       })
     } finally {

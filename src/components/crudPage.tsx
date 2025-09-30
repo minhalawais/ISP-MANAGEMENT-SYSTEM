@@ -166,6 +166,7 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
+    console.log("Form: ",formData);
     e.preventDefault()
 
     if (validateBeforeSubmit) {
@@ -241,6 +242,7 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
+    console.log('Updated FOrm data: ',formData);
   }
 
   const toggleSidebar = () => {
