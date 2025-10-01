@@ -24,6 +24,7 @@ interface Customer {
 export function InvoiceForm({ formData, handleInputChange, isEditing }: InvoiceFormProps) {
   const [customers, setCustomers] = useState<Customer[]>([])
   const [selectedMonth, setSelectedMonth] = useState<string>("")
+  const [isLoadingCustomers, setIsLoadingCustomers] = useState(false)
   const [months] = useState([
     { value: "01", label: "January" },
     { value: "02", label: "February" },
@@ -52,6 +53,7 @@ export function InvoiceForm({ formData, handleInputChange, isEditing }: InvoiceF
   }, [])
 
   useEffect(() => {
+    // When formData changes (like when editing), update customer selection
     if (formData.customer_id && customers.length > 0) {
       const selectedCustomer = customers.find(c => c.id === formData.customer_id)
       if (selectedCustomer) {
@@ -62,6 +64,7 @@ export function InvoiceForm({ formData, handleInputChange, isEditing }: InvoiceF
 
   const fetchCustomers = async () => {
     try {
+      setIsLoadingCustomers(true)
       const token = getToken()
       const response = await axiosInstance.get("/customers/list", {
         headers: { Authorization: `Bearer ${token}` },
@@ -79,6 +82,8 @@ export function InvoiceForm({ formData, handleInputChange, isEditing }: InvoiceF
       )
     } catch (error) {
       console.error("Failed to fetch customers", error)
+    } finally {
+      setIsLoadingCustomers(false)
     }
   }
 
@@ -160,6 +165,22 @@ export function InvoiceForm({ formData, handleInputChange, isEditing }: InvoiceF
     
     // Update prices when customer changes
     const customerId = e.target.value
+    const selectedCustomer = customers.find(c => c.id === customerId)
+    if (selectedCustomer) {
+      updatePrices(selectedCustomer)
+    }
+  }
+
+  // Add this function to handle customer selection from SearchableCustomerSelect
+  const handleCustomerSelect = (customerId: string) => {
+    handleInputChange({
+      target: {
+        name: "customer_id",
+        value: customerId,
+      },
+    } as React.ChangeEvent<HTMLSelectElement>)
+    
+    // Update prices when customer changes
     const selectedCustomer = customers.find(c => c.id === customerId)
     if (selectedCustomer) {
       updatePrices(selectedCustomer)
@@ -289,9 +310,7 @@ export function InvoiceForm({ formData, handleInputChange, isEditing }: InvoiceF
     if (name === 'subtotal' || name === 'discount_amount' || name === 'total_amount') {
       const numValue = parseFloat(value) || 0
       if (numValue < 0) {
-        alert(`${name.replace('_', ' ')} cannot be less than 0`, {
-          style: { background: "#FEE2E2", color: "#EF4444" },
-        })
+        alert(`${name.replace('_', ' ')} cannot be less than 0`)
         return
       }
     }
@@ -300,17 +319,27 @@ export function InvoiceForm({ formData, handleInputChange, isEditing }: InvoiceF
   }
 
   return (
-    <div className="space-y-6">
+     <div className="space-y-6">
       <div className="space-y-2">
         <label htmlFor="customer_id" className="block text-sm font-medium text-deep-ocean">
           Customer
         </label>
-        <SearchableCustomerSelect
-          customers={customers}
-          value={formData.customer_id || ""}
-          onChange={handleCustomerChange}
-          placeholder="Search and select customer"
-        />
+        {isLoadingCustomers ? (
+          <div className="w-full pl-10 pr-10 py-2.5 border border-slate-gray/20 rounded-lg bg-light-sky/30 text-deep-ocean">
+            <div className="flex items-center justify-center">
+              <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-electric-blue"></div>
+              <span className="ml-2 text-slate-gray/60">Loading customers...</span>
+            </div>
+          </div>
+        ) : (
+          <SearchableCustomerSelect
+            customers={customers}
+            value={formData.customer_id || ""}
+            onChange={handleCustomerChange}
+            onCustomerSelect={handleCustomerSelect}
+            placeholder="Search and select customer"
+          />
+        )}
       </div>
 
       {/* Month Selection */}

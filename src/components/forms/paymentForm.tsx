@@ -6,6 +6,7 @@ import { getToken } from "../../utils/auth.ts"
 import axiosInstance from "../../utils/axiosConfig.ts"
 import { FileText, DollarSign, Building, Calendar, CreditCard, Hash, User, ChevronDown, MessageSquare } from "lucide-react"
 import {SearchableSelect} from "../SearchableSelect.tsx"
+
 interface PaymentFormProps {
   formData: any
   handleInputChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void
@@ -18,7 +19,13 @@ interface Invoice {
   invoice_number: string
   customer_name: string
   total_amount: number
+  customer_internet_id: string
+  due_date: string
+  status: string
+  billing_start_date: string
+  billing_end_date: string
 }
+
 interface BankAccount {
   id: string
   bank_name: string
@@ -32,34 +39,57 @@ export function PaymentForm({ formData, handleInputChange, handleSubmit, isEditi
   const [employees, setEmployees] = useState<{ id: string; name: string }[]>([])
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([])
   const [errors, setErrors] = useState<{ [key: string]: string }>({})
+  const [isLoadingInvoices, setIsLoadingInvoices] = useState(false)
+  const [isLoadingEmployees, setIsLoadingEmployees] = useState(false)
+  const [isLoadingBankAccounts, setIsLoadingBankAccounts] = useState(false)
 
   useEffect(() => {
-    if (!formData.payment_date) {
-      handleInputChange({
-        target: {
-          name: "payment_date",
-          value: new Date().toISOString().split("T")[0],
-        },
-      } as React.ChangeEvent<HTMLInputElement>)
-    }
-    
-    // Set default status if not already set
-    if (!formData.status) {
-      handleInputChange({
-        target: {
-          name: "status",
-          value: "paid",
-        },
-      } as React.ChangeEvent<HTMLInputElement>)
+    // Set default values only when adding new payment
+    if (!isEditing) {
+      if (!formData.payment_date) {
+        handleInputChange({
+          target: {
+            name: "payment_date",
+            value: new Date().toISOString().split("T")[0],
+          },
+        } as React.ChangeEvent<HTMLInputElement>)
+      }
+      
+      // Set default status if not already set
+      if (!formData.status) {
+        handleInputChange({
+          target: {
+            name: "status",
+            value: "paid",
+          },
+        } as React.ChangeEvent<HTMLInputElement>)
+      }
     }
     
     fetchInvoices()
     fetchEmployees()
     fetchBankAccounts()
-  }, []);
+  }, [isEditing])
+
+  // When editing, fetch the specific invoice data if invoice_id is present
+  useEffect(() => {
+    if (isEditing && formData.invoice_id && invoices.length > 0) {
+      const selectedInvoice = invoices.find(invoice => invoice.id === formData.invoice_id)
+      if (selectedInvoice && !formData.amount) {
+        // Auto-fill amount from invoice if not already set
+        handleInputChange({
+          target: {
+            name: "amount",
+            value: selectedInvoice.total_amount.toString(),
+          },
+        } as React.ChangeEvent<HTMLInputElement>)
+      }
+    }
+  }, [formData.invoice_id, invoices, isEditing])
 
   const fetchBankAccounts = async () => {
     try {
+      setIsLoadingBankAccounts(true)
       const token = getToken()
       const response = await axiosInstance.get("/bank-accounts/list", {
         headers: { Authorization: `Bearer ${token}` },
@@ -67,37 +97,50 @@ export function PaymentForm({ formData, handleInputChange, handleSubmit, isEditi
       setBankAccounts(response.data)
     } catch (error) {
       console.error("Failed to fetch bank accounts", error)
+    } finally {
+      setIsLoadingBankAccounts(false)
     }
   }
+
   const fetchInvoices = async () => {
     try {
+      setIsLoadingInvoices(true)
       const token = getToken()
       const response = await axiosInstance.get("/invoices/list", {
         headers: { Authorization: `Bearer ${token}` },
       })
-      const pendingInvoices = response.data.filter((invoice: any) => 
-        invoice.status === 'pending' || invoice.status === 'Pending'
-      )
+      
+      // When editing, show all invoices (including the one being edited)
+      // When adding, show only pending invoices
+      const filteredInvoices = isEditing 
+        ? response.data 
+        : response.data.filter((invoice: any) => 
+            invoice.status === 'pending' || invoice.status === 'Pending' || invoice.status === 'partially_paid' || invoice.status === 'Partially Paid'
+          )
+      
       setInvoices(
-        pendingInvoices.map((invoice: any) => ({
+        filteredInvoices.map((invoice: any) => ({
           id: invoice.id,
           invoice_number: invoice.invoice_number,
           customer_name: invoice.customer_name,
-          customer_internet_id: invoice.customer_internet_id || "N/A", // Add this
+          customer_internet_id: invoice.customer_internet_id || "N/A",
           total_amount: invoice.total_amount,
-          due_date: invoice.due_date, // Add this if available
-          status: invoice.status, // Add this if available
-          billing_end_date: invoice.billing_end_date, // Add this if available
-          billing_start_date: invoice.billing_start_date, // Add this if available
+          due_date: invoice.due_date,
+          status: invoice.status,
+          billing_end_date: invoice.billing_end_date,
+          billing_start_date: invoice.billing_start_date,
         })),
       )
     } catch (error) {
       console.error("Failed to fetch invoices", error)
+    } finally {
+      setIsLoadingInvoices(false)
     }
   }
 
   const fetchEmployees = async () => {
     try {
+      setIsLoadingEmployees(true)
       const token = getToken()
       const response = await axiosInstance.get("/employees/list", {
         headers: { Authorization: `Bearer ${token}` },
@@ -110,6 +153,8 @@ export function PaymentForm({ formData, handleInputChange, handleSubmit, isEditi
       )
     } catch (error) {
       console.error("Failed to fetch employees", error)
+    } finally {
+      setIsLoadingEmployees(false)
     }
   }
 
@@ -131,7 +176,8 @@ export function PaymentForm({ formData, handleInputChange, handleSubmit, isEditi
 
     handleInputChange(e)
 
-    if (selectedInvoice) {
+    // Only auto-fill amount when adding new payment, not when editing
+    if (selectedInvoice && !isEditing) {
       handleInputChange({
         target: {
           name: "amount",
@@ -144,7 +190,7 @@ export function PaymentForm({ formData, handleInputChange, handleSubmit, isEditi
   const validateForm = () => {
     const newErrors: { [key: string]: string } = {}
     if (!formData.invoice_id) newErrors.invoice_id = "Invoice is required"
-    if (!formData.amount) newErrors.amount = "Amount is required"
+    if (!formData.amount || parseFloat(formData.amount) <= 0) newErrors.amount = "Valid amount is required"
     if (!formData.payment_date) newErrors.payment_date = "Payment date is required"
     if (!formData.payment_method) newErrors.payment_method = "Payment method is required"
     if (!formData.status) newErrors.status = "Status is required"
@@ -162,13 +208,22 @@ export function PaymentForm({ formData, handleInputChange, handleSubmit, isEditi
         <label htmlFor="invoice_id" className="block text-sm font-medium text-deep-ocean">
           Invoice
         </label>
-        <SearchableSelect
-          options={invoices}
-          value={formData.invoice_id || ""}
-          onChange={handleInvoiceChange}
-          error={errors.invoice_id}
-          placeholder="Search and select invoice"
-        />
+        {isLoadingInvoices ? (
+          <div className="w-full pl-10 pr-10 py-2.5 border border-slate-gray/20 rounded-lg bg-light-sky/30 text-deep-ocean">
+            <div className="flex items-center justify-center">
+              <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-electric-blue"></div>
+              <span className="ml-2 text-slate-gray/60">Loading invoices...</span>
+            </div>
+          </div>
+        ) : (
+          <SearchableSelect
+            options={invoices}
+            value={formData.invoice_id || ""}
+            onChange={handleInvoiceChange}
+            error={errors.invoice_id}
+            placeholder="Search and select invoice"
+          />
+        )}
         {errors.invoice_id && <p className="text-coral-red text-xs mt-1">{errors.invoice_id}</p>}
       </div>
 

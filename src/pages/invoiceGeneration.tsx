@@ -12,6 +12,7 @@ import { Sidebar } from "../components/sideNavbar.tsx"
 import { Topbar } from "../components/topNavbar.tsx"
 import MBALogo from "../assets/mba_logo.tsx"
 
+
 interface InvoiceData {
   id: string
   invoice_number: string
@@ -29,6 +30,9 @@ interface InvoiceData {
   invoice_type: string
   notes: string
   status: string
+  payments: PaymentDetails[]
+  total_paid: number
+  remaining_amount: number
 }
 
 interface PaymentDetails {
@@ -37,7 +41,8 @@ interface PaymentDetails {
   payment_date: string
   payment_method: string
   transaction_id?: string
-  notes?: string
+  status: string
+  failure_reason?: string
 }
 
 interface BankAccount {
@@ -77,27 +82,10 @@ const InvoiceGenerationPage: React.FC = () => {
         headers: { Authorization: `Bearer ${token}` },
       })
       setInvoiceData(response.data)
-      if (response.data.status === "paid") {
-        fetchPaymentDetails(id)
-      }
       setError(null)
     } catch (error) {
       console.error("Failed to fetch invoice data", error)
       setError("Failed to load invoice data. Please try again.")
-    }
-  }
-
-  const fetchPaymentDetails = async (invoiceId: string) => {
-    try {
-      const token = getToken()
-      const response = await axiosInstance.get(`/payments/invoice/${invoiceId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      if (response.data) {
-        setPaymentDetails(response.data)
-      }
-    } catch (error) {
-      console.error("Failed to fetch payment details", error)
     }
   }
 
@@ -117,6 +105,19 @@ const InvoiceGenerationPage: React.FC = () => {
     const date = new Date(dateString)
     const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
     return `${months[date.getMonth()]}/${date.getDate()}/${date.getFullYear()}`
+  }
+
+  const getPaymentStatusColor = (status: string) => {
+    switch (status.toLowerCase()) {
+      case "paid":
+        return "bg-[#D1FAE5] text-[#10B981]"
+      case "pending":
+        return "bg-[#FEF3C7] text-[#F59E0B]"
+      case "failed":
+        return "bg-[#FEE2E2] text-[#EF4444]"
+      default:
+        return "bg-[#EBF5FF] text-[#4A5568]"
+    }
   }
 
   const handlePrint = useReactToPrint({
@@ -193,38 +194,68 @@ const InvoiceGenerationPage: React.FC = () => {
       setIsDownloading(false)
     }
   }
-
   const handleShareWhatsApp = async () => {
-    if (!invoiceData?.customer_phone || !printRef.current) return
-
+    if (!invoiceData?.customer_phone || !printRef.current) return;
+  
     try {
-      setError(null)
-
-      let phoneNumber = invoiceData.customer_phone.replace(/\D/g, "")
-      if (!phoneNumber.startsWith("92")) {
-        phoneNumber = "92" + phoneNumber.substring(1)
+      setError(null);
+  
+      // ✅ Normalize phone number
+      let phoneNumber = invoiceData.customer_phone.replace(/\D/g, ""); // remove non-digits
+  
+      if (phoneNumber.startsWith("92") && phoneNumber.length === 12) {
+        // Already in correct format
+      } else if (phoneNumber.startsWith("03") && phoneNumber.length === 11) {
+        // Convert local 03XXXXXXXXX → 92XXXXXXXXXX
+        phoneNumber = "92" + phoneNumber.substring(1);
+      } else if (phoneNumber.startsWith("3") && phoneNumber.length === 10) {
+        // Convert local 3XXXXXXXXX → 92XXXXXXXXXX
+        phoneNumber = "92" + phoneNumber;
+      } else if (phoneNumber.startsWith("0092") && phoneNumber.length === 14) {
+        // Convert 0092XXXXXXXXXX → 92XXXXXXXXXX
+        phoneNumber = phoneNumber.substring(2);
+      } else if (phoneNumber.startsWith("+92") && phoneNumber.length === 13) {
+        // Convert +92XXXXXXXXXX → 92XXXXXXXXXX
+        phoneNumber = phoneNumber.substring(1);
       }
-
-      const message = `Hi ${invoiceData.customer_name},
-
-Your invoice #${invoiceData.invoice_number} for PKR ${invoiceData.total_amount.toFixed(2)} is ready.
-
-Invoice Details:
-• Amount: PKR ${invoiceData.total_amount.toFixed(2)}
-• Due Date: ${formatDate(invoiceData.due_date)}
-• Status: ${invoiceData.status}
-
-Please check your invoice details and make payment if pending.
-
-Thank you for choosing MBA Communications!`
-
-      const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`
-      window.open(whatsappUrl, "_blank")
+  
+      // ✅ Generate public invoice link
+      const publicInvoiceUrl = `${window.location.origin}/public/invoice/${invoiceData.id}`;
+  
+      // ✅ Build English-only message
+      const message = `Hello ${invoiceData.customer_name},
+  
+  Your invoice #${invoiceData.invoice_number} is ready.
+  
+  📋 Invoice Details:
+  • Amount: PKR ${invoiceData.total_amount.toFixed(2)}
+  • Due Date: ${formatDate(invoiceData.due_date)}
+  • Status: ${invoiceData.status}
+  
+  📄 View your complete invoice here:
+  ${publicInvoiceUrl}
+  
+  Please review your invoice and make the payment if pending.
+  
+  Thank you for choosing MBA Communications!`;
+  
+      // ✅ Build URLs
+      const whatsappAppUrl = `whatsapp://send?phone=${phoneNumber}&text=${encodeURIComponent(message)}`;
+      const whatsappWebUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
+  
+      // ✅ Try to open WhatsApp App first
+      window.location.href = whatsappAppUrl;
+  
+      // ✅ Fallback to WhatsApp Web if app not available
+      setTimeout(() => {
+        window.open(whatsappWebUrl, "_blank");
+      }, 1000);
     } catch (error) {
-      console.error("WhatsApp share failed:", error)
-      setError("Failed to share via WhatsApp. Please try again.")
+      console.error("WhatsApp share failed:", error);
+      setError("Failed to share via WhatsApp. Please try again.");
     }
-  }
+  };
+  
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
@@ -442,39 +473,113 @@ Thank you for choosing MBA Communications!`
                 </div>
 
                 {/* Payment details if paid */}
-                {paymentDetails && (
-                  <div className="bg-green-50 rounded-lg p-4 mb-4 border border-green-200">
-                    <h2 className="text-sm font-semibold text-green-800 mb-3 flex items-center">
+                
+                {/* Payment Summary */}
+                <div className="bg-gray-50 rounded-lg p-4 mb-4">
+                  <h2 className="text-sm font-semibold text-gray-800 mb-3 flex items-center">
+                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                    </svg>
+                    Payment Summary
+                  </h2>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                    <div className="text-center p-3 bg-white rounded-lg border">
+                      <div className="text-gray-600 mb-1">Invoice Total</div>
+                      <div className="text-xl font-bold text-gray-800">PKR {invoiceData?.total_amount.toFixed(2)}</div>
+                    </div>
+                    <div className="text-center p-3 bg-white rounded-lg border">
+                      <div className="text-gray-600 mb-1">Total Paid</div>
+                      <div className="text-xl font-bold text-green-600">PKR {invoiceData?.total_paid.toFixed(2)}</div>
+                    </div>
+                    <div className="text-center p-3 bg-white rounded-lg border">
+                      <div className="text-gray-600 mb-1">Remaining Balance</div>
+                      <div className={`text-xl font-bold ${(invoiceData?.remaining_amount || 0) > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                        PKR {invoiceData?.remaining_amount.toFixed(2)}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Payment History */}
+                {invoiceData?.payments && invoiceData.payments.length > 0 && (
+                  <div className="bg-gray-50 rounded-lg p-4 mb-4">
+                    <h2 className="text-sm font-semibold text-gray-800 mb-3 flex items-center">
+                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"
+                        />
+                      </svg>
+                      Payment History
+                    </h2>
+                    <div className="space-y-3">
+                      {invoiceData.payments.map((payment, index) => (
+                        <div key={payment.id} className="bg-white rounded-lg p-3 border-l-4 border-blue-500">
+                          <div className="flex justify-between items-start mb-2">
+                            <div>
+                              <div className="font-semibold text-gray-800">
+                                Payment #{invoiceData.payments.length - index}
+                              </div>
+                              <div className="text-gray-600 text-sm">
+                                Date: {formatDate(payment.payment_date)}
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <div className="font-bold text-gray-800 text-lg">
+                                PKR {payment.amount.toFixed(2)}
+                              </div>
+                              <span
+                                className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getPaymentStatusColor(payment.status)}`}
+                              >
+                                {payment.status.toUpperCase()}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-gray-600">
+                            <div>
+                              <span className="font-medium">Method:</span> {payment.payment_method}
+                            </div>
+                            {payment.transaction_id && (
+                              <div>
+                                <span className="font-medium">Transaction ID:</span> {payment.transaction_id}
+                              </div>
+                            )}
+                            {payment.failure_reason && payment.status === 'failed' && (
+                              <div className="md:col-span-2">
+                                <span className="font-medium text-red-600">Failure Reason:</span> {payment.failure_reason}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Pending Payment Notice */}
+                {(invoiceData?.remaining_amount || 0) > 0 && (
+                  <div className="bg-yellow-50 rounded-lg p-4 mb-4 border border-yellow-200">
+                    <h2 className="text-sm font-semibold text-yellow-800 mb-2 flex items-center">
                       <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
                         <path
                           fillRule="evenodd"
-                          d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                          d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
                           clipRule="evenodd"
                         />
                       </svg>
-                      Payment Confirmed
+                      Pending Payment
                     </h2>
-                    <div className="grid md:grid-cols-2 gap-3 text-green-800 text-sm">
-                      <div>
-                        <span className="font-semibold">Payment Date:</span> {formatDate(paymentDetails.payment_date)}
-                      </div>
-                      <div>
-                        <span className="font-semibold">Amount Paid:</span> PKR {paymentDetails.amount.toFixed(2)}
-                      </div>
-                      <div>
-                        <span className="font-semibold">Payment Method:</span> {paymentDetails.payment_method}
-                      </div>
-                      {paymentDetails.transaction_id && (
-                        <div>
-                          <span className="font-semibold">Transaction ID:</span> {paymentDetails.transaction_id}
-                        </div>
-                      )}
-                    </div>
-                    {paymentDetails.notes && (
-                      <div className="mt-3 text-sm">
-                        <span className="font-semibold">Notes:</span> {paymentDetails.notes}
-                      </div>
-                    )}
+                    <p className="text-yellow-700 text-sm">
+                      Outstanding balance of <strong>PKR {invoiceData?.remaining_amount.toFixed(2)}</strong> is due. 
+                      Please make payment to avoid service interruption.
+                    </p>
                   </div>
                 )}
 

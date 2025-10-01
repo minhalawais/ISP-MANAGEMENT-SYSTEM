@@ -11,6 +11,7 @@ interface SearchableCustomerSelectProps {
   customers: Customer[]
   value: string
   onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void
+  onCustomerSelect?: (customerId: string) => void
   error?: string
   placeholder?: string
 }
@@ -19,11 +20,13 @@ export function SearchableCustomerSelect({
   customers, 
   value, 
   onChange, 
+  onCustomerSelect,
   error, 
   placeholder = "Search and select customer" 
 }: SearchableCustomerSelectProps) {
   const [searchTerm, setSearchTerm] = useState("")
   const [isOpen, setIsOpen] = useState(false)
+  
   const filteredCustomers = useMemo(() => {
     if (!searchTerm) return customers;
   
@@ -35,6 +38,22 @@ export function SearchableCustomerSelect({
   }, [customers, searchTerm]);
 
   const selectedCustomer = customers.find(customer => customer.id === value)
+  
+  const handleCustomerSelect = (customerId: string) => {
+    if (onCustomerSelect) {
+      onCustomerSelect(customerId)
+    } else {
+      onChange({
+        target: {
+          name: "customer_id",
+          value: customerId,
+        },
+      } as React.ChangeEvent<HTMLSelectElement>)
+    }
+    setIsOpen(false)
+    setSearchTerm("")
+  }
+
   return (
     <div className="relative">
       {/* Display selected customer */}
@@ -111,16 +130,7 @@ export function SearchableCustomerSelect({
                       ? "bg-electric-blue/10 border-electric-blue/30 shadow-sm" 
                       : "bg-white"
                   }`}
-                  onClick={() => {
-                    onChange({
-                      target: {
-                        name: "customer_id",
-                        value: customer.id,
-                      },
-                    } as React.ChangeEvent<HTMLSelectElement>)
-                    setIsOpen(false)
-                    setSearchTerm("")
-                  }}
+                  onClick={() => handleCustomerSelect(customer.id)}
                 >
                   <div className="flex items-center gap-3 flex-wrap">
                     {/* Customer Name */}

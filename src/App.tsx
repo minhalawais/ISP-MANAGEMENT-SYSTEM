@@ -36,7 +36,7 @@ import TicketDisplayPage from "./pages/TicketDisplayPage.tsx"
 import BankAccountManagement from "./pages/crud_pages/BankAccountCrud.tsx"
 import ISPPaymentManagement from "./pages/crud_pages/ISPPaymentCrud.tsx"
 import "./styles/toastStyles.css"
-
+import PublicInvoicePage from "./pages/PublicInvoicePage.tsx"
 const PrivateRoute: React.FC<{ element: React.ReactElement }> = ({ element }) => {
   const isAuthenticated = !!localStorage.getItem("token")
   return isAuthenticated ? element : <Navigate to="/login" />
@@ -74,6 +74,8 @@ const App: React.FC = () => {
         <Route path="/logs-management" element={<PrivateRoute element={<LogManagement />} />} />
         <Route path="/employee_portal" element={<PrivateRoute element={<EmployeeDashboard />} />} />
         <Route path="/isp-management" element={<PrivateRoute element={<ISPManagement />} />} />
+        <Route path="/public/invoice/:id" element={<PublicInvoicePage />} />
+
         <Route
           path="/employee_portal/customer-management"
           element={<PrivateRoute element={<CustomerManagementForEmployee />} />}

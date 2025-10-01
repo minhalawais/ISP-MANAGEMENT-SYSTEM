@@ -160,9 +160,37 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
     setIsLoading(true)
     try {
       const token = getToken()
+      
+      // Create FormData for file uploads
+      const formDataToSend = new FormData()
+      
+      // Append all form data with proper type conversion
+      Object.keys(formData).forEach(key => {
+        if (formData[key] !== undefined && formData[key] !== null) {
+          let value = formData[key]
+          
+          // Handle file separately
+          if (key === 'payment_proof' && value instanceof File) {
+            formDataToSend.append(key, value)
+          } 
+          // Convert boolean strings to actual booleans
+          else if (key === 'is_active') {
+            if (typeof value === 'string') {
+              formDataToSend.append(key, value.toLowerCase() === 'true' ? 'true' : 'false')
+            } else {
+              formDataToSend.append(key, value ? 'true' : 'false')
+            }
+          }
+          // Handle other fields
+          else {
+            formDataToSend.append(key, value.toString())
+          }
+        }
+      })
+      
       let response;
       if (editingItem) {
-        response = await axiosInstance.put(`/${endpoint}/update/${editingItem.id}`, formData, {
+        response = await axiosInstance.put(`/${endpoint}/update/${editingItem.id}`, formDataToSend, {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "multipart/form-data",
@@ -172,7 +200,7 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
           style: { background: "#D1FAE5", color: "#10B981" },
         })
       } else {
-        response = await axiosInstance.post(`/${endpoint}/add`, formData, {
+        response = await axiosInstance.post(`/${endpoint}/add`, formDataToSend, {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "multipart/form-data",

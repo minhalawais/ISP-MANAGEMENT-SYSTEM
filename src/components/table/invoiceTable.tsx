@@ -36,9 +36,11 @@ interface CRUDPageProps<T> {
     handleInputChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void
     isEditing: boolean
   }>
+  customHeaderButton?: React.ReactNode
+  refreshTrigger?: number
 }
 
-export function CRUDPage<T extends { id: string }>({ title, endpoint, columns, FormComponent }: CRUDPageProps<T>) {
+export function CRUDPage<T extends { id: string }>({ title, endpoint, columns, FormComponent, customHeaderButton, refreshTrigger }: CRUDPageProps<T>) {
   const [data, setData] = useState<T[]>([])
   const [isModalVisible, setIsModalVisible] = useState(false)
   const [editingItem, setEditingItem] = useState<T | null>(null)
@@ -54,7 +56,7 @@ export function CRUDPage<T extends { id: string }>({ title, endpoint, columns, F
 
   useEffect(() => {
     fetchData()
-  }, [])
+  }, [refreshTrigger])
 
   const fetchData = async () => {
     setIsLoading(true)
@@ -163,33 +165,57 @@ export function CRUDPage<T extends { id: string }>({ title, endpoint, columns, F
   }
 
   const handleWhatsAppShare = (invoice: any) => {
-    console.log('invoice', invoice)
+    console.log("invoice", invoice);
+  
     if (!invoice.customer_phone) {
-      toast.error("Customer phone number not available")
-      return
+      toast.error("Customer phone number not available");
+      return;
     }
-
-    let phoneNumber = invoice.customer_phone.replace(/\D/g, "")
-    if (!phoneNumber.startsWith("92")) {
-      phoneNumber = "92" + phoneNumber.substring(1)
+  
+    // Normalize phone number
+    let phoneNumber = invoice.customer_phone.replace(/\D/g, ""); // remove all non-digits
+  
+    if (phoneNumber.startsWith("00")) {
+      phoneNumber = phoneNumber.substring(2); // remove leading 00
     }
-    console.log('phoneNumber', phoneNumber)
-    const message = `Hi ${invoice.customer_name},
-
-Your invoice #${invoice.invoice_number} for PKR ${Number.parseFloat(invoice.total_amount).toFixed(2)} is ready.
-
-Invoice Details:
-• Amount: PKR ${Number.parseFloat(invoice.total_amount).toFixed(2)}
-• Due Date: ${new Date(invoice.due_date).toLocaleDateString()}
-• Status: ${invoice.status}
-
-Please check your invoice details and make payment if pending.
-
-Thank you for choosing MBA Communications!`
-
-    const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`
-    window.open(whatsappUrl, "_blank")
-  }
+  
+    if (phoneNumber.startsWith("+92")) {
+      phoneNumber = phoneNumber.substring(1); // +92XXXXXXXXXX → 92XXXXXXXXXX
+    } else if (phoneNumber.startsWith("92")) {
+      // already correct
+    } else if (phoneNumber.startsWith("0")) {
+      phoneNumber = "92" + phoneNumber.substring(1); // 03XXXXXXXXX → 92XXXXXXXXXX
+    } else if (phoneNumber.startsWith("3")) {
+      phoneNumber = "92" + phoneNumber; // 3XXXXXXXXX → 92XXXXXXXXXX
+    }
+  
+    // Public invoice link
+    const publicInvoiceUrl = `${window.location.origin}/public/invoice/${invoice.id}`;
+  
+    // Formatted English-only message
+    const message = `Hello ${invoice.customer_name},
+  
+  Your invoice #${invoice.invoice_number} is now available.
+  
+  📋 Invoice Details:
+  • Amount: PKR ${Number.parseFloat(invoice.total_amount).toFixed(2)}
+  • Due Date: ${new Date(invoice.due_date).toLocaleDateString()}
+  • Status: ${invoice.status}
+  
+  📄 View your complete invoice here:
+  ${publicInvoiceUrl}
+  
+  Please review your invoice and make the payment if pending.
+  
+  Thank you for choosing MBA Communications!`;
+  
+    // WhatsApp URL
+    const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
+  
+    // Open in new tab
+    window.open(whatsappUrl, "_blank");
+  };
+  
 
   const memoizedColumns = useMemo(() => {
     return [
@@ -286,6 +312,8 @@ Thank you for choosing MBA Communications!`
                     <FileText className="h-5 w-5" />
                     Export CSV
                   </CSVLink>
+                  {customHeaderButton}
+
                   <button
                     onClick={() => showModal(null)}
                     className="bg-electric-blue text-white px-4 py-2.5 rounded-lg hover:bg-btn-hover transition-colors flex items-center justify-center gap-2 shadow-sm"

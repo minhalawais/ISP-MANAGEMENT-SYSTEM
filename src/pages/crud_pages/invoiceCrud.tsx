@@ -2,11 +2,14 @@
 
 import React from "react"
 
-import { useEffect } from "react"
+import { useEffect,useState  } from "react"
 import type { ColumnDef } from "@tanstack/react-table"
 import { CRUDPage } from "../../components/table/invoiceTable.tsx"
 import { InvoiceForm } from "../../components/forms/invoiceForm.tsx"
-
+import { BulkInvoiceModal } from "../../components/modals/BulkInvoiceModal.tsx"
+import {
+  FileText
+} from "lucide-react"
 interface Invoice {
   id: string
   invoice_number: string
@@ -25,10 +28,15 @@ interface Invoice {
 }
 
 const InvoiceManagement = () => {
+  const [showBulkModal, setShowBulkModal] = useState(false)
+  const [refreshTrigger, setRefreshTrigger] = useState(0)
   useEffect(() => {
     document.title = "MBA NET - Invoice Management"
   }, [])
-
+  const handleBulkSuccess = () => {
+    setRefreshTrigger(prev => prev + 1)
+    setShowBulkModal(false)
+  }
   const columns = React.useMemo<ColumnDef<Invoice>[]>(
     () => [
       {
@@ -132,13 +140,32 @@ const InvoiceManagement = () => {
   }
 
   return (
+    <>
+
     <CRUDPage<Invoice>
       title="Invoice"
       endpoint="invoices"
       columns={columns}
       FormComponent={InvoiceForm}
       onSubmit={handleSubmit}
+      customHeaderButton={
+        <button
+          onClick={() => setShowBulkModal(true)}
+          className="bg-emerald-green text-white px-4 py-2.5 rounded-lg hover:bg-emerald-green/90 transition-colors flex items-center justify-center gap-2 shadow-sm"
+        >
+          <FileText className="h-5 w-5" />
+          Generate Monthly Invoices
+        </button>
+      }
+      refreshTrigger={refreshTrigger}
+      />
+      <BulkInvoiceModal
+      isVisible={showBulkModal}
+      onClose={() => setShowBulkModal(false)}
+      onSuccess={handleBulkSuccess}
     />
+    </>
+
   )
 }
 
