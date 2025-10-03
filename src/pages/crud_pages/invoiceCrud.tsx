@@ -14,6 +14,7 @@ interface Invoice {
   id: string
   invoice_number: string
   customer_id: string
+  internet_id:string
   customer_name: string
   billing_start_date: string
   billing_end_date: string
@@ -44,8 +45,8 @@ const InvoiceManagement = () => {
         accessorKey: "invoice_number",
       },
       {
-        header: "Customer Name",
-        accessorKey: "customer_name",
+        header: "Internet ID",
+        accessorKey: "internet_id",
       },
       {
         header: "Billing Start",

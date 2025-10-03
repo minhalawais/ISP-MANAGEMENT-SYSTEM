@@ -9,6 +9,7 @@ interface CashFlowData {
     inflow: number
     outflow: number
     net_flow: number
+    adjusted_flow: number  // NEW: net_flow + initial_balance
   }>
   inflow_breakdown: Array<{
     method: string
@@ -18,6 +19,8 @@ interface CashFlowData {
     type: string
     amount: number
   }>
+  initial_balance?: number  // NEW
+  total_adjusted_flow?: number  // NEW
 }
 
 interface CashFlowAnalysisProps {
@@ -44,7 +47,35 @@ export const CashFlowAnalysis: React.FC<CashFlowAnalysisProps> = ({ data }) => {
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-6">
       <h3 className="text-xl font-bold text-gray-900 mb-2">Cash Flow Analysis</h3>
-      <p className="text-gray-600 text-sm mb-6">Monthly cash inflows, outflows, and net position</p>
+      <p className="text-gray-600 text-sm mb-6">Monthly cash inflows, outflows, and net position including initial balances</p>
+
+      {/* Summary Stats */}
+      <div className="grid grid-cols-4 gap-4 mb-6">  {/* Updated to 4 columns */}
+        <div className="text-center p-4 bg-green-50 rounded-lg">
+          <p className="text-sm text-green-700 font-medium">Total Inflow</p>
+          <p className="text-lg font-bold text-green-800">
+            PKR {data.inflow_breakdown.reduce((sum, item) => sum + item.amount, 0).toLocaleString()}
+          </p>
+        </div>
+        <div className="text-center p-4 bg-red-50 rounded-lg">
+          <p className="text-sm text-red-700 font-medium">Total Outflow</p>
+          <p className="text-lg font-bold text-red-800">
+            PKR {data.outflow_breakdown.reduce((sum, item) => sum + item.amount, 0).toLocaleString()}
+          </p>
+        </div>
+        <div className="text-center p-4 bg-purple-50 rounded-lg">  {/* NEW */}
+          <p className="text-sm text-purple-700 font-medium">Initial Balance</p>
+          <p className="text-lg font-bold text-purple-800">
+            PKR {(data.initial_balance || 0).toLocaleString()}
+          </p>
+        </div>
+        <div className="text-center p-4 bg-blue-50 rounded-lg">
+          <p className="text-sm text-blue-700 font-medium">Adjusted Flow</p>
+          <p className="text-lg font-bold text-blue-800">
+            PKR {(data.total_adjusted_flow || 0).toLocaleString()}
+          </p>
+        </div>
+      </div>
 
       {/* Cash Flow Trends */}
       <div className="mb-8">
@@ -75,6 +106,7 @@ export const CashFlowAnalysis: React.FC<CashFlowAnalysisProps> = ({ data }) => {
               name="Outflow"
             />
             <Line type="monotone" dataKey="net_flow" stroke="#3b82f6" strokeWidth={2} name="Net Flow" />
+            <Line type="monotone" dataKey="adjusted_flow" stroke="#7c3aed" strokeWidth={2} name="Adjusted Flow" />
           </AreaChart>
         </ResponsiveContainer>
       </div>

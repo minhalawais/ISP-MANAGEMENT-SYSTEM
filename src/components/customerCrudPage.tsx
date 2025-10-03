@@ -151,24 +151,34 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
     e.preventDefault()
     setIsLoading(true)
     setValidationErrors({})
-
+  
     try {
       const token = getToken()
       const formDataToSend = new FormData()
-
+  
       // Add all form data to FormData object
       Object.keys(formData).forEach((key) => {
-        if (formData[key] != null && formData[key] !== "") {
-          // Skip file fields if they haven't been uploaded
-          if (
-            !["cnic_front_image", "cnic_back_image", "agreement_document"].includes(key) ||
-            typeof formData[key] === "string"
-          ) {
-            formDataToSend.append(key, formData[key])
+        const value = formData[key]
+        
+        if (value != null && value !== "") {
+          // For file fields, check if it's a File object or a string path
+          if (["cnic_front_image", "cnic_back_image", "agreement_document"].includes(key)) {
+            // If it's a File object, append it directly
+            // If it's a string (existing file path), also append it
+            formDataToSend.append(key, value)
+          } else {
+            // For non-file fields, append normally
+            formDataToSend.append(key, value)
           }
         }
       })
-
+  
+      // Debug: Log what's being sent
+      console.log('FormData contents:')
+      for (let [key, value] of formDataToSend.entries()) {
+        console.log(key, value)
+      }
+  
       if (editingItem) {
         await axiosInstance.put(`/${endpoint}/update/${editingItem.id}`, formDataToSend, {
           headers: {
@@ -282,8 +292,13 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
   }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, files } = e.target
-    if (files && files.length > 0) {
+    const { name, value, files } = e.target
+    
+    if (value) {
+      // This is a file path string from FileUploadField
+      setFormData((prev) => ({ ...prev, [name]: value }))
+    } else if (files && files.length > 0) {
+      // This is a direct file input (fallback)
       setFormData((prev) => ({ ...prev, [name]: files[0] }))
     }
   }

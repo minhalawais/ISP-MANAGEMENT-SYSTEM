@@ -9,12 +9,15 @@ interface BankPerfItem {
   payments: number
   net_flow: number
   utilization_rate: number
+  initial_balance?: number  // NEW
+  adjusted_balance?: number // NEW: initial_balance + net_flow
 }
 
 interface BankPerformanceProps {
   data: BankPerfItem[]
 }
 
+// ADD THESE UTILITY FUNCTIONS AT THE TOP LEVEL
 const formatCurrency = (v: number) => `PKR ${Math.round(v).toLocaleString()}`
 const formatPercent = (v: number) => `${(v ?? 0).toFixed(1)}%`
 
@@ -24,18 +27,20 @@ export const BankPerformance: React.FC<BankPerformanceProps> = ({ data }) => {
       acc.collections += row.collections || 0
       acc.payments += row.payments || 0
       acc.net_flow += row.net_flow || 0
+      acc.initial_balance += row.initial_balance || 0  // NEW
+      acc.adjusted_balance += (row.net_flow || 0) + (row.initial_balance || 0)  // NEW
       return acc
     },
-    { collections: 0, payments: 0, net_flow: 0 },
+    { collections: 0, payments: 0, net_flow: 0, initial_balance: 0, adjusted_balance: 0 }, // UPDATED
   )
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-6">
       <h3 className="text-xl font-bold text-gray-900 mb-2">Bank Performance</h3>
-      <p className="text-gray-600 text-sm mb-4">Collections, ISP payments, and net cash flow by account</p>
+      <p className="text-gray-600 text-sm mb-4">Collections, ISP payments, net cash flow and balances by account</p>
 
-      {/* Totals */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+      {/* Updated Totals - Now 5 columns */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-4">
         <div className="p-3 rounded-lg bg-blue-50 border border-blue-200">
           <div className="text-xs font-medium text-blue-700">Total Collections</div>
           <div className="text-lg font-bold text-blue-800">{formatCurrency(totals.collections)}</div>
@@ -54,9 +59,25 @@ export const BankPerformance: React.FC<BankPerformanceProps> = ({ data }) => {
             {formatCurrency(totals.net_flow)}
           </div>
         </div>
+        {/* NEW: Initial Balance Total */}
+        <div className="p-3 rounded-lg bg-purple-50 border border-purple-200">
+          <div className="text-xs font-medium text-purple-700">Total Initial Balance</div>
+          <div className="text-lg font-bold text-purple-800">{formatCurrency(totals.initial_balance)}</div>
+        </div>
+        {/* NEW: Adjusted Balance Total */}
+        <div
+          className={`p-3 rounded-lg border ${totals.adjusted_balance >= 0 ? "bg-indigo-50 border-indigo-200" : "bg-red-50 border-red-200"}`}
+        >
+          <div className={`text-xs font-medium ${totals.adjusted_balance >= 0 ? "text-indigo-700" : "text-red-700"}`}>
+            Adjusted Balance
+          </div>
+          <div className={`text-lg font-bold ${totals.adjusted_balance >= 0 ? "text-indigo-800" : "text-red-800"}`}>
+            {formatCurrency(totals.adjusted_balance)}
+          </div>
+        </div>
       </div>
 
-      {/* Table */}
+      {/* Updated Table with new columns */}
       <div className="overflow-auto">
         <table className="w-full text-sm">
           <thead className="text-left text-gray-600">
@@ -65,12 +86,17 @@ export const BankPerformance: React.FC<BankPerformanceProps> = ({ data }) => {
               <th className="py-2 px-3">Collections</th>
               <th className="py-2 px-3">ISP Payments</th>
               <th className="py-2 px-3">Net Cash Flow</th>
+              <th className="py-2 px-3">Initial Balance</th> {/* NEW */}
+              <th className="py-2 px-3">Adjusted Balance</th> {/* NEW */}
               <th className="py-2 pl-3">Utilization</th>
             </tr>
           </thead>
           <tbody className="text-gray-900">
             {data?.map((row, idx) => {
               const netPositive = (row.net_flow ?? 0) >= 0
+              const adjustedBalance = (row.net_flow || 0) + (row.initial_balance || 0)
+              const adjustedPositive = adjustedBalance >= 0
+              
               return (
                 <tr key={`${row.bank_name}-${row.account_number}-${idx}`} className="border-b border-gray-100">
                   <td className="py-2 pr-3">
@@ -84,13 +110,21 @@ export const BankPerformance: React.FC<BankPerformanceProps> = ({ data }) => {
                   <td className={`py-2 px-3 ${netPositive ? "text-emerald-700" : "text-red-700"} font-semibold`}>
                     {formatCurrency(row.net_flow || 0)}
                   </td>
+                  {/* NEW: Initial Balance Column */}
+                  <td className="py-2 px-3 text-purple-700 font-semibold">
+                    {formatCurrency(row.initial_balance || 0)}
+                  </td>
+                  {/* NEW: Adjusted Balance Column */}
+                  <td className={`py-2 px-3 ${adjustedPositive ? "text-indigo-700" : "text-red-700"} font-semibold`}>
+                    {formatCurrency(adjustedBalance)}
+                  </td>
                   <td className="py-2 pl-3">{formatPercent(row.utilization_rate || 0)}</td>
                 </tr>
               )
             })}
             {(!data || data.length === 0) && (
               <tr>
-                <td colSpan={5} className="py-6 text-center text-gray-500">
+                <td colSpan={7} className="py-6 text-center text-gray-500"> {/* Updated colSpan */}
                   No bank performance data available for the selected filters.
                 </td>
               </tr>

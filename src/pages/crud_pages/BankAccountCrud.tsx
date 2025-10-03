@@ -10,6 +10,7 @@ interface BankAccount {
   account_number: string
   iban?: string
   branch_code?: string
+  initial_balance: number  // NEW
   branch_address?: string
   is_active: boolean
   created_at?: string
@@ -39,6 +40,11 @@ const BankAccountManagement: React.FC = () => {
         header: 'IBAN',
         accessorKey: 'iban',
         cell: info => info.getValue() || 'N/A',
+      },
+      {
+        header: 'Initial Balance',
+        accessorKey: 'initial_balance',
+        cell: info => `PKR ${(info.getValue() as number)?.toLocaleString() || '0.00'}`,
       },
       {
         header: 'Branch Code',

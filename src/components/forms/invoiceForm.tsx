@@ -69,7 +69,6 @@ export function InvoiceForm({ formData, handleInputChange, isEditing }: InvoiceF
       const response = await axiosInstance.get("/customers/list", {
         headers: { Authorization: `Bearer ${token}` },
       })
-      console.log('Fetched customers:', response.data)
       setCustomers(
         response.data.map((customer: any) => ({
           id: customer.id,

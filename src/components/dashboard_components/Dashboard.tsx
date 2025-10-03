@@ -29,12 +29,6 @@ const sections = [
     category: "Customer"
   },
   { 
-    id: "bankaccount", 
-    name: "Bank Accounts", 
-    component: BankAccountAnalysis,
-    category: "Financial"
-  },
-  { 
     id: "financial", 
     name: "Financial Analytics", 
     component: UnifiedFinancialDashboard,

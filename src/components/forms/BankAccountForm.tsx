@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { Building, Hash, MapPin, User, CreditCard } from "lucide-react"
+import { Building, Hash, MapPin, User, CreditCard,DollarSign } from "lucide-react"
 
 interface BankAccountFormProps {
   formData: any
@@ -100,6 +100,27 @@ export function BankAccountForm({ formData, handleInputChange, isEditing }: Bank
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="space-y-2">
+          <label htmlFor="initial_balance" className="block text-sm font-medium text-deep-ocean">
+            Initial Balance
+          </label>
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <DollarSign className="h-5 w-5 text-slate-gray/60" />
+            </div>
+            <input
+              type="number"
+              id="initial_balance"
+              name="initial_balance"
+              value={formData.initial_balance || "0.00"}
+              onChange={handleInputChange}
+              placeholder="0.00"
+              step="0.01"
+              min="0"
+              className="w-full pl-10 pr-4 py-2.5 border border-slate-gray/20 rounded-lg bg-light-sky/30 text-deep-ocean placeholder-slate-gray/50 focus:outline-none focus:ring-2 focus:ring-electric-blue/30 focus:border-transparent transition-all duration-200"
+            />
+          </div>
+        </div>
         <div className="space-y-2">
           <label htmlFor="branch_code" className="block text-sm font-medium text-deep-ocean">
             Branch Code (Optional)

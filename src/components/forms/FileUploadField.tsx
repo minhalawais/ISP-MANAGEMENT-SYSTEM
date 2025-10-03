@@ -90,7 +90,6 @@ export function FileUploadField({
             files: [file],
           },
         } as React.ChangeEvent<HTMLInputElement>
-
         onChange(syntheticEvent)
 
         toast.success("File uploaded successfully", {

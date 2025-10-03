@@ -195,9 +195,12 @@ export function PaymentForm({ formData, handleInputChange, handleSubmit, isEditi
     if (!formData.payment_method) newErrors.payment_method = "Payment method is required"
     if (!formData.status) newErrors.status = "Status is required"
     if (!formData.received_by) newErrors.received_by = "Receiver is required"
+    
+    // Only require bank account if payment method is bank transfer
     if (formData.payment_method === "bank_transfer" && !formData.bank_account_id) {
       newErrors.bank_account_id = "Bank account is required for bank transfers"
     }
+    
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }

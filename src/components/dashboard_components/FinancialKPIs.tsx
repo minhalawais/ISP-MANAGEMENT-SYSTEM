@@ -96,6 +96,8 @@ interface KPIData {
   collection_efficiency: number
   operating_profit?: number
   operating_profit_margin?: number
+  total_initial_balance?: number  // NEW
+  adjusted_cash_flow?: number     // NEW
 }
 
 interface FinancialKPIsProps {
@@ -108,7 +110,8 @@ export const FinancialKPIs: React.FC<FinancialKPIsProps> = ({ data }) => {
 
   const kpis = useMemo(() => {
     const operatingProfit = data.operating_profit ?? (data.total_revenue - data.total_isp_payments)
-    
+    const totalInitialBalance = data.total_initial_balance || 0
+    const adjustedCashFlow = data.adjusted_cash_flow || (data.net_cash_flow + totalInitialBalance)
     return [
       {
         title: "Total Revenue",
@@ -147,6 +150,24 @@ export const FinancialKPIs: React.FC<FinancialKPIsProps> = ({ data }) => {
         description: "Collections minus ISP payments",
       },
       {
+        title: "Initial Balance",
+        value: formatCurrency(totalInitialBalance),
+        icon: IconBank,
+        color: COLORS.purple,
+        bgColor: 'bg-[#7C3AED]/10',
+        borderColor: 'border-[#7C3AED]/20',
+        description: "Total bank account balances",
+      },
+      {
+        title: "Adjusted Cash Flow",
+        value: formatCurrency(adjustedCashFlow),
+        icon: IconCashFlow,
+        color: adjustedCashFlow >= 0 ? COLORS.emerald : COLORS.error,
+        bgColor: adjustedCashFlow >= 0 ? 'bg-[#059669]/10' : 'bg-[#EF4444]/10',
+        borderColor: adjustedCashFlow >= 0 ? 'border-[#059669]/20' : 'border-[#EF4444]/20',
+        description: "Cash flow + initial balance",
+      },
+      {
         title: "Collection Efficiency",
         value: formatPercentage(data.collection_efficiency),
         icon: IconTarget,
@@ -168,7 +189,7 @@ export const FinancialKPIs: React.FC<FinancialKPIsProps> = ({ data }) => {
   }, [data])
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-6">
       {kpis.map((kpi, index) => {
         const IconComponent = kpi.icon
         return (

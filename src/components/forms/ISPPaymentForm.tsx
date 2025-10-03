@@ -201,37 +201,42 @@ export function ISPPaymentForm({ formData, handleInputChange, handleSubmit, isEd
           </div>
         </div>
 
-        <div className="space-y-2">
-          <label htmlFor="bank_account_id" className="block text-sm font-medium text-deep-ocean">
-            Bank Account *
-          </label>
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <CreditCard className="h-5 w-5 text-slate-gray/60" />
-            </div>
-            <select
-              id="bank_account_id"
-              name="bank_account_id"
-              value={formData.bank_account_id || ""}
-              onChange={handleBankAccountChange}
-              className={`w-full pl-10 pr-10 py-2.5 border ${
-                errors.bank_account_id ? "border-coral-red" : "border-slate-gray/20"
-              } rounded-lg bg-light-sky/30 text-deep-ocean placeholder-slate-gray/50 focus:outline-none focus:ring-2 focus:ring-electric-blue/30 focus:border-transparent transition-all duration-200 appearance-none`}
-              required
-            >
-              <option value="">Select Bank Account *</option>
-              {bankAccounts.map((account) => (
-                <option key={account.id} value={account.id}>
-                  {account.bank_name} - {account.account_number}
-                </option>
-              ))}
-            </select>
-            <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-              <ChevronDown className="h-5 w-5 text-slate-gray/60" />
-            </div>
-          </div>
-          {errors.bank_account_id && <p className="text-coral-red text-xs mt-1">{errors.bank_account_id}</p>}
-        </div>
+        {/* Bank Account - Conditionally Required */}
+<div className="space-y-2">
+  <label htmlFor="bank_account_id" className="block text-sm font-medium text-deep-ocean">
+    Bank Account {formData.payment_method === "bank_transfer" ? "*" : "(Optional)"}
+  </label>
+  <div className="relative">
+    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+      <CreditCard className="h-5 w-5 text-slate-gray/60" />
+    </div>
+    <select
+      id="bank_account_id"
+      name="bank_account_id"
+      value={formData.bank_account_id || ""}
+      onChange={handleBankAccountChange}
+      className={`w-full pl-10 pr-10 py-2.5 border ${
+        errors.bank_account_id && formData.payment_method === "bank_transfer" 
+          ? "border-coral-red" 
+          : "border-slate-gray/20"
+      } rounded-lg bg-light-sky/30 text-deep-ocean placeholder-slate-gray/50 focus:outline-none focus:ring-2 focus:ring-electric-blue/30 focus:border-transparent transition-all duration-200 appearance-none`}
+      required={formData.payment_method === "bank_transfer"}
+    >
+      <option value="">Select Bank Account {formData.payment_method === "bank_transfer" ? "*" : "(Optional)"}</option>
+      {bankAccounts.map((account) => (
+        <option key={account.id} value={account.id}>
+          {account.bank_name} - {account.account_number}
+        </option>
+      ))}
+    </select>
+    <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+      <ChevronDown className="h-5 w-5 text-slate-gray/60" />
+    </div>
+  </div>
+  {errors.bank_account_id && formData.payment_method === "bank_transfer" && (
+    <p className="text-coral-red text-xs mt-1">{errors.bank_account_id}</p>
+  )}
+</div>
       </div>
 
       {/* Bandwidth Usage Field - Conditionally Shown */}

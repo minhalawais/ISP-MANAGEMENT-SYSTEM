@@ -12,15 +12,20 @@ import axiosInstance from "../../utils/axiosConfig.ts"
 
 // Types
 interface FinancialData {
-    kpis: any
-    cash_flow: any
-    revenue_expense: any
-    bank_performance: any
-    collections: any
-    isp_payments: any
-    filters: any
-    bank_accounts: BankOption[] // NEW
+  kpis: any
+  cash_flow: any
+  revenue_expense: any
+  bank_performance: any
+  collections: any
+  isp_payments: any
+  filters: any
+  bank_accounts: BankOption[]
+  initial_balance_summary?: {  // NEW
+    total_initial_balance: number
+    accounts_with_balance: number
+    average_balance: number
   }
+}
   
   interface FilterState {
     startDate: string
