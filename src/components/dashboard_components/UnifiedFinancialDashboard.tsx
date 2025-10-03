@@ -18,9 +18,14 @@ interface FinancialData {
   bank_performance: any
   collections: any
   isp_payments: any
+  cash_payments?: {  // NEW
+    collections: number
+    payments: number
+    net_flow: number
+  }
   filters: any
   bank_accounts: BankOption[]
-  initial_balance_summary?: {  // NEW
+  initial_balance_summary?: {
     total_initial_balance: number
     accounts_with_balance: number
     average_balance: number
@@ -217,8 +222,12 @@ interface FinancialData {
   
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
           {/* Bank Performance */}
-          {financialData?.bank_performance && <BankPerformance data={financialData.bank_performance} />}
-  
+          {financialData?.bank_performance && (
+            <BankPerformance 
+              data={financialData.bank_performance} 
+              cashPayments={financialData.cash_payments}  // NEW
+            />
+          )}  
           {/* Collections Analysis */}
           {financialData?.collections && <CollectionsAnalysis data={financialData.collections} />}
         </div>

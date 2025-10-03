@@ -93,17 +93,50 @@ export function ISPPaymentForm({ formData, handleInputChange, handleSubmit, isEd
     }
   }
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      const file = e.target.files[0]
+// Add this function to handle file uploads before form submission
+const handleFileUpload = async (file: File, fileType: string): Promise<string | null> => {
+  try {
+    const token = getToken()
+    const formData = new FormData()
+    formData.append(fileType, file)
+
+    const response = await axiosInstance.post(`/isp-payments/upload-file/${fileType}`, formData, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "multipart/form-data",
+      },
+    })
+
+    if (response.data.success) {
+      return response.data.file_path
+    }
+    return null
+  } catch (error) {
+    console.error(`Error uploading ${fileType}:`, error)
+    return null
+  }
+}
+
+// Update the handleFileChange function
+const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  if (e.target.files && e.target.files[0]) {
+    const file = e.target.files[0]
+    
+    // Upload file immediately and get file path
+    const filePath = await handleFileUpload(file, "payment_proof")
+    
+    if (filePath) {
       handleInputChange({
         target: {
           name: "payment_proof",
-          value: file,
+          value: filePath, // Store file path string
         },
       } as React.ChangeEvent<HTMLInputElement>)
+    } else {
+      alert("Failed to upload payment proof")
     }
   }
+}
 
   const handlePaymentTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     handleInputChange(e)
