@@ -454,7 +454,7 @@ export function InvoiceForm({ formData, handleInputChange, isEditing }: InvoiceF
           </label>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <DollarSign className="h-5 w-5 text-slate-gray/60" />
+              <span className="text-slate-gray/60 font-medium">PKR</span>
             </div>
             <input
               type="number"
@@ -477,7 +477,7 @@ export function InvoiceForm({ formData, handleInputChange, isEditing }: InvoiceF
           </label>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <DollarSign className="h-5 w-5 text-slate-gray/60" />
+              <span className="text-slate-gray/60 font-medium">PKR</span>
             </div>
             <input
   type="number"
@@ -506,7 +506,7 @@ export function InvoiceForm({ formData, handleInputChange, isEditing }: InvoiceF
           </label>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <DollarSign className="h-5 w-5 text-slate-gray/60" />
+              <span className="text-slate-gray/60 font-medium">PKR</span>
             </div>
             <input
               type="number"

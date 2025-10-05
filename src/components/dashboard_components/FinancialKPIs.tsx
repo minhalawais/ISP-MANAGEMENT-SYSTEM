@@ -92,12 +92,13 @@ interface KPIData {
   total_revenue: number
   total_collections: number
   total_isp_payments: number
+  total_expenses: number  // NEW
   net_cash_flow: number
   collection_efficiency: number
   operating_profit?: number
   operating_profit_margin?: number
-  total_initial_balance?: number  // NEW
-  adjusted_cash_flow?: number     // NEW
+  total_initial_balance?: number
+  adjusted_cash_flow?: number
 }
 
 interface FinancialKPIsProps {
@@ -109,9 +110,10 @@ export const FinancialKPIs: React.FC<FinancialKPIsProps> = ({ data }) => {
   const formatPercentage = (value: number) => `${(value ?? 0).toFixed(1)}%`
 
   const kpis = useMemo(() => {
-    const operatingProfit = data.operating_profit ?? (data.total_revenue - data.total_isp_payments)
+    const operatingProfit = data.operating_profit ?? (data.total_collections - data.total_isp_payments - data.total_expenses)
     const totalInitialBalance = data.total_initial_balance || 0
     const adjustedCashFlow = data.adjusted_cash_flow || (data.net_cash_flow + totalInitialBalance)
+    
     return [
       {
         title: "Total Revenue",
@@ -141,13 +143,22 @@ export const FinancialKPIs: React.FC<FinancialKPIsProps> = ({ data }) => {
         description: "Payments to ISPs",
       },
       {
+        title: "Business Expenses",
+        value: formatCurrency(data.total_expenses),
+        icon: IconPayment, // You might want a different icon for expenses
+        color: COLORS.error,
+        bgColor: 'bg-[#EF4444]/10',
+        borderColor: 'border-[#EF4444]/20',
+        description: "Operational & other expenses",
+      },
+      {
         title: "Net Cash Flow",
         value: formatCurrency(data.net_cash_flow),
         icon: IconCashFlow,
         color: data.net_cash_flow >= 0 ? COLORS.emerald : COLORS.error,
         bgColor: data.net_cash_flow >= 0 ? 'bg-[#059669]/10' : 'bg-[#EF4444]/10',
         borderColor: data.net_cash_flow >= 0 ? 'border-[#059669]/20' : 'border-[#EF4444]/20',
-        description: "Collections minus ISP payments",
+        description: "Collections minus all payments",
       },
       {
         title: "Initial Balance",
@@ -168,29 +179,20 @@ export const FinancialKPIs: React.FC<FinancialKPIsProps> = ({ data }) => {
         description: "Cash flow + initial balance",
       },
       {
-        title: "Collection Efficiency",
-        value: formatPercentage(data.collection_efficiency),
-        icon: IconTarget,
-        color: data.collection_efficiency >= 80 ? COLORS.purple : COLORS.warning,
-        bgColor: data.collection_efficiency >= 80 ? 'bg-[#7C3AED]/10' : 'bg-[#F59E0B]/10',
-        borderColor: data.collection_efficiency >= 80 ? 'border-[#7C3AED]/20' : 'border-[#F59E0B]/20',
-        description: "Collections vs Revenue",
-      },
-      {
         title: "Operating Profit",
         value: formatCurrency(operatingProfit),
         icon: IconProfit,
         color: COLORS.indigo,
         bgColor: 'bg-[#6366F1]/10',
         borderColor: 'border-[#6366F1]/20',
-        description: "Revenue minus ISP payments",
+        description: "Revenue minus all expenses",
       },
     ]
   }, [data])
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-6">
-      {kpis.map((kpi, index) => {
+       {kpis.map((kpi, index) => {
         const IconComponent = kpi.icon
         return (
           <div
