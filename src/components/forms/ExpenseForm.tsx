@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { Building, Calendar, FileText, User, CreditCard } from "lucide-react"
+import { Building, Calendar, FileText, User, CreditCard, Settings } from "lucide-react"
 import { useState, useEffect } from "react"
 import { getToken } from "../../utils/auth.ts"
 import axiosInstance from "../../utils/axiosConfig.ts"
@@ -10,6 +10,7 @@ interface ExpenseFormProps {
   formData: any
   handleInputChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => void
   isEditing: boolean
+  onManageExpenseTypes?: () => void
 }
 
 interface BankAccount {
@@ -19,18 +20,17 @@ interface BankAccount {
   account_number: string
 }
 
-export function ExpenseForm({ formData, handleInputChange, isEditing }: ExpenseFormProps) {
-  const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([])
-  const [isLoading, setIsLoading] = useState(false)
+interface ExpenseType {
+  id: string
+  name: string
+  description: string
+  is_active: boolean
+}
 
-  const expenseTypes = [
-    { value: 'operational', label: 'Operational' },
-    { value: 'salaries', label: 'Salaries' },
-    { value: 'equipment', label: 'Equipment' },
-    { value: 'utilities', label: 'Utilities' },
-    { value: 'maintenance', label: 'Maintenance' },
-    { value: 'other', label: 'Other' }
-  ]
+export function ExpenseForm({ formData, handleInputChange, isEditing, onManageExpenseTypes }: ExpenseFormProps) {
+  const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([])
+  const [expenseTypes, setExpenseTypes] = useState<ExpenseType[]>([])
+  const [isLoading, setIsLoading] = useState(false)
 
   const paymentMethods = [
     { value: 'cash', label: 'Cash' },
@@ -38,21 +38,29 @@ export function ExpenseForm({ formData, handleInputChange, isEditing }: ExpenseF
     { value: 'online', label: 'Online Payment' }
   ]
 
-  // Fetch bank accounts on component mount
+  // Fetch bank accounts and expense types on component mount
   useEffect(() => {
-    const fetchBankAccounts = async () => {
+    const fetchData = async () => {
       try {
         const token = getToken()
-        const response = await axiosInstance.get('/bank-accounts/list', {
+        
+        // Fetch bank accounts
+        const bankResponse = await axiosInstance.get('/bank-accounts/list', {
           headers: { Authorization: `Bearer ${token}` },
         })
-        setBankAccounts(response.data)
+        setBankAccounts(bankResponse.data)
+
+        // Fetch expense types
+        const expenseTypesResponse = await axiosInstance.get('/expense-types/list', {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        setExpenseTypes(expenseTypesResponse.data.filter((type: ExpenseType) => type.is_active))
       } catch (error) {
-        console.error('Failed to fetch bank accounts', error)
+        console.error('Failed to fetch data', error)
       }
     }
 
-    fetchBankAccounts()
+    fetchData()
   }, [])
 
   // Check if bank account field should be shown
@@ -62,20 +70,30 @@ export function ExpenseForm({ formData, handleInputChange, isEditing }: ExpenseF
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-2">
-          <label htmlFor="expense_type" className="block text-sm font-medium text-deep-ocean">
-            Expense Type *
-          </label>
+          <div className="flex items-center justify-between">
+            <label htmlFor="expense_type_id" className="block text-sm font-medium text-deep-ocean">
+              Expense Type *
+            </label>
+            <button
+              type="button"
+              onClick={onManageExpenseTypes}
+              className="text-xs text-electric-blue hover:text-btn-hover flex items-center gap-1"
+            >
+              <Settings className="h-3 w-3" />
+              Manage Types
+            </button>
+          </div>
           <select
-            id="expense_type"
-            name="expense_type"
-            value={formData.expense_type || ""}
+            id="expense_type_id"
+            name="expense_type_id"
+            value={formData.expense_type_id || ""}
             onChange={handleInputChange}
             className="w-full px-4 py-2.5 border border-slate-gray/20 rounded-lg bg-light-sky/30 text-deep-ocean focus:outline-none focus:ring-2 focus:ring-electric-blue/30 focus:border-transparent transition-all duration-200"
             required
           >
             <option value="">Select Expense Type</option>
             {expenseTypes.map(type => (
-              <option key={type.value} value={type.value}>{type.label}</option>
+              <option key={type.id} value={type.id}>{type.name}</option>
             ))}
           </select>
         </div>
