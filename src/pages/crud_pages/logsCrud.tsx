@@ -1,6 +1,7 @@
-import React, { useMemo,useEffect } from 'react';
+// logsCrud.tsx - Updated
+import React, { useMemo, useEffect } from 'react';
 import { ColumnDef } from '@tanstack/react-table';
-import { CRUDPage } from '../../components/crudPage.tsx';
+import { LogsCRUDPage } from '../../components/logsCrudPage.tsx'; // New component
 import { LogForm } from '../../components/forms/logForm.tsx';
 
 interface Log {
@@ -15,12 +16,14 @@ interface Log {
   ip_address: string;
   user_agent: string;
   timestamp: string;
+  created_at: string;
 }
 
 const LogManagement: React.FC = () => {
   useEffect(() => {
     document.title = "MBA NET - Logs Management";
   }, []);
+
   const columns = useMemo<ColumnDef<Log>[]>(
     () => [
       {
@@ -54,7 +57,7 @@ const LogManagement: React.FC = () => {
       },
       {
         header: 'Timestamp',
-        accessorKey: 'timestamp',
+        accessorKey: 'created_at',
         cell: info => new Date(info.getValue() as string).toLocaleString(),
       },
     ],
@@ -62,7 +65,7 @@ const LogManagement: React.FC = () => {
   );
 
   return (
-    <CRUDPage<Log>
+    <LogsCRUDPage<Log>
       title="Log"
       endpoint="logs"
       columns={columns}
@@ -72,4 +75,3 @@ const LogManagement: React.FC = () => {
 };
 
 export default LogManagement;
-

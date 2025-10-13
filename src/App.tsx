@@ -32,6 +32,7 @@ import EmployeeInventoryManagement from "./pages/employee_portal/crud_pages/inve
 import EmployeeInvoiceManagement from "./pages/employee_portal/crud_pages/invoiceCrud.tsx"
 import ISPManagement from "./pages/crud_pages/ispCrud.tsx"
 import ExpenseManagement from "./pages/crud_pages/ExpenseCrud.tsx"
+import ExtraIncomeManagement from "./pages/crud_pages/ExtraIncomeCrud.tsx"
 import NewComplaintPage from "./pages/ComplaintFormPage.tsx"
 import TicketDisplayPage from "./pages/TicketDisplayPage.tsx"
 import BankAccountManagement from "./pages/crud_pages/BankAccountCrud.tsx"
@@ -76,6 +77,7 @@ const App: React.FC = () => {
         <Route path="/employee_portal" element={<PrivateRoute element={<EmployeeDashboard />} />} />
         <Route path="/isp-management" element={<PrivateRoute element={<ISPManagement />} />} />
         <Route path="/expense-management" element={<PrivateRoute element={<ExpenseManagement />} />} />
+        <Route path="/extra-income-management" element={<PrivateRoute element={<ExtraIncomeManagement />} />} />
 
         <Route path="/public/invoice/:id" element={<PublicInvoicePage />} />
 

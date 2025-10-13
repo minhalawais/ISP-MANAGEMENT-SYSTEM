@@ -1,13 +1,13 @@
 "use client"
 
-import React, { useState, useEffect, useCallback } from "react"
-import { FinancialKPIs } from "./FinancialKPIs.tsx"
-import { CashFlowAnalysis } from "./CashFlowAnalysis.tsx"
-import { RevenueExpenseComparison } from "./RevenueExpenseComparison.tsx"
-import { BankPerformance } from "./BankPerformance.tsx"
-import { CollectionsAnalysis } from "./CollectionsAnalysis.tsx"
-import { ISPPaymentAnalysis } from "./ISPPaymentAnalysis.tsx"
-import { AdvancedFilters } from "./AdvancedFilters.tsx"
+import type React from "react"
+import { useState, useEffect, useCallback } from "react"
+import { FinancialKPIs } from "./FinancialComponent/FinancialKPIs.tsx"
+import { CashFlowAnalysis } from "./FinancialComponent/CashFlowAnalysis.tsx"
+import { RevenueExpenseComparison } from "./FinancialComponent/RevenueExpenseComparison.tsx"
+import { BankPerformance } from "./FinancialComponent/BankPerformance.tsx"
+import { ISPPaymentAnalysis } from "./FinancialComponent/ISPPaymentAnalysis.tsx"
+import { AdvancedFilters } from "./FinancialComponent/AdvancedFilters.tsx"
 import axiosInstance from "../../utils/axiosConfig.ts"
 
 // Types
@@ -16,7 +16,8 @@ interface FinancialData {
     total_revenue: number
     total_collections: number
     total_isp_payments: number
-    total_expenses: number // NEW
+    total_expenses: number
+    total_extra_income: number // NEW
     net_cash_flow: number
     collection_efficiency: number
     operating_profit?: number
@@ -28,19 +29,13 @@ interface FinancialData {
       month: string
       inflow: number
       outflow: number
-      isp_outflow: number // NEW
-      expense_outflow: number // NEW
+      isp_outflow: number
+      expense_outflow: number
       net_flow: number
       adjusted_flow: number
     }>
-    inflow_breakdown: Array<{
-      method: string
-      amount: number
-    }>
-    outflow_breakdown: Array<{
-      type: string
-      amount: number
-    }>
+    inflow_breakdown: Array<{ method: string; amount: number }>
+    outflow_breakdown: Array<{ type: string; amount: number }>
     initial_balance?: number
     total_adjusted_flow?: number
   }
@@ -48,24 +43,27 @@ interface FinancialData {
     monthly_comparison: Array<{
       month: string
       revenue: number
+      extra_income: number // NEW
       expenses: number
-      isp_expenses: number // NEW
-      business_expenses: number // NEW
+      isp_expenses: number
+      business_expenses: number
       ratio: number
     }>
     total_revenue: number
+    total_extra_income: number // NEW
     total_expenses: number
-    total_isp_expenses: number // NEW
-    total_business_expenses: number // NEW
+    total_isp_expenses: number
+    total_business_expenses: number
     average_ratio: number
   }
   bank_performance: Array<{
     bank_name: string
     account_number: string
     collections: number
+    extra_income?: number // NEW
     payments: number
-    isp_payments: number // NEW
-    expenses: number // NEW
+    isp_payments: number
+    expenses: number
     net_flow: number
     initial_balance?: number
     adjusted_balance?: number
@@ -76,6 +74,9 @@ interface FinancialData {
   cash_payments?: {
     collections: number
     payments: number
+    isp_payments?: number
+    expenses?: number
+    extra_income?: number // NEW
     net_flow: number
   }
   filters: any
@@ -94,7 +95,7 @@ interface FilterState {
   paymentMethod: string
   invoiceStatus: string
   ispPaymentType: string
-  expenseType: string // NEW
+  expenseType: string
   timeRange: string
 }
 
@@ -115,7 +116,7 @@ export const UnifiedFinancialDashboard: React.FC = () => {
     paymentMethod: "all",
     invoiceStatus: "all",
     ispPaymentType: "all",
-    expenseType: "all", // NEW
+    expenseType: "all",
     timeRange: "mtd",
   })
 
@@ -131,7 +132,7 @@ export const UnifiedFinancialDashboard: React.FC = () => {
       if (filters.paymentMethod !== "all") params.append("payment_method", filters.paymentMethod)
       if (filters.invoiceStatus !== "all") params.append("invoice_status", filters.invoiceStatus)
       if (filters.ispPaymentType !== "all") params.append("isp_payment_type", filters.ispPaymentType)
-      if (filters.expenseType !== "all") params.append("expense_type", filters.expenseType) // NEW
+      if (filters.expenseType !== "all") params.append("expense_type", filters.expenseType)
 
       const response = await axiosInstance.get<FinancialData>(`/dashboard/unified-financial?${params}`, {
         headers: {
@@ -286,11 +287,8 @@ export const UnifiedFinancialDashboard: React.FC = () => {
       <div className="grid grid-cols-1 xl:grid-cols-1 gap-6 mb-6">
         {/* Bank Performance */}
         {financialData?.bank_performance && (
-          <BankPerformance 
-            data={financialData.bank_performance} 
-            cashPayments={financialData.cash_payments}
-          />
-        )}  
+          <BankPerformance data={financialData.bank_performance} cashPayments={financialData.cash_payments} />
+        )}
         {/* Collections Analysis */}
       </div>
 
@@ -305,25 +303,32 @@ export const UnifiedFinancialDashboard: React.FC = () => {
             <div className="text-center p-4 bg-red-50 rounded-lg border border-red-200">
               <p className="text-sm text-red-700 font-medium">Total Business Expenses</p>
               <p className="text-2xl font-bold text-red-800">
-                PKR {financialData.kpis.total_expenses?.toLocaleString() || '0'}
+                PKR {financialData.kpis.total_expenses?.toLocaleString() || "0"}
               </p>
             </div>
             <div className="text-center p-4 bg-orange-50 rounded-lg border border-orange-200">
               <p className="text-sm text-orange-700 font-medium">Total ISP Expenses</p>
               <p className="text-2xl font-bold text-orange-800">
-                PKR {financialData.kpis.total_isp_payments?.toLocaleString() || '0'}
+                PKR {financialData.kpis.total_isp_payments?.toLocaleString() || "0"}
               </p>
             </div>
             <div className="text-center p-4 bg-purple-50 rounded-lg border border-purple-200">
               <p className="text-sm text-purple-700 font-medium">Total Expenses</p>
               <p className="text-2xl font-bold text-purple-800">
-                PKR {(financialData.kpis.total_expenses + financialData.kpis.total_isp_payments)?.toLocaleString() || '0'}
+                PKR{" "}
+                {(financialData.kpis.total_expenses + financialData.kpis.total_isp_payments)?.toLocaleString() || "0"}
               </p>
             </div>
             <div className="text-center p-4 bg-green-50 rounded-lg border border-green-200">
               <p className="text-sm text-green-700 font-medium">Expense to Revenue Ratio</p>
               <p className="text-2xl font-bold text-green-800">
-                {financialData.revenue_expense?.average_ratio?.toFixed(1) || '0'}%
+                {financialData.revenue_expense?.average_ratio?.toFixed(1) || "0"}%
+              </p>
+            </div>
+            <div className="text-center p-4 bg-teal-50 rounded-lg border border-teal-200">
+              <p className="text-sm text-teal-700 font-medium">Total Extra Income</p>
+              <p className="text-2xl font-bold text-teal-800">
+                PKR {financialData.kpis.total_extra_income?.toLocaleString() || "0"}
               </p>
             </div>
           </div>
@@ -391,7 +396,7 @@ const DashboardLoadingSkeleton: React.FC = () => {
       <div className="bg-white rounded-xl p-6">
         <div className="h-6 w-48 bg-gray-300 rounded mb-4"></div>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          {Array.from({ length: 4 }).map((_, i) => (
+          {Array.from({ length: 5 }).map((_, i) => (
             <div key={i} className="h-20 bg-gray-300 rounded-lg"></div>
           ))}
         </div>

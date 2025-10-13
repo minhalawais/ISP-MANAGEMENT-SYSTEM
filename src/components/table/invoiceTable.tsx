@@ -1,444 +1,516 @@
 "use client"
 
-import type React from "react"
-import { useState, useEffect, useMemo } from "react"
-import { CSVLink } from "react-csv"
-import type { ColumnDef } from "@tanstack/react-table"
+import React, { useState, useMemo, useEffect, useCallback } from "react"
 import {
-  Plus,
-  Pencil,
-  Trash2,
-  Check,
-  X,
-  CheckCircle2,
-  XCircle,
-  Users,
-  LayoutDashboard,
+  useReactTable,
+  getCoreRowModel,
+  getPaginationRowModel,
+  getSortedRowModel,
+  getFilteredRowModel,
+  flexRender,
+  type ColumnDef,
+  type RowSelectionState,
+  type FilterFn,
+  type ColumnFiltersState,
+  type SortingState,
+} from "@tanstack/react-table"
+import { useVirtual } from "react-virtual"
+import {
+  Search,
+  SortAsc,
+  SortDesc,
+  ArrowUpDown,
+  ChevronDown,
+  FileDown,
+  ChevronLeft,
   ChevronRight,
-  FileText,
-  Eye,
-  Share2,
+  ChevronsLeft,
+  ChevronsRight,
+  Filter,
 } from "lucide-react"
-import { Table } from "../table/table.tsx"
-import { Modal } from "../modal.tsx"
-import { Topbar } from "../topNavbar.tsx"
-import { Sidebar } from "../sideNavbar.tsx"
-import { getToken } from "../../utils/auth.ts"
-import { toast } from "react-toastify"
-import axiosInstance from "../../utils/axiosConfig.ts"
+import { CSVLink } from "react-csv"
+import debounce from "lodash/debounce"
+import { rankItem } from "@tanstack/match-sorter-utils"
+import "./table.css"
 
-interface CRUDPageProps<T> {
-  title: string
-  endpoint: string
-  columns: ColumnDef<T>[]
-  FormComponent: React.ComponentType<{
-    formData: Partial<T>
-    handleInputChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void
-    isEditing: boolean
-  }>
-  customHeaderButton?: React.ReactNode
-  refreshTrigger?: number
+// Define fuzzy search filter function
+const fuzzyFilter: FilterFn<any> = (row, columnId, value, addMeta) => {
+  const itemRank = rankItem(row.getValue(columnId), value)
+  addMeta({ itemRank })
+  return itemRank.passed
 }
 
-export function CRUDPage<T extends { id: string }>({ title, endpoint, columns, FormComponent, customHeaderButton, refreshTrigger }: CRUDPageProps<T>) {
-  const [data, setData] = useState<T[]>([])
-  const [isModalVisible, setIsModalVisible] = useState(false)
-  const [editingItem, setEditingItem] = useState<T | null>(null)
-  const [formData, setFormData] = useState<Partial<T>>({})
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
-  const [selectedRows, setSelectedRows] = useState<string[]>([])
-  const [isLoading, setIsLoading] = useState(false)
-  const [stats, setStats] = useState({
-    total: 0,
-    paid: 0,
-    pending: 0,
+interface TableProps<T> {
+  data: T[]
+  columns: ColumnDef<T>[]
+  selectedRows?: string[]
+  setSelectedRows?: (rows: string[]) => void
+  handleToggleStatus?: (id: string, currentStatus: boolean) => void
+  isLoading?: boolean
+  serverMode?: boolean
+  totalCount?: number
+  pageIndex?: number
+  pageSize?: number
+  onPageChange?: (pageIndex: number) => void
+  onPageSizeChange?: (pageSize: number) => void
+  sorting?: SortingState
+  onSortingChange?: (sorting: SortingState) => void
+  onGlobalSearch?: (q: string) => void
+}
+
+export function Table<T>({
+  data,
+  columns,
+  selectedRows: externalSelectedRows,
+  setSelectedRows: setExternalSelectedRows,
+  handleToggleStatus,
+  isLoading = false,
+  serverMode = false,
+  totalCount,
+  pageIndex,
+  pageSize,
+  onPageChange,
+  onPageSizeChange,
+  sorting: externalSorting,
+  onSortingChange,
+  onGlobalSearch,
+}: TableProps<T>) {
+  const [globalFilter, setGlobalFilter] = useState("")
+  const [localGlobalFilter, setLocalGlobalFilter] = useState("")
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
+  const [localColumnFilters, setLocalColumnFilters] = useState<Record<string, string>>({})
+  const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
+  const [distinctValues, setDistinctValues] = useState<Record<string, Set<any>>>({})
+  const [showFilters, setShowFilters] = useState(false)
+  const [sorting, setSorting] = useState<SortingState>(externalSorting ?? [])
+
+  const table = useReactTable({
+    data,
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    filterFns: { fuzzy: fuzzyFilter },
+    onRowSelectionChange: setRowSelection,
+    onColumnFiltersChange: setColumnFilters,
+    onGlobalFilterChange: setGlobalFilter,
+    onSortingChange: (updater) => {
+      const next = typeof updater === "function" ? (updater as any)(sorting) : (updater as SortingState)
+      setSorting(next)
+      if (serverMode && onSortingChange) onSortingChange(next)
+    },
+    globalFilterFn: fuzzyFilter,
+    state: {
+      rowSelection,
+      globalFilter,
+      columnFilters,
+      sorting,
+      pagination: serverMode && pageIndex !== undefined && pageSize !== undefined ? { pageIndex, pageSize } : undefined,
+    },
+    manualPagination: serverMode,
+    pageCount:
+      serverMode && totalCount !== undefined && (pageSize ?? 10) > 0
+        ? Math.max(1, Math.ceil(totalCount / (pageSize as number)))
+        : undefined,
+    initialState: { pagination: { pageSize: pageSize ?? 20 } },
   })
 
+  const debouncedGlobalSearch = useMemo(
+    () =>
+      debounce((value: string) => {
+        if (serverMode && onGlobalSearch) {
+          onGlobalSearch(value)
+        } else {
+          setGlobalFilter(value)
+        }
+      }, 250),
+    [serverMode, onGlobalSearch],
+  )
+
+  const debouncedColumnSearch = useMemo(
+    () =>
+      debounce((columnId: string, value: string) => {
+        setColumnFilters((prev) => {
+          const existingFilter = prev.find((filter) => filter.id === columnId)
+          if (value === "") {
+            return prev.filter((filter) => filter.id !== columnId)
+          }
+          if (existingFilter) {
+            return prev.map((filter) => (filter.id === columnId ? { ...filter, value } : filter))
+          } else {
+            return [...prev, { id: columnId, value }]
+          }
+        })
+      }, 150),
+    [],
+  )
+
+  const handleGlobalFilterChange = useCallback(
+    (value: string) => {
+      setLocalGlobalFilter(value)
+      debouncedGlobalSearch(value)
+    },
+    [debouncedGlobalSearch],
+  )
+
+  const handleColumnFilterChange = useCallback(
+    (columnId: string, value: string) => {
+      setLocalColumnFilters((prev) => ({ ...prev, [columnId]: value }))
+      debouncedColumnSearch(columnId, value)
+    },
+    [debouncedColumnSearch],
+  )
+
   useEffect(() => {
-    fetchData()
-  }, [refreshTrigger])
-
-  const fetchData = async () => {
-    setIsLoading(true)
-    try {
-      const token = getToken()
-      const response = await axiosInstance.get(`/${endpoint}/list`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      setData(response.data)
-
-      // Calculate stats
-      const total = response.data.length
-      const paid = response.data.filter((item: any) => item.status === 'paid').length
-      const pending = response.data.filter((item: any) => item.status === 'pending').length
-      
-      setStats({
-        total,
-        paid,
-        pending,
-      })
-    } catch (error) {
-      console.error(`Failed to fetch ${title}`, error)
-      toast.error(`Failed to fetch ${title}`, {
-        style: { background: "#FEE2E2", color: "#EF4444" },
-      })
-    } finally {
-      setIsLoading(false)
+    return () => {
+      debouncedGlobalSearch.cancel()
+      debouncedColumnSearch.cancel()
     }
-  }
+  }, [debouncedGlobalSearch, debouncedColumnSearch])
 
-  const showModal = (item: T | null) => {
-    setEditingItem(item)
-    setFormData(item || {})
-    setIsModalVisible(true)
-  }
-
-  const handleCancel = () => {
-    setIsModalVisible(false)
-    setEditingItem(null)
-    setFormData({})
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
-    try {
-      const token = getToken()
-      if (editingItem) {
-        await axiosInstance.put(`/${endpoint}/update/${editingItem.id}`, formData, {
-          headers: { Authorization: `Bearer ${token}` },
-        })
-        toast.success(`${title} updated successfully`, {
-          style: { background: "#D1FAE5", color: "#10B981" },
-        })
-      } else {
-        console.log("formData", formData)
-        await axiosInstance.post(`/${endpoint}/add`, formData, {
-          headers: { Authorization: `Bearer ${token}` },
-        })
-        toast.success(`${title} added successfully`, {
-          style: { background: "#D1FAE5", color: "#10B981" },
-        })
+  useEffect(() => {
+    const newDistinctValues: Record<string, Set<any>> = {}
+    columns.forEach((column) => {
+      if (typeof column.accessorKey === "string") {
+        newDistinctValues[column.accessorKey] = new Set(
+          data.map((row) => (row as any)[column.accessorKey as string]).filter(Boolean),
+        )
       }
-      await fetchData()
-      handleCancel()
-    } catch (error) {
-      console.error("Operation failed", error)
-      toast.error("Operation failed", {
-        style: { background: "#FEE2E2", color: "#EF4444" },
-      })
-    } finally {
-      setIsLoading(false)
-    }
-  }
+    })
+    setDistinctValues(newDistinctValues)
+  }, [data, columns])
 
-  const handleDelete = async (id: string) => {
-    if (window.confirm(`Are you sure you want to delete this ${title.toLowerCase()}?`)) {
-      try {
-        setIsLoading(true)
-        const token = getToken()
-        await axiosInstance.delete(`/${endpoint}/delete/${id}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        })
-        toast.success(`${title} deleted successfully`, {
-          style: { background: "#D1FAE5", color: "#10B981" },
-        })
-        await fetchData()
-      } catch (error) {
-        console.error("Delete operation failed", error)
-        toast.error("Delete operation failed", {
-          style: { background: "#FEE2E2", color: "#EF4444" },
-        })
-      } finally {
-        setIsLoading(false)
-      }
-    }
-  }
+  useEffect(() => {
+    if (!serverMode) return
+    const p = table.getState().pagination
+    if (onPageChange) onPageChange(p.pageIndex)
+    if (onPageSizeChange) onPageSizeChange(p.pageSize)
+  }, [serverMode, table.getState().pagination.pageIndex, table.getState().pagination.pageSize])
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target
-    setFormData((prev) => ({ ...prev, [name]: value }))
-  }
-
-  const toggleSidebar = () => {
-    setIsSidebarOpen((prev) => !prev)
-  }
-
-  const handleWhatsAppShare = (invoice: any) => {
-    console.log("invoice", invoice);
-  
-    if (!invoice.customer_phone) {
-      toast.error("Customer phone number not available");
-      return;
+  useEffect(() => {
+    if (setExternalSelectedRows) {
+      const selectedIds = Object.keys(rowSelection).map(
+        (index) => (table.getRowModel().rows[Number.parseInt(index)].original as any).id,
+      )
+      setExternalSelectedRows(selectedIds)
     }
-  
-    // Normalize phone number
-    let phoneNumber = invoice.customer_phone.replace(/\D/g, ""); // remove all non-digits
-  
-    if (phoneNumber.startsWith("00")) {
-      phoneNumber = phoneNumber.substring(2); // remove leading 00
-    }
-  
-    if (phoneNumber.startsWith("+92")) {
-      phoneNumber = phoneNumber.substring(1); // +92XXXXXXXXXX → 92XXXXXXXXXX
-    } else if (phoneNumber.startsWith("92")) {
-      // already correct
-    } else if (phoneNumber.startsWith("0")) {
-      phoneNumber = "92" + phoneNumber.substring(1); // 03XXXXXXXXX → 92XXXXXXXXXX
-    } else if (phoneNumber.startsWith("3")) {
-      phoneNumber = "92" + phoneNumber; // 3XXXXXXXXX → 92XXXXXXXXXX
-    }
-  
-    // Public invoice link
-    const publicInvoiceUrl = `${window.location.origin}/public/invoice/${invoice.id}`;
-  
-    // Formatted English-only message
-    const message = `Hello ${invoice.customer_name},
-  
-  Your invoice #${invoice.invoice_number} is now available.
-  
-  📋 Invoice Details:
-  • Amount: PKR ${Number.parseFloat(invoice.total_amount).toFixed(2)}
-  • Due Date: ${new Date(invoice.due_date).toLocaleDateString()}
-  • Status: ${invoice.status}
-  
-  📄 View your complete invoice here:
-  ${publicInvoiceUrl}
-  
-  Please review your invoice and make the payment if pending.
-  
-  Thank you for choosing MBA Communications!`;
-  
-    // WhatsApp URL
-    const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
-  
-    // Open in new tab
-    window.open(whatsappUrl, "_blank");
-  };
-  
+  }, [rowSelection, table, setExternalSelectedRows])
 
-  const memoizedColumns = useMemo(() => {
-    return [
-      ...columns,
-      {
-        header: "View",
-        cell: (info: any) => (
-          <div className="flex justify-center">
-            <button
-              onClick={() => window.open(`/${endpoint}/${info.row.original.id}`, "_blank")}
-              className="flex items-center gap-2 px-4 py-2 bg-electric-blue text-white rounded-lg hover:bg-btn-hover transition-colors duration-200 text-sm shadow-sm"
-              title="View Invoice"
-            >
-              <Eye className="w-4 h-4" />
-              View Invoice
-            </button>
-          </div>
-        ),
-      },
-      {
-        header: "Share",
-        cell: (info: any) => (
-          <div className="flex justify-center">
-            <button
-              onClick={() => handleWhatsAppShare(info.row.original)}
-              className="flex items-center gap-2 px-4 py-2 bg-emerald-green text-white rounded-lg hover:bg-emerald-green/90 transition-colors duration-200 text-sm shadow-sm"
-              title="Share via WhatsApp"
-            >
-              <Share2 className="w-4 h-4" />
-              Share
-            </button>
-          </div>
-        ),
-      },
-      {
-        header: "Actions",
-        cell: (info: any) => (
-          <div className="flex items-center gap-2 justify-center">
-            <button
-              onClick={() => showModal(info.row.original)}
-              className="p-2 text-white bg-electric-blue rounded-md hover:bg-btn-hover transition-colors"
-              title="Edit"
-            >
-              <Pencil className="h-4 w-4" />
-            </button>
-            <button
-              onClick={() => handleDelete(info.row.original.id)}
-              className="p-2 text-white bg-coral-red rounded-md hover:bg-coral-red/80 transition-colors"
-              title="Delete"
-            >
-              <Trash2 className="h-4 w-4" />
-            </button>
-          </div>
-        ),
-      },
-    ]
-  }, [columns])
+  const tableContainerRef = React.useRef<HTMLDivElement>(null)
+
+  const { rows } = table.getRowModel()
+  const rowVirtualizer = useVirtual({
+    parentRef: tableContainerRef,
+    size: rows.length,
+    overscan: 10,
+  })
+  const { virtualItems: virtualRows, totalSize } = rowVirtualizer
+  const paddingTop = virtualRows.length > 0 ? virtualRows?.[0]?.start || 0 : 0
+  const paddingBottom = virtualRows.length > 0 ? totalSize - (virtualRows?.[virtualRows.length - 1]?.end || 0) : 0
+
+  const selectedRowsData = useMemo(() => {
+    return Object.keys(rowSelection).map((key) => rows[Number.parseInt(key)].original)
+  }, [rowSelection, rows])
+
+  const getColumnFilterValue = useCallback(
+    (columnId: string) => {
+      return localColumnFilters[columnId] || ""
+    },
+    [localColumnFilters],
+  )
 
   return (
-    <div className="flex h-screen bg-light-sky/50">
-      <Sidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} setIsOpen={setIsSidebarOpen} />
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <Topbar toggleSidebar={toggleSidebar} />
-        <main
-          className={`flex-1 overflow-x-hidden overflow-y-auto bg-light-sky/50 p-6 pt-20 transition-all duration-300 ${
-            isSidebarOpen ? "ml-64" : "ml-20"
-          }`}
-        >
-          <div className="container mx-auto">
-            {/* Breadcrumb */}
-            <div className="flex items-center text-sm text-slate-gray mb-6">
-              <LayoutDashboard className="h-4 w-4 mr-1" />
-              <span>Dashboard</span>
-              <ChevronRight className="h-4 w-4 mx-1" />
-              <span className="text-deep-ocean font-medium">{title} Management</span>
-            </div>
-
-            {/* Header Section */}
-            <div className="bg-white rounded-xl shadow-md p-6 mb-6">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-                <div>
-                  <h1 className="text-2xl md:text-3xl font-bold text-deep-ocean flex items-center gap-2">
-                    <FileText className="h-7 w-7 text-electric-blue" />
-                    {title} Management
-                  </h1>
-                  <p className="text-slate-gray mt-1">Manage your {title.toLowerCase()} records efficiently</p>
-                </div>
-                <div className="flex flex-wrap gap-3 self-start md:self-center">
-                  <CSVLink
-                    data={data}
-                    filename={`${title.toLowerCase()}.csv`}
-                    className="bg-slate-gray text-white px-4 py-2.5 rounded-lg hover:bg-slate-gray/80 transition-colors flex items-center justify-center gap-2 shadow-sm"
-                  >
-                    <FileText className="h-5 w-5" />
-                    Export CSV
-                  </CSVLink>
-                  {customHeaderButton}
-
-                  <button
-                    onClick={() => showModal(null)}
-                    className="bg-electric-blue text-white px-4 py-2.5 rounded-lg hover:bg-btn-hover transition-colors flex items-center justify-center gap-2 shadow-sm"
-                  >
-                    <Plus className="h-5 w-5" />
-                    Add New {title}
-                  </button>
-                </div>
-              </div>
-
-              {/* Stats Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                <div className="bg-light-sky/50 rounded-lg p-4 border border-slate-gray/10">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-slate-gray text-sm">Total {title}s</p>
-                      <h3 className="text-2xl font-bold text-deep-ocean mt-1">{stats.total}</h3>
-                    </div>
-                    <div className="bg-deep-ocean/10 p-3 rounded-full">
-                      <FileText className="h-6 w-6 text-deep-ocean" />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-emerald-green/5 rounded-lg p-4 border border-emerald-green/10">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-slate-gray text-sm">Paid {title}s</p>
-                      <h3 className="text-2xl font-bold text-emerald-green mt-1">{stats.paid}</h3>
-                    </div>
-                    <div className="bg-emerald-green/10 p-3 rounded-full">
-                      <CheckCircle2 className="h-6 w-6 text-emerald-green" />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-coral-red/5 rounded-lg p-4 border border-coral-red/10">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-slate-gray text-sm">Pending {title}s</p>
-                      <h3 className="text-2xl font-bold text-coral-red mt-1">{stats.pending}</h3>
-                    </div>
-                    <div className="bg-coral-red/10 p-3 rounded-full">
-                      <XCircle className="h-6 w-6 text-coral-red" />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Table Section */}
-            <div className="mb-8">
-              <Table
-                data={data}
-                columns={memoizedColumns}
-                selectedRows={selectedRows}
-                setSelectedRows={setSelectedRows}
-                isLoading={isLoading}
-              />
-            </div>
+    <div className="space-y-6">
+      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 bg-white p-4 rounded-lg shadow-sm border border-slate-gray/10">
+        <div className="relative w-full lg:w-auto flex-1 max-w-md">
+          <div className="relative">
+            <input
+              type="text"
+              value={localGlobalFilter}
+              onChange={(e) => handleGlobalFilterChange(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 border border-slate-gray/20 rounded-lg bg-light-sky/30 text-deep-ocean placeholder-slate-gray/50 focus:outline-none focus:ring-2 focus:ring-electric-blue/30 focus:border-transparent transition-all duration-200"
+              placeholder="Search all columns..."
+            />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-gray/60 h-4 w-4" />
           </div>
-        </main>
+        </div>
+
+        <div className="flex items-center gap-3 w-full lg:w-auto">
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border transition-colors ${
+              showFilters
+                ? "bg-electric-blue/10 text-electric-blue border-electric-blue/30"
+                : "bg-white text-slate-gray border-slate-gray/20 hover:bg-light-sky/50"
+            }`}
+          >
+            <Filter className="h-4 w-4" />
+            <span>Filters</span>
+            <ChevronDown className={`h-4 w-4 transition-transform ${showFilters ? "rotate-180" : ""}`} />
+          </button>
+
+          <CSVLink
+            data={selectedRowsData}
+            filename="selected_rows.csv"
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg transition-colors ${
+              selectedRowsData.length === 0
+                ? "bg-slate-gray/10 text-slate-gray/50 cursor-not-allowed"
+                : "bg-electric-blue text-white hover:bg-btn-hover shadow-sm"
+            }`}
+          >
+            <FileDown className="h-4 w-4" />
+            <span>Export {selectedRowsData.length > 0 ? `(${selectedRowsData.length})` : ""}</span>
+          </CSVLink>
+        </div>
       </div>
 
-      {/* Modal */}
-      <Modal
-        isVisible={isModalVisible}
-        onClose={handleCancel}
-        title={editingItem ? `Edit ${title}` : `Add New ${title}`}
-        isLoading={isLoading}
+      {showFilters && !serverMode && (
+        <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-gray/10 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {columns
+            .filter((col) => col.accessorKey && col.header !== "Actions")
+            .map((column) => {
+              const columnId = column.accessorKey as string
+              return (
+                <div key={columnId} className="space-y-1">
+                  <label className="text-xs font-medium text-slate-gray/70 uppercase tracking-wide">
+                    {column.header as string}
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={getColumnFilterValue(columnId)}
+                      onChange={(e) => handleColumnFilterChange(columnId, e.target.value)}
+                      placeholder={`Filter ${column.header as string}...`}
+                      className="w-full pl-3 pr-8 py-2 text-sm border border-slate-gray/20 rounded-md bg-light-sky/20 text-deep-ocean placeholder-slate-gray/40 focus:outline-none focus:ring-1 focus:ring-electric-blue/30"
+                      list={`options-${columnId}`}
+                    />
+                    <Search className="absolute right-2.5 top-1/2 transform -translate-y-1/2 text-slate-gray/40 h-3.5 w-3.5" />
+                    <datalist id={`options-${columnId}`}>
+                      {Array.from(distinctValues[columnId] || []).map((value) => (
+                        <option key={value} value={value} />
+                      ))}
+                    </datalist>
+                  </div>
+                </div>
+              )
+            })}
+        </div>
+      )}
+
+      <div
+        ref={tableContainerRef}
+        className="overflow-auto bg-white rounded-lg shadow-md max-h-[calc(100vh-280px)] custom-scrollbar border border-slate-gray/10"
       >
-        <form onSubmit={handleSubmit} className="bg-white">
-          <FormComponent formData={formData} handleInputChange={handleInputChange} isEditing={!!editingItem} />
-          <div className="mt-6 flex justify-end gap-3">
-            <button
-              type="button"
-              onClick={handleCancel}
-              className="px-4 py-2.5 border border-slate-gray/20 text-slate-gray rounded-lg hover:bg-light-sky/50 transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="px-4 py-2.5 bg-electric-blue text-white rounded-lg hover:bg-btn-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-electric-blue disabled:opacity-50 transition-colors flex items-center gap-2"
-            >
-              {isLoading ? (
-                <>
-                  <svg
-                    className="animate-spin h-5 w-5 text-white"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
+        <table className="min-w-full divide-y divide-slate-gray/10">
+          <thead className="bg-light-sky sticky top-0 z-10">
+            {table.getHeaderGroups().map((headerGroup) => (
+              <tr key={headerGroup.id}>
+                <th className="px-6 py-3.5 text-left text-xs font-medium text-deep-ocean uppercase tracking-wider">
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={table.getIsAllRowsSelected()}
+                      indeterminate={table.getIsSomeRowsSelected()}
+                      onChange={table.getToggleAllRowsSelectedHandler()}
+                      className="rounded border-slate-gray/30 text-electric-blue focus:ring-electric-blue/50"
+                    />
+                  </div>
+                </th>
+                {headerGroup.headers.map((header) => (
+                  <th
+                    key={header.id}
+                    className="px-6 py-3.5 text-left text-xs font-medium text-deep-ocean uppercase tracking-wider"
                   >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    ></circle>
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    ></path>
-                  </svg>
-                  Processing...
-                </>
-              ) : editingItem ? (
-                <>
-                  <Check className="h-5 w-5" />
-                  Update {title}
-                </>
-              ) : (
-                <>
-                  <Plus className="h-5 w-5" />
-                  Create {title}
-                </>
-              )}
-            </button>
-          </div>
-        </form>
-      </Modal>
+                    {header.isPlaceholder ? null : (
+                      <div className="flex flex-col">
+                        <div className="flex items-center justify-between">
+                          <button
+                            className={`flex items-center gap-1.5 hover:text-electric-blue transition-colors ${
+                              header.column.getIsSorted() ? "text-electric-blue font-semibold" : ""
+                            }`}
+                            onClick={header.column.getToggleSortingHandler()}
+                          >
+                            {flexRender(header.column.columnDef.header, header.getContext())}
+                            {header.column.getIsSorted() ? (
+                              header.column.getIsSorted() === "desc" ? (
+                                <SortDesc className="h-3.5 w-3.5" />
+                              ) : (
+                                <SortAsc className="h-3.5 w-3.5" />
+                              )
+                            ) : (
+                              <ArrowUpDown className="h-3.5 w-3.5 text-slate-gray/40" />
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </th>
+                ))}
+              </tr>
+            ))}
+          </thead>
+          <tbody className="bg-white divide-y divide-slate-gray/10">
+            {isLoading ? (
+              <tr>
+                <td colSpan={columns.length + 1} className="px-6 py-12 whitespace-nowrap text-center">
+                  <div className="flex flex-col justify-center items-center">
+                    <div className="relative">
+                      <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-electric-blue"></div>
+                      <div className="absolute top-0 left-0 h-12 w-12 rounded-full border-t-4 border-b-4 border-transparent border-opacity-50"></div>
+                    </div>
+                    <span className="mt-4 text-deep-ocean font-medium text-lg">Loading data...</span>
+                  </div>
+                </td>
+              </tr>
+            ) : rows.length === 0 ? (
+              <tr>
+                <td colSpan={columns.length + 1} className="px-6 py-12 whitespace-nowrap text-center">
+                  <div className="flex flex-col items-center justify-center">
+                    <div className="bg-light-sky/50 rounded-full p-4 mb-4">
+                      <Search className="h-8 w-8 text-slate-gray/60" />
+                    </div>
+                    <h3 className="text-lg font-medium text-deep-ocean mb-1">No data found</h3>
+                    <p className="text-slate-gray">Try adjusting your search or filters</p>
+                  </div>
+                </td>
+              </tr>
+            ) : (
+              <>
+                {paddingTop > 0 && (
+                  <tr>
+                    <td style={{ height: `${paddingTop}px` }} />
+                  </tr>
+                )}
+                {virtualRows.map((virtualRow) => {
+                  const row = rows[virtualRow.index]
+                  return (
+                    <tr
+                      key={row.id}
+                      className={`group ${
+                        row.getIsSelected() ? "bg-electric-blue/5 hover:bg-electric-blue/10" : "hover:bg-light-sky/30"
+                      } transition-colors`}
+                    >
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <input
+                          type="checkbox"
+                          checked={row.getIsSelected()}
+                          onChange={row.getToggleSelectedHandler()}
+                          className="rounded border-slate-gray/30 text-electric-blue focus:ring-electric-blue/50"
+                        />
+                      </td>
+                      {row.getVisibleCells().map((cell) => (
+                        <td key={cell.id} className="px-6 py-4 whitespace-nowrap text-slate-gray">
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </td>
+                      ))}
+                    </tr>
+                  )
+                })}
+                {paddingBottom > 0 && (
+                  <tr>
+                    <td style={{ height: `${paddingBottom}px` }} />
+                  </tr>
+                )}
+              </>
+            )}
+          </tbody>
+        </table>
+      </div>
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-4 rounded-lg shadow-sm border border-slate-gray/10">
+  <div className="flex items-center gap-1 text-sm text-deep-ocean">
+    <span>Showing</span>
+    <select
+      value={table.getState().pagination.pageSize}
+      onChange={(e) => {
+        const newPageSize = Number(e.target.value);
+        table.setPageSize(newPageSize);
+        if (serverMode && onPageSizeChange) {
+          onPageSizeChange(newPageSize);
+          table.setPageIndex(0); // Reset to first page when page size changes
+        }
+      }}
+      className="mx-1 border rounded p-1 bg-white text-deep-ocean focus:outline-none focus:ring-1 focus:ring-electric-blue"
+    >
+      {[10, 20, 50, 100].map((ps) => (
+        <option key={ps} value={ps}>
+          {ps}
+        </option>
+      ))}
+    </select>
+    <span>
+      of {serverMode && totalCount !== undefined ? totalCount : table.getFilteredRowModel().rows.length} entries
+    </span>
+  </div>
+
+  <div className="flex items-center">
+    <div className="flex items-center gap-1 mr-4 text-sm text-deep-ocean">
+      <span>Page</span>
+      <strong>
+        {table.getState().pagination.pageIndex + 1} of{" "}
+        {serverMode && totalCount !== undefined && table.getState().pagination.pageSize > 0
+          ? Math.max(1, Math.ceil(totalCount / table.getState().pagination.pageSize))
+          : table.getPageCount()}
+      </strong>
+    </div>
+
+    <div className="flex items-center gap-1">
+      <button
+        className="p-1.5 rounded-md border border-slate-gray/20 text-deep-ocean hover:bg-light-sky disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        onClick={() => {
+          table.setPageIndex(0);
+          if (serverMode && onPageChange) onPageChange(0);
+        }}
+        disabled={table.getState().pagination.pageIndex === 0}
+      >
+        <ChevronsLeft className="h-4 w-4" />
+      </button>
+      <button
+        className="p-1.5 rounded-md border border-slate-gray/20 text-deep-ocean hover:bg-light-sky disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        onClick={() => {
+          const newPageIndex = Math.max(0, table.getState().pagination.pageIndex - 1);
+          table.setPageIndex(newPageIndex);
+          if (serverMode && onPageChange) onPageChange(newPageIndex);
+        }}
+        disabled={table.getState().pagination.pageIndex === 0}
+      >
+        <ChevronLeft className="h-4 w-4" />
+      </button>
+      <button
+        className="p-1.5 rounded-md border border-slate-gray/20 text-deep-ocean hover:bg-light-sky disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        onClick={() => {
+          const newPageIndex = table.getState().pagination.pageIndex + 1;
+          table.setPageIndex(newPageIndex);
+          if (serverMode && onPageChange) onPageChange(newPageIndex);
+        }}
+        disabled={
+          serverMode && totalCount !== undefined
+            ? (table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize >= totalCount
+            : !table.getCanNextPage()
+        }
+      >
+        <ChevronRight className="h-4 w-4" />
+      </button>
+      <button
+        className="p-1.5 rounded-md border border-slate-gray/20 text-deep-ocean hover:bg-light-sky disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        onClick={() => {
+          const lastPageIndex = serverMode && totalCount !== undefined
+            ? Math.max(0, Math.ceil(totalCount / table.getState().pagination.pageSize) - 1)
+            : table.getPageCount() - 1;
+          table.setPageIndex(lastPageIndex);
+          if (serverMode && onPageChange) onPageChange(lastPageIndex);
+        }}
+        disabled={
+          serverMode && totalCount !== undefined
+            ? (table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize >= totalCount
+            : !table.getCanNextPage()
+        }
+      >
+        <ChevronsRight className="h-4 w-4" />
+      </button>
+    </div>
+  </div>
+</div>
     </div>
   )
 }

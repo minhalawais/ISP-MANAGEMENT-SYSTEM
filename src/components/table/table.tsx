@@ -34,11 +34,20 @@ import "./table.css"
 
 // Define fuzzy search filter function
 const fuzzyFilter: FilterFn<any> = (row, columnId, value, addMeta) => {
-  const itemRank = rankItem(row.getValue(columnId), value)
-  addMeta({ itemRank })
-  return itemRank.passed
+  if (!value) return true;
+  
+  // For global filtering, we need to search across all columns
+  const searchValue = value.toLowerCase();
+  const rowData = row.original;
+  
+  // Search across all string values in the row
+  const searchableText = Object.values(rowData)
+    .filter(val => val != null && typeof val === 'string')
+    .map(val => val.toLowerCase())
+    .join(' ');
+  
+  return searchableText.includes(searchValue);
 }
-
 interface TableProps<T> {
   data: T[]
   columns: ColumnDef<T>[]

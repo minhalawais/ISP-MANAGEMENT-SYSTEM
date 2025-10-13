@@ -22,7 +22,8 @@ import {
   Banknote,
   Receipt,
   NetworkIcon,
-  DollarSign // NEW: Added DollarSign icon for expenses
+  DollarSign,
+  TrendingUp // NEW: Added TrendingUp icon for extra income
 } from "lucide-react"
 import { removeToken } from "../utils/auth.ts"
 import axiosInstance from "../utils/axiosConfig.ts"
@@ -71,10 +72,16 @@ export const menuItems = [
     path: "/bank-management", 
   },
   {
-    title: "Expense Management", // NEW: Added Expense Management
+    title: "Expense Management",
     icon: DollarSign,
     description: "Track and manage operational expenses",
     path: "/expense-management",
+  },
+  {
+    title: "Extra Income Management", // NEW: Added Extra Income Management
+    icon: TrendingUp,
+    description: "Track and manage additional income sources",
+    path: "/extra-income-management",
   },
   {
     title: "Complaint Management",

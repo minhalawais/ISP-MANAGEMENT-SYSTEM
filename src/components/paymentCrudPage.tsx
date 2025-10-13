@@ -1,10 +1,20 @@
 "use client"
 
-import React, { useState, useEffect, useMemo } from "react"
-import axios from "axios"
-import { ColumnDef } from "@tanstack/react-table"
-import { Plus, Pencil, Trash2, CheckCircle2, XCircle, LayoutDashboard, ChevronRight, DollarSign, FileDown } from 'lucide-react'
-import { Table } from "./table/table.tsx"
+import type React from "react"
+import { useState, useEffect, useMemo, useCallback } from "react"
+import type { ColumnDef } from "@tanstack/react-table"
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  CheckCircle2,
+  XCircle,
+  LayoutDashboard,
+  ChevronRight,
+  DollarSign,
+  FileDown,
+} from "lucide-react"
+import { Table } from "./table/PaymentTable.tsx"
 import { Modal } from "./modal.tsx"
 import { Topbar } from "./topNavbar.tsx"
 import { Sidebar } from "./sideNavbar.tsx"
@@ -27,6 +37,8 @@ interface CRUDPageProps<T> {
   validateBeforeSubmit?: (formData: Partial<T>) => string | null
 }
 
+type Summary = { total: number; active: number; inactive: number; totalAmount: number }
+
 export function CRUDPage<T extends { id: string; is_active?: boolean }>({
   title,
   endpoint,
@@ -42,37 +54,63 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [selectedRows, setSelectedRows] = useState<string[]>([])
   const [isLoading, setIsLoading] = useState(false)
-  const [stats, setStats] = useState({
-    total: 0,
-    active: 0,
-    inactive: 0,
-    totalAmount: 0,
-  })
 
-  const fetchData = async () => {
+  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 20 })
+  const [pageCount, setPageCount] = useState<number>(0)
+  const [sorting, setSorting] = useState<{ id: string; desc: boolean }[]>([])
+  const [globalSearch, setGlobalSearch] = useState("")
+  const [columnFilters, setColumnFilters] = useState<{ id: string; value: string }[]>([])
+  const [stats, setStats] = useState<Summary>({ total: 0, active: 0, inactive: 0, totalAmount: 0 })
+
+  const fetchSummary = useCallback(async () => {
+    try {
+      const token = getToken()
+      const res = await axiosInstance.get(`/${endpoint}/summary`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      const s = res.data as Summary
+      setStats({
+        total: s.total || 0,
+        active: s.active || 0,
+        inactive: (s.total || 0) - (s.active || 0),
+        totalAmount: s.totalAmount || 0,
+      })
+    } catch (e) {
+      // Fallback silently; don't block page
+      console.warn("Failed to fetch summary", e)
+    }
+  }, [endpoint])
+
+  const fetchPage = useCallback(async () => {
     setIsLoading(true)
     try {
       const token = getToken()
-      const response = await axiosInstance.get(`/${endpoint}/list`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      setData(response.data)
-
-      // Calculate stats
-      const total = response.data.length
-      const active = response.data.filter((item: any) => item.is_active).length
-      const totalAmount = response.data.reduce((sum: number, item: any) => sum + (parseFloat(item.amount) || 0), 0)
-
-      setStats({
-        total,
-        active,
-        inactive: total - active,
-        totalAmount,
-      })
-
-      if (onDataChange) {
-        onDataChange()
+      const sort = sorting[0]
+      const params: Record<string, any> = {
+        page: pagination.pageIndex + 1, // backend 1-based
+        page_size: pagination.pageSize,
+        sort_by: sort?.id,
+        sort_dir: sort?.desc ? "desc" : "asc",
+        q: globalSearch || undefined,
       }
+      // column filters to query params (key=value)
+      columnFilters.forEach((f) => {
+        if (f.value) params[`filter_${f.id}`] = f.value
+      })
+
+      const res = await axiosInstance.get(`/${endpoint}/page`, {
+        headers: { Authorization: `Bearer ${token}` },
+        params,
+      })
+      // Expected shape: { items: T[], total: number }
+      setData(res.data.items || [])
+      const total = res.data.total || 0
+      setPageCount(Math.ceil(total / pagination.pageSize))
+      if (!stats.total) {
+        // try lazy summary fill if backend doesn't provide /summary
+        setStats((prev) => ({ ...prev, total }))
+      }
+      if (onDataChange) onDataChange()
     } catch (error) {
       console.error(`Failed to fetch ${title}`, error)
       toast.error(`Failed to fetch ${title}`, {
@@ -81,11 +119,15 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [endpoint, title, sorting, globalSearch, columnFilters, pagination, onDataChange, stats.total])
 
   useEffect(() => {
-    fetchData()
-  }, [])
+    fetchSummary()
+  }, [fetchSummary])
+
+  useEffect(() => {
+    fetchPage()
+  }, [fetchPage])
 
   const handleToggleStatus = async (id: string, currentStatus: boolean) => {
     try {
@@ -98,7 +140,7 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
       toast.success(`${title} status updated successfully`, {
         style: { background: "#D1FAE5", color: "#10B981" },
       })
-      await fetchData()
+      await fetchPage()
     } catch (error) {
       console.error(`Failed to update ${title} status`, error)
       toast.error(`Failed to update ${title} status`, {
@@ -130,7 +172,7 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
           style: { background: "#D1FAE5", color: "#10B981" },
         },
       )
-      await fetchData()
+      await fetchPage()
       setSelectedRows([])
     } catch (error) {
       console.error(`Failed to update ${title} status`, error)
@@ -160,25 +202,25 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
     setIsLoading(true)
     try {
       const token = getToken()
-      
+
       // Create FormData for file uploads
       const formDataToSend = new FormData()
-      
+
       // Append all form data with proper type conversion
-      Object.keys(formData).forEach(key => {
+      Object.keys(formData).forEach((key) => {
         if (formData[key] !== undefined && formData[key] !== null) {
-          let value = formData[key]
-          
+          const value = formData[key]
+
           // Handle file separately
-          if (key === 'payment_proof' && value instanceof File) {
+          if (key === "payment_proof" && value instanceof File) {
             formDataToSend.append(key, value)
-          } 
+          }
           // Convert boolean strings to actual booleans
-          else if (key === 'is_active') {
-            if (typeof value === 'string') {
-              formDataToSend.append(key, value.toLowerCase() === 'true' ? 'true' : 'false')
+          else if (key === "is_active") {
+            if (typeof value === "string") {
+              formDataToSend.append(key, value.toLowerCase() === "true" ? "true" : "false")
             } else {
-              formDataToSend.append(key, value ? 'true' : 'false')
+              formDataToSend.append(key, value ? "true" : "false")
             }
           }
           // Handle other fields
@@ -187,8 +229,8 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
           }
         }
       })
-      
-      let response;
+
+      let response
       if (editingItem) {
         response = await axiosInstance.put(`/${endpoint}/update/${editingItem.id}`, formDataToSend, {
           headers: {
@@ -210,7 +252,7 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
           style: { background: "#D1FAE5", color: "#10B981" },
         })
       }
-      fetchData()
+      fetchPage()
       handleCancel()
     } catch (error) {
       console.error("Operation failed", error)
@@ -233,7 +275,7 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
         toast.success(`${title} deleted successfully`, {
           style: { background: "#D1FAE5", color: "#10B981" },
         })
-        await fetchData()
+        await fetchPage()
       } catch (error) {
         console.error("Delete operation failed", error)
         toast.error("Delete operation failed", {
@@ -250,9 +292,7 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
-  const toggleSidebar = () => {
-    setIsSidebarOpen((prev) => !prev)
-  }
+  const toggleSidebar = () => setIsSidebarOpen((prev) => !prev)
 
   const memoizedColumns = useMemo(() => {
     return [
@@ -305,7 +345,38 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
         ),
       },
     ]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [columns])
+
+  const handleExport = async () => {
+    try {
+      const token = getToken()
+      const sort = sorting[0]
+      const params: Record<string, any> = {
+        sort_by: sort?.id,
+        sort_dir: sort?.desc ? "desc" : "asc",
+        q: globalSearch || undefined,
+      }
+      columnFilters.forEach((f) => {
+        if (f.value) params[`filter_${f.id}`] = f.value
+      })
+      const res = await axiosInstance.get(`/${endpoint}/export`, {
+        headers: { Authorization: `Bearer ${token}` },
+        params,
+        responseType: "blob",
+      })
+      const url = URL.createObjectURL(res.data)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = `${title.toLowerCase()}-export.csv`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(url)
+    } catch (e) {
+      toast.error("Export failed", { style: { background: "#FEE2E2", color: "#EF4444" } })
+    }
+  }
 
   return (
     <div className="flex h-screen bg-light-sky/50">
@@ -338,17 +409,7 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
                 </div>
                 <div className="flex flex-wrap gap-3">
                   <button
-                    onClick={() => {
-                      const csvData = data.map((item: any) => ({
-                        ...item,
-                        is_active: item.is_active ? "Active" : "Inactive",
-                      }))
-                      const csvLink = document.createElement("a")
-                      const csvContent = "data:text/csv;charset=utf-8," + encodeURIComponent(JSON.stringify(csvData))
-                      csvLink.href = csvContent
-                      csvLink.download = `${title.toLowerCase()}.csv`
-                      csvLink.click()
-                    }}
+                    onClick={handleExport}
                     className="bg-golden-amber text-white px-4 py-2.5 rounded-lg hover:bg-golden-amber/90 transition-colors flex items-center gap-2 shadow-sm"
                   >
                     <FileDown className="h-5 w-5" /> Export CSV
@@ -446,14 +507,31 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
 
             {/* Table Section */}
             <div className="mb-8">
-              <Table
-                data={data}
-                columns={memoizedColumns}
-                selectedRows={selectedRows}
-                setSelectedRows={setSelectedRows}
-                handleToggleStatus={handleToggleStatus}
-                isLoading={isLoading}
-              />
+            <Table
+  data={data}
+  columns={memoizedColumns}
+  selectedRows={selectedRows}
+  setSelectedRows={setSelectedRows}
+  handleToggleStatus={handleToggleStatus}
+  isLoading={isLoading}
+  manualPagination={true} // Explicitly set to true
+  pageCount={pageCount}
+  pagination={pagination}
+  onPaginationChange={(p) => {
+    setPagination(p)
+    // The fetchPage useEffect will trigger due to pagination dependency change
+  }}
+  sorting={sorting}
+  onSortingChange={(s) => setSorting(s as any)}
+  onGlobalFilterChangeExternal={(value) => {
+    setGlobalSearch(value)
+    setPagination((p) => ({ ...p, pageIndex: 0 }))
+  }}
+  onColumnFiltersChangeExternal={(filters) => {
+    setColumnFilters(filters as any)
+    setPagination((p) => ({ ...p, pageIndex: 0 }))
+  }}
+/>
             </div>
           </div>
         </main>
