@@ -39,6 +39,8 @@ interface CRUDPageProps<T> {
     validateBeforeSubmit?: (formData: Partial<T>) => string | null
     supportsBulkAdd?: boolean
     validationErrors?: Record<string, string>
+    loadingStates?: Record<string, boolean>
+    setLoadingStates?: React.Dispatch<React.SetStateAction<Record<string, boolean>>>
   }>
   onDataChange?: () => void
   validateBeforeSubmit?: (formData: Partial<T>) => string | null
@@ -68,6 +70,12 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
     total: 0,
     active: 0,
     inactive: 0,
+  })
+  // Add loading states for file uploads
+  const [loadingStates, setLoadingStates] = useState<Record<string, boolean>>({
+    cnic_front_image: false,
+    cnic_back_image: false,
+    agreement_document: false,
   })
 
   useEffect(() => {
@@ -101,6 +109,7 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
       setIsLoading(false)
     }
   }
+
   const handleBulkStatusChange = async (newStatus: boolean) => {
     if (selectedRows.length === 0) return
 
@@ -133,10 +142,17 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
       setIsLoading(false)
     }
   }
+
   const showModal = (item: T | null) => {
     setEditingItem(item)
     setFormData(item || {})
     setValidationErrors({})
+    // Reset loading states when opening modal
+    setLoadingStates({
+      cnic_front_image: false,
+      cnic_back_image: false,
+      agreement_document: false,
+    })
     setIsModalVisible(true)
   }
 
@@ -145,6 +161,12 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
     setEditingItem(null)
     setFormData({})
     setValidationErrors({})
+    // Reset loading states when closing modal
+    setLoadingStates({
+      cnic_front_image: false,
+      cnic_back_image: false,
+      agreement_document: false,
+    })
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -490,6 +512,8 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
             handleFileChange={handleFileChange}
             isEditing={!!editingItem}
             validationErrors={validationErrors}
+            loadingStates={loadingStates}
+            setLoadingStates={setLoadingStates}
           />
           <div className="mt-6 flex justify-end gap-3">
             <button

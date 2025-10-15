@@ -12,7 +12,6 @@ import { Sidebar } from "../components/sideNavbar.tsx"
 import { Topbar } from "../components/topNavbar.tsx"
 import MBALogo from "../assets/mba_logo.tsx"
 
-
 interface InvoiceData {
   id: string
   invoice_number: string
@@ -102,10 +101,38 @@ const InvoiceGenerationPage: React.FC = () => {
   }
 
   const formatDate = (dateString: string) => {
+    if (!dateString) return ""
     const date = new Date(dateString)
     const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
     return `${months[date.getMonth()]}/${date.getDate()}/${date.getFullYear()}`
   }
+
+  const getServiceDescription = (invoiceData: InvoiceData) => {
+    const type = invoiceData.invoice_type?.toLowerCase()
+    switch (type) {
+      case "subscription":
+        return `${invoiceData.service_plan_name} - Monthly Subscription`
+      case "installation":
+        return "Internet Installation Service"
+      case "equipment":
+        return "Network Equipment Purchase"
+      case "add_on":
+        return "Additional Service/Feature"
+      case "refund":
+        return "Payment Refund"
+      case "deposit":
+        return "Security Deposit"
+      case "maintenance":
+        return "Maintenance Service"
+      default:
+        return invoiceData.service_plan_name || invoiceData.invoice_type
+    }
+  }
+
+  const isSubscription = (invoiceData?.invoice_type || "").toLowerCase() === "subscription"
+  const invoiceDateToShow = isSubscription
+    ? invoiceData?.billing_start_date
+    : invoiceData?.due_date || invoiceData?.billing_start_date
 
   const getPaymentStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
@@ -114,6 +141,19 @@ const InvoiceGenerationPage: React.FC = () => {
       case "pending":
         return "bg-[#FEF3C7] text-[#F59E0B]"
       case "failed":
+        return "bg-[#FEE2E2] text-[#EF4444]"
+      default:
+        return "bg-[#EBF5FF] text-[#4A5568]"
+    }
+  }
+
+  const getStatusColor = (status: string) => {
+    switch (status.toLowerCase()) {
+      case "paid":
+        return "bg-[#D1FAE5] text-[#10B981] shadow-lg"
+      case "pending":
+        return "bg-[#FEF3C7] text-[#F59E0B]"
+      case "overdue":
         return "bg-[#FEE2E2] text-[#EF4444]"
       default:
         return "bg-[#EBF5FF] text-[#4A5568]"
@@ -194,34 +234,35 @@ const InvoiceGenerationPage: React.FC = () => {
       setIsDownloading(false)
     }
   }
+
   const handleShareWhatsApp = async () => {
-    if (!invoiceData?.customer_phone || !printRef.current) return;
-  
+    if (!invoiceData?.customer_phone || !printRef.current) return
+
     try {
-      setError(null);
-  
+      setError(null)
+
       // ✅ Normalize phone number
-      let phoneNumber = invoiceData.customer_phone.replace(/\D/g, ""); // remove non-digits
-  
+      let phoneNumber = invoiceData.customer_phone.replace(/\D/g, "") // remove non-digits
+
       if (phoneNumber.startsWith("92") && phoneNumber.length === 12) {
         // Already in correct format
       } else if (phoneNumber.startsWith("03") && phoneNumber.length === 11) {
         // Convert local 03XXXXXXXXX → 92XXXXXXXXXX
-        phoneNumber = "92" + phoneNumber.substring(1);
+        phoneNumber = "92" + phoneNumber.substring(1)
       } else if (phoneNumber.startsWith("3") && phoneNumber.length === 10) {
         // Convert local 3XXXXXXXXX → 92XXXXXXXXXX
-        phoneNumber = "92" + phoneNumber;
+        phoneNumber = "92" + phoneNumber
       } else if (phoneNumber.startsWith("0092") && phoneNumber.length === 14) {
         // Convert 0092XXXXXXXXXX → 92XXXXXXXXXX
-        phoneNumber = phoneNumber.substring(2);
+        phoneNumber = phoneNumber.substring(2)
       } else if (phoneNumber.startsWith("+92") && phoneNumber.length === 13) {
         // Convert +92XXXXXXXXXX → 92XXXXXXXXXX
-        phoneNumber = phoneNumber.substring(1);
+        phoneNumber = phoneNumber.substring(1)
       }
-  
+
       // ✅ Generate public invoice link
-      const publicInvoiceUrl = `${window.location.origin}/public/invoice/${invoiceData.id}`;
-  
+      const publicInvoiceUrl = `${window.location.origin}/public/invoice/${invoiceData.id}`
+
       // ✅ Build English-only message
       const message = `Hello ${invoiceData.customer_name},
   
@@ -237,36 +278,22 @@ const InvoiceGenerationPage: React.FC = () => {
   
   Please review your invoice and make the payment if pending.
   
-  Thank you for choosing MBA Communications!`;
-  
+  Thank you for choosing MBA Communications!`
+
       // ✅ Build URLs
-      const whatsappAppUrl = `whatsapp://send?phone=${phoneNumber}&text=${encodeURIComponent(message)}`;
-      const whatsappWebUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
-  
+      const whatsappAppUrl = `whatsapp://send?phone=${phoneNumber}&text=${encodeURIComponent(message)}`
+      const whatsappWebUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`
+
       // ✅ Try to open WhatsApp App first
-      window.location.href = whatsappAppUrl;
-  
+      window.location.href = whatsappAppUrl
+
       // ✅ Fallback to WhatsApp Web if app not available
       setTimeout(() => {
-        window.open(whatsappWebUrl, "_blank");
-      }, 1000);
+        window.open(whatsappWebUrl, "_blank")
+      }, 1000)
     } catch (error) {
-      console.error("WhatsApp share failed:", error);
-      setError("Failed to share via WhatsApp. Please try again.");
-    }
-  };
-  
-
-  const getStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
-      case "paid":
-        return "bg-[#D1FAE5] text-[#10B981] shadow-lg"
-      case "pending":
-        return "bg-[#FEF3C7] text-[#F59E0B]"
-      case "overdue":
-        return "bg-[#FEE2E2] text-[#EF4444]"
-      default:
-        return "bg-[#EBF5FF] text-[#4A5568]"
+      console.error("WhatsApp share failed:", error)
+      setError("Failed to share via WhatsApp. Please try again.")
     }
   }
 
@@ -394,9 +421,11 @@ const InvoiceGenerationPage: React.FC = () => {
                     <div className="bg-gray-50 rounded-lg p-3">
                       <div className="grid grid-cols-2 gap-3 mb-3">
                         <div>
-                          <h2 className="text-xs font-semibold text-gray-700 uppercase mb-1">Invoice Date</h2>
+                          <h2 className="text-xs font-semibold text-gray-700 uppercase mb-1">
+                            {isSubscription ? "Invoice Date" : "Invoice Date"}
+                          </h2>
                           <div className="text-gray-600 text-sm">
-                            {invoiceData?.billing_start_date && formatDate(invoiceData.billing_start_date)}
+                            {invoiceDateToShow && formatDate(invoiceDateToShow)}
                           </div>
                         </div>
                         <div>
@@ -406,13 +435,16 @@ const InvoiceGenerationPage: React.FC = () => {
                           </div>
                         </div>
                       </div>
-                      <div>
-                        <h2 className="text-xs font-semibold text-gray-700 uppercase mb-1">Billing Period</h2>
-                        <div className="text-gray-600 text-sm">
-                          {invoiceData?.billing_start_date && formatDate(invoiceData.billing_start_date)} -{" "}
-                          {invoiceData?.billing_end_date && formatDate(invoiceData.billing_end_date)}
+
+                      {isSubscription && (
+                        <div>
+                          <h2 className="text-xs font-semibold text-gray-700 uppercase mb-1">Billing Period</h2>
+                          <div className="text-gray-600 text-sm">
+                            {invoiceData?.billing_start_date && formatDate(invoiceData.billing_start_date)} -{" "}
+                            {invoiceData?.billing_end_date && formatDate(invoiceData.billing_end_date)}
+                          </div>
                         </div>
-                      </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -433,19 +465,22 @@ const InvoiceGenerationPage: React.FC = () => {
                         <tr className="border-b border-gray-200">
                           <td className="py-3 px-3">
                             <div className="text-gray-800 font-semibold mb-1">
-                              {invoiceData?.service_plan_name || invoiceData?.invoice_type}
+                              {invoiceData && getServiceDescription(invoiceData)}
                             </div>
                             <div className="text-gray-600 text-xs">
-                              Service Period:{" "}
-                              {invoiceData?.billing_start_date && formatDate(invoiceData.billing_start_date)} -{" "}
-                              {invoiceData?.billing_end_date && formatDate(invoiceData.billing_end_date)}
+                              {isSubscription
+                                ? `Service Period: ${formatDate(invoiceData!.billing_start_date)} - ${formatDate(invoiceData!.billing_end_date)}`
+                                : `Invoice Date: ${formatDate(invoiceDateToShow || "")}`}
                             </div>
+                            {invoiceData?.notes && (
+                              <div className="text-gray-600 text-xs mt-1">Note: {invoiceData.notes}</div>
+                            )}
                           </td>
                           <td className="py-3 px-3 text-right text-gray-800 font-semibold">
                             PKR {invoiceData?.subtotal.toFixed(2)}
                           </td>
                         </tr>
-                        {invoiceData?.discount_percentage > 0 && (
+                        {isSubscription && invoiceData?.discount_percentage > 0 && (
                           <tr className="border-b border-gray-200">
                             <td className="py-2 px-3 text-gray-700 text-sm">
                               Discount ({invoiceData.discount_percentage}%)
@@ -472,39 +507,6 @@ const InvoiceGenerationPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Payment details if paid */}
-                
-                {/* Payment Summary */}
-                <div className="bg-gray-50 rounded-lg p-4 mb-4">
-                  <h2 className="text-sm font-semibold text-gray-800 mb-3 flex items-center">
-                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                      />
-                    </svg>
-                    Payment Summary
-                  </h2>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                    <div className="text-center p-3 bg-white rounded-lg border">
-                      <div className="text-gray-600 mb-1">Invoice Total</div>
-                      <div className="text-xl font-bold text-gray-800">PKR {invoiceData?.total_amount.toFixed(2)}</div>
-                    </div>
-                    <div className="text-center p-3 bg-white rounded-lg border">
-                      <div className="text-gray-600 mb-1">Total Paid</div>
-                      <div className="text-xl font-bold text-green-600">PKR {invoiceData?.total_paid.toFixed(2)}</div>
-                    </div>
-                    <div className="text-center p-3 bg-white rounded-lg border">
-                      <div className="text-gray-600 mb-1">Remaining Balance</div>
-                      <div className={`text-xl font-bold ${(invoiceData?.remaining_amount || 0) > 0 ? 'text-red-600' : 'text-green-600'}`}>
-                        PKR {invoiceData?.remaining_amount.toFixed(2)}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
                 {/* Payment History */}
                 {invoiceData?.payments && invoiceData.payments.length > 0 && (
                   <div className="bg-gray-50 rounded-lg p-4 mb-4">
@@ -514,7 +516,7 @@ const InvoiceGenerationPage: React.FC = () => {
                           strokeLinecap="round"
                           strokeLinejoin="round"
                           strokeWidth={2}
-                          d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"
+                          d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"
                         />
                       </svg>
                       Payment History
@@ -527,14 +529,10 @@ const InvoiceGenerationPage: React.FC = () => {
                               <div className="font-semibold text-gray-800">
                                 Payment #{invoiceData.payments.length - index}
                               </div>
-                              <div className="text-gray-600 text-sm">
-                                Date: {formatDate(payment.payment_date)}
-                              </div>
+                              <div className="text-gray-600 text-sm">Date: {formatDate(payment.payment_date)}</div>
                             </div>
                             <div className="text-right">
-                              <div className="font-bold text-gray-800 text-lg">
-                                PKR {payment.amount.toFixed(2)}
-                              </div>
+                              <div className="font-bold text-gray-800 text-lg">PKR {payment.amount.toFixed(2)}</div>
                               <span
                                 className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getPaymentStatusColor(payment.status)}`}
                               >
@@ -551,9 +549,10 @@ const InvoiceGenerationPage: React.FC = () => {
                                 <span className="font-medium">Transaction ID:</span> {payment.transaction_id}
                               </div>
                             )}
-                            {payment.failure_reason && payment.status === 'failed' && (
+                            {payment.failure_reason && payment.status === "failed" && (
                               <div className="md:col-span-2">
-                                <span className="font-medium text-red-600">Failure Reason:</span> {payment.failure_reason}
+                                <span className="font-medium text-red-600">Failure Reason:</span>{" "}
+                                {payment.failure_reason}
                               </div>
                             )}
                           </div>
@@ -577,7 +576,7 @@ const InvoiceGenerationPage: React.FC = () => {
                       Pending Payment
                     </h2>
                     <p className="text-yellow-700 text-sm">
-                      Outstanding balance of <strong>PKR {invoiceData?.remaining_amount.toFixed(2)}</strong> is due. 
+                      Outstanding balance of <strong>PKR {invoiceData?.remaining_amount.toFixed(2)}</strong> is due.
                       Please make payment to avoid service interruption.
                     </p>
                   </div>
