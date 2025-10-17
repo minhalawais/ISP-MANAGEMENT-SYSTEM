@@ -109,9 +109,25 @@ export const UnifiedFinancialDashboard: React.FC = () => {
   const [bankAccounts, setBankAccounts] = useState<BankOption[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const getPakistaniDate = () => {
+    const now = new Date()
+    const utc = now.getTime() + (now.getTimezoneOffset() * 60000)
+    return new Date(utc + (3600000 * 5)) // Add 5 hours for PKT
+  }
+  
+  const formatDate = (date: Date) => {
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }
+  
+  const today = getPakistaniDate()
+  const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1)
+  
   const [filters, setFilters] = useState<FilterState>({
-    startDate: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split("T")[0],
-    endDate: new Date().toISOString().split("T")[0],
+    startDate: formatDate(startOfMonth),
+    endDate: formatDate(today),
     bankAccount: "all",
     paymentMethod: "all",
     invoiceStatus: "all",
@@ -162,15 +178,31 @@ export const UnifiedFinancialDashboard: React.FC = () => {
   }
 
   const handleQuickFilter = (timeRange: string) => {
-    const today = new Date()
-    let startDate = new Date()
-
+    // Get current date in Pakistani time (UTC+5)
+    const getPakistaniDate = () => {
+      const now = new Date()
+      const utc = now.getTime() + (now.getTimezoneOffset() * 60000)
+      return new Date(utc + (3600000 * 5)) // Add 5 hours for PKT
+    }
+  
+    // Format date as YYYY-MM-DD in local Pakistani time
+    const formatDate = (date: Date) => {
+      const year = date.getFullYear()
+      const month = String(date.getMonth() + 1).padStart(2, '0')
+      const day = String(date.getDate()).padStart(2, '0')
+      return `${year}-${month}-${day}`
+    }
+  
+    const today = getPakistaniDate()
+    let startDate = new Date(today)
+  
     switch (timeRange) {
       case "today":
-        startDate = today
+        startDate = new Date(today)
         break
       case "week":
-        startDate = new Date(today.setDate(today.getDate() - 7))
+        startDate = new Date(today)
+        startDate.setDate(today.getDate() - 7)
         break
       case "mtd":
         startDate = new Date(today.getFullYear(), today.getMonth(), 1)
@@ -188,17 +220,17 @@ export const UnifiedFinancialDashboard: React.FC = () => {
         setFilters((prev) => ({
           ...prev,
           timeRange,
-          startDate: startDate.toISOString().split("T")[0],
-          endDate: endDate.toISOString().split("T")[0],
+          startDate: formatDate(startDate),
+          endDate: formatDate(endDate),
         }))
         return
     }
-
+  
     setFilters((prev) => ({
       ...prev,
       timeRange,
-      startDate: startDate.toISOString().split("T")[0],
-      endDate: new Date().toISOString().split("T")[0],
+      startDate: formatDate(startDate),
+      endDate: formatDate(getPakistaniDate()),
     }))
   }
 
@@ -208,8 +240,8 @@ export const UnifiedFinancialDashboard: React.FC = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 p-6">
-        <div className="bg-white rounded-xl border border-red-200 p-6">
+      <div className="min-h-screen bg-gray-50 p-0 sm:p-6">
+        <div className="bg-white rounded-xl border border-red-200  p-0 sm:p-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center">
               <div className="w-12 h-12 rounded-lg bg-red-100 flex items-center justify-center mr-4">
@@ -248,21 +280,8 @@ export const UnifiedFinancialDashboard: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-gray-50 p-0 sm:p-6">
       {/* Header */}
-      <div className="mb-6">
-        <div className="flex justify-between items-start">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Financial Dashboard</h1>
-            <p className="text-gray-600">Comprehensive view of your ISP's financial performance including expenses</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="bg-blue-50 border border-blue-200 rounded-lg px-3 py-1">
-              <span className="text-blue-700 text-sm font-medium">Expenses Included</span>
-            </div>
-          </div>
-        </div>
-      </div>
 
       {/* Filters */}
       <AdvancedFilters
@@ -341,7 +360,7 @@ export const UnifiedFinancialDashboard: React.FC = () => {
 // Loading Skeleton Component
 const DashboardLoadingSkeleton: React.FC = () => {
   return (
-    <div className="min-h-screen bg-gray-50 p-6 space-y-6 animate-pulse">
+    <div className="min-h-screen bg-gray-50 p-0 sm:p-6 space-y-6 animate-pulse">
       {/* Header Skeleton */}
       <div className="flex justify-between items-start">
         <div className="space-y-2">

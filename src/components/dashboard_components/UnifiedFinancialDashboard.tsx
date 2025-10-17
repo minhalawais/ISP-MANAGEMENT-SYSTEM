@@ -7,11 +7,8 @@ export const UnifiedDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState<"analytics" | "ledger">("analytics")
 
   return (
-    <main className="p-6">
-      <header className="mb-4">
-        <h1 className="text-2xl md:text-3xl font-bold text-[#1F2937]">Unified Dashboard</h1>
-        <p className="text-[#6B7280]">Analytics overview and detailed ledger</p>
-      </header>
+    <main className="p-2 px-2">
+
 
       <div className="w-full">
         {/* Custom Tabs List */}

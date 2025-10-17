@@ -330,7 +330,7 @@ const InvoiceGenerationPage: React.FC = () => {
       <div className="flex-1 flex flex-col overflow-hidden">
         <Topbar toggleSidebar={toggleSidebar} />
         <div
-          className={`flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 p-6 pt-20 transition-all duration-300 ${isSidebarOpen ? "ml-72" : "ml-20"}`}
+          className={`flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 p-6 pt-20 transition-all duration-300 ${isSidebarOpen ? "ml-72" : "ml-0 md:ml-20"}`}
         >
           <div className="container mx-auto px-4 max-w-5xl">
             <div className="flex justify-between items-center mb-8">

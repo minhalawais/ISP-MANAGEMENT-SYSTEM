@@ -1,6 +1,6 @@
 "use client"
 import { useState, useEffect } from "react"
-import { ExecutiveSummary } from "./ExecutiveDashboard.tsx"
+import { ExecutiveDashboard } from "./ExecutiveDashboard.tsx"
 import { CustomerAnalytics } from "./CustomerAnalysis.tsx"
 import { FinancialAnalytics } from "./FinancialAnalysis.tsx"
 import { ServiceSupport } from "./ServiceSupport.tsx"
@@ -19,7 +19,7 @@ const sections = [
   {
     id: "executive",
     name: "Executive Overview",
-    component: ExecutiveSummary,
+    component: ExecutiveDashboard,
     category: "Leadership"
   },
   {
@@ -108,11 +108,15 @@ const Dashboard = () => {
         <Topbar toggleSidebar={toggleSidebar} />
 
         <div className="flex flex-col min-h-screen">
-          <main className={`flex-1 overflow-x-hidden overflow-y-auto bg-[#F1F0E8] transition-all duration-300 ${isSidebarOpen ? "ml-72" : "ml-20"}`}>
+        <main
+          className={`flex-1 overflow-x-hidden overflow-y-auto bg-[#F1F0E8] p-0 sm:p-6 pt-20 transition-all duration-300 ${
+              isSidebarOpen ? "ml-72" : "ml-0 lg:ml-20"
+            }`}
+          >
 
             {/* Header Section */}
             <div className="bg-white shadow-sm border-b border-[#E5E1DA] px-8 pt-20 pb-0">
-              <div className="max-w-[1400px] mx-auto">
+              <div className="max-w-[1800px] mx-auto">
                 <div className="flex items-center justify-between mb-6">
                   <div>
                     <h1 className="text-2xl font-semibold text-gray-900 mb-1">Business Intelligence</h1>
@@ -161,7 +165,7 @@ const Dashboard = () => {
 
             {/* Content Header */}
             <div className="bg-white border-b border-[#E5E1DA] px-8 py-4">
-              <div className="max-w-[1400px] mx-auto">
+              <div className="max-w-[1800px] mx-auto">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
                     <div className="w-1 h-8 bg-[#89A8B2] rounded-full"></div>
@@ -192,10 +196,10 @@ const Dashboard = () => {
             </div>
 
             {/* Main Content Area */}
-            <div className="flex-1 px-8 py-6">
-              <div className="max-w-[1400px] mx-auto">
+            <div className="flex-1 px-0 py-4">
+              <div className="max-w-[1800px] mx-auto">
                 <div className="bg-white rounded-lg shadow-sm border border-[#E5E1DA] min-h-[600px]">
-                  <div className="p-8">
+                  <div className="p-2 sm:p-6">
                     <div className="transition-all duration-300 ease-in-out">
                       <ActiveComponent filters={filters} />
                     </div>
@@ -206,7 +210,7 @@ const Dashboard = () => {
 
             {/* Professional Footer */}
             <footer className="bg-white border-t border-[#E5E1DA] px-8 py-4">
-              <div className="max-w-[1400px] mx-auto">
+              <div className="max-w-[1800px] mx-auto">
                 <div className="flex justify-between items-center text-xs text-gray-500">
                   <div className="flex items-center gap-6">
                     <span>© 2024 MBA NET</span>

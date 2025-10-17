@@ -308,10 +308,11 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
       <div className="flex-1 flex flex-col overflow-hidden">
         <Topbar toggleSidebar={toggleSidebar} />
         <main
-          className={`flex-1 overflow-x-hidden overflow-y-auto bg-light-sky/50 p-6 pt-20 transition-all duration-300 ${
-            isSidebarOpen ? "ml-64" : "ml-20"
-          }`}
-        >
+  className={`flex-1 overflow-x-hidden overflow-y-auto bg-light-sky/50 p-0 sm:p-6 pt-20 transition-all duration-300 ${
+    isSidebarOpen ? "ml-64" : "ml-0 lg:ml-20"
+  }`}
+>
+
           <div className="container mx-auto">
             {/* Breadcrumb */}
             <div className="flex items-center text-sm text-slate-gray mb-6">

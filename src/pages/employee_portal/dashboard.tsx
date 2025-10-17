@@ -93,7 +93,7 @@ const EmployeeDashboard: React.FC = () => {
       <div className={`flex flex-col flex-1 overflow-hidden transition-all duration-300 ease-in-out`}>
         <Topbar toggleSidebar={toggleSidebar} />
         <main
-          className={`flex-1 overflow-x-hidden overflow-y-auto bg-[#F1F0E8] p-6 pt-20 ${isSidebarOpen ? "ml-72" : "ml-20"}`}
+          className={`flex-1 overflow-x-hidden overflow-y-auto bg-[#F1F0E8] p-6 pt-20 ${isSidebarOpen ? "ml-72" : "ml-0 md:ml-20"}`}
         >
           <h1 className="text-3xl font-semibold text-[#89A8B2] mb-6">Employee Dashboard</h1>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">

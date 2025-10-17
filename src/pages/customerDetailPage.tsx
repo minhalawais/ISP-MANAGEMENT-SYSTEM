@@ -22,6 +22,7 @@ import {
   DollarSign,
   CheckCircle,
   AlertTriangle,
+  Eye,
 } from "lucide-react"
 import axiosInstance from "../utils/axiosConfig.ts"
 import { Sidebar } from "../components/sideNavbar.tsx"
@@ -131,6 +132,7 @@ interface Invoice {
 interface Payment {
   id: string
   invoice_id: string
+  invoice_number?: string
   amount: number
   payment_date: string
   payment_method: string
@@ -179,6 +181,7 @@ const CustomerDetail: React.FC = () => {
     back: null,
   })
   const [loading, setLoading] = useState(true)
+  const [loadingViewId, setLoadingViewId] = useState<string | null>(null)
 
   const toggleSidebar = () => {
     setIsSidebarOpen((prev) => !prev)
@@ -241,6 +244,22 @@ const CustomerDetail: React.FC = () => {
       if (cnicImageUrls.back) URL.revokeObjectURL(cnicImageUrls.back)
     }
   }, [customer, id])
+
+  const handleViewInvoice = async (invoiceId: string) => {
+    setLoadingViewId(invoiceId)
+    try {
+      const token = getToken()
+      // Verify the invoice exists and is accessible
+      await axiosInstance.get(`/invoices/${invoiceId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      window.open(`/invoices/${invoiceId}`, "_blank")
+    } catch (error) {
+      console.error("Failed to view invoice", error)
+    } finally {
+      setLoadingViewId(null)
+    }
+  }
 
   if (loading) {
     return (
@@ -426,6 +445,7 @@ const CustomerDetail: React.FC = () => {
           paymentReliability={customer.financialMetrics.paymentReliabilityScore}
         />
 
+        {/* Invoices Table with View Button */}
         <DataTable
           title="Invoices"
           icon={<CreditCard className="w-5 h-5" />}
@@ -471,18 +491,66 @@ const CustomerDetail: React.FC = () => {
                 <StatusBadge
                   status={
                     value === "paid"
-                      ? "Paid"
+                      ? "paid"
                       : value === "pending"
-                        ? "Pending"
-                        : ("failed" as "active" | "inactive" | "pending" | "completed" | "failed" | "resolved" | "open")
+                        ? "pending"
+                        : ("failed" as "active" | "inactive" | "pending" | "completed" | "failed" | "resolved" | "open" | "paid")
                   }
                 />
+              ),
+            },
+            {
+              key: "actions",
+              label: "Actions",
+              render: (_, row) => (
+                <div className="flex justify-center">
+                  <button
+                    onClick={() => handleViewInvoice(row.id)}
+                    disabled={loadingViewId === row.id}
+                    className={`flex items-center gap-2 px-4 py-2 bg-electric-blue text-white rounded-lg hover:bg-btn-hover transition-colors duration-200 text-sm shadow-sm ${
+                      loadingViewId === row.id ? "opacity-50 cursor-not-allowed" : ""
+                    }`}
+                    title="View Invoice"
+                  >
+                    {loadingViewId === row.id ? (
+                      <>
+                        <svg
+                          className="animate-spin h-4 w-4 text-white"
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                          ></circle>
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                          ></path>
+                        </svg>
+                        Loading...
+                      </>
+                    ) : (
+                      <>
+                        <Eye className="w-4 h-4" />
+                        View Invoice
+                      </>
+                    )}
+                  </button>
+                </div>
               ),
             },
           ]}
           data={invoices}
         />
 
+        {/* Payments Table with Correct Status and Bank Account Info */}
         <DataTable
           title="Payments & Bank Details"
           icon={<DollarSign className="w-5 h-5" />}
@@ -491,6 +559,11 @@ const CustomerDetail: React.FC = () => {
               key: "payment_date",
               label: "Payment Date",
               render: (value) => new Date(value).toLocaleDateString(),
+            },
+            {
+              key: "invoice_number",
+              label: "Invoice #",
+              render: (value) => value || "N/A",
             },
             {
               key: "amount",
@@ -510,30 +583,54 @@ const CustomerDetail: React.FC = () => {
               render: (value) => <span className="font-mono">{value || "N/A"}</span>,
             },
             {
-              key: "bank_name",
-              label: "Bank Name",
-              render: (_, row) => row.bank_account?.bank_name || "N/A",
-            },
-            {
-              key: "account_number",
-              label: "Account Number",
-              render: (_, row) =>
-                row.bank_account?.account_number ? `****${row.bank_account.account_number.slice(-4)}` : "N/A",
+              key: "bank_account",
+              label: "Bank Account",
+              render: (_, row) => {
+                if (row.bank_account) {
+                  return (
+                    <div className="text-sm">
+                      <div className="font-semibold text-[#2A5C8A]">{row.bank_account.bank_name}</div>
+                      <div className="text-[#4A5568]">
+                        {row.bank_account.account_number ? `****${row.bank_account.account_number.slice(-4)}` : "N/A"}
+                      </div>
+                    </div>
+                  )
+                }
+                return "N/A"
+              },
             },
             {
               key: "status",
               label: "Status",
-              render: (value) => (
-                <StatusBadge
-                  status={
-                    value === "Completed"
-                      ? "completed"
-                      : value === "Pending"
-                        ? "pending"
-                        : ("failed" as "active" | "inactive" | "pending" | "completed" | "failed" | "resolved" | "open")
-                  }
-                />
-              ),
+              render: (value) => {
+                let statusConfig = {
+                  bg: "bg-[#6B7280]",
+                  text: "Unknown"
+                }
+
+                switch (value?.toLowerCase()) {
+                  case "completed":
+                    statusConfig = { bg: "bg-[#10B981]", text: "Completed" }
+                    break
+                  case "pending":
+                    statusConfig = { bg: "bg-[#F59E0B]", text: "Pending" }
+                    break
+                  case "failed":
+                    statusConfig = { bg: "bg-[#EF4444]", text: "Failed" }
+                    break
+                  case "refunded":
+                    statusConfig = { bg: "bg-[#8B5CF6]", text: "Refunded" }
+                    break
+                  default:
+                    statusConfig = { bg: "bg-[#6B7280]", text: value || "Unknown" }
+                }
+
+                return (
+                  <span className={`${statusConfig.bg} text-white font-semibold rounded-full px-3 py-1 text-sm inline-block`}>
+                    {statusConfig.text}
+                  </span>
+                )
+              },
             },
           ]}
           data={payments}
@@ -733,138 +830,118 @@ const CustomerDetail: React.FC = () => {
             </div>
             <div>
               <span className="text-[#4A5568]">Length:</span>
-              <span className="ml-2 font-semibold text-[#2A5C8A]">
-                {customer.ethernet_cable_length ? `${customer.ethernet_cable_length}m` : "N/A"}
-              </span>
+              <span className="ml-2 font-semibold text-[#2A5C8A]">{customer.ethernet_cable_length || "N/A"} meters</span>
             </div>
           </div>
         </div>
 
-        <div className="border border-[#E5E1DA] rounded-lg p-4">
-          <h4 className="font-semibold text-[#2A5C8A] mb-3 flex items-center gap-2">
-            <Disc className="w-4 h-4" />
-            Dish
-          </h4>
-          <div className="space-y-2 text-sm">
-            <div>
-              <span className="text-[#4A5568]">Ownership:</span>
-              <span className="ml-2 font-semibold text-[#2A5C8A]">{customer.dish_ownership || "N/A"}</span>
-            </div>
-            <div>
-              <span className="text-[#4A5568]">MAC Address:</span>
-              <span className="ml-2 font-semibold text-[#2A5C8A]">{customer.dish_mac_address || "N/A"}</span>
+        {customer.dish_ownership && (
+          <div className="border border-[#E5E1DA] rounded-lg p-4">
+            <h4 className="font-semibold text-[#2A5C8A] mb-3 flex items-center gap-2">
+              <Disc className="w-4 h-4" />
+              Dish
+            </h4>
+            <div className="space-y-2 text-sm">
+              <div>
+                <span className="text-[#4A5568]">Ownership:</span>
+                <span className="ml-2 font-semibold text-[#2A5C8A]">{customer.dish_ownership}</span>
+              </div>
+              <div>
+                <span className="text-[#4A5568]">MAC Address:</span>
+                <span className="ml-2 font-semibold text-[#2A5C8A]">{customer.dish_mac_address || "N/A"}</span>
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
-        <div className="border border-[#E5E1DA] rounded-lg p-4">
-          <h4 className="font-semibold text-[#2A5C8A] mb-3 flex items-center gap-2">
-            <Tv className="w-4 h-4" />
-            TV Cable
-          </h4>
-          <div className="space-y-2 text-sm">
-            <div>
-              <span className="text-[#4A5568]">Connection Type:</span>
-              <span className="ml-2 font-semibold text-[#2A5C8A]">{customer.tv_cable_connection_type || "N/A"}</span>
-            </div>
-            <div>
-              <span className="text-[#4A5568]">Node Count:</span>
-              <span className="ml-2 font-semibold text-[#2A5C8A]">{customer.node_count || "N/A"}</span>
+        {customer.stb_serial_number && (
+          <div className="border border-[#E5E1DA] rounded-lg p-4">
+            <h4 className="font-semibold text-[#2A5C8A] mb-3 flex items-center gap-2">
+              <Tv className="w-4 h-4" />
+              Set Top Box
+            </h4>
+            <div className="space-y-2 text-sm">
+              <div>
+                <span className="text-[#4A5568]">Serial Number:</span>
+                <span className="ml-2 font-semibold text-[#2A5C8A]">{customer.stb_serial_number}</span>
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   )
 
   const renderDocumentsTab = () => (
     <div className="space-y-6">
-      {/* CNIC Images */}
-      <div className="bg-white rounded-lg shadow-sm border border-[#E5E1DA] overflow-hidden">
-        <div className="bg-gradient-to-r from-[#89A8B2] to-[#7a9aa4] px-6 py-4">
-          <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-            <ImageIcon className="w-5 h-5" />
-            CNIC Images
-          </h3>
-        </div>
-        <div className="p-6">
-          {cnicImageUrls.front || cnicImageUrls.back ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {cnicImageUrls.front && (
-                <div>
-                  <p className="text-sm text-[#4A5568] font-medium mb-3">Front Side</p>
-                  <img
-                    src={cnicImageUrls.front || "/placeholder.svg"}
-                    alt="CNIC Front"
-                    className="w-full h-48 object-cover rounded-lg shadow-md border border-[#E5E1DA]"
-                  />
-                </div>
-              )}
-              {cnicImageUrls.back && (
-                <div>
-                  <p className="text-sm text-[#4A5568] font-medium mb-3">Back Side</p>
-                  <img
-                    src={cnicImageUrls.back || "/placeholder.svg"}
-                    alt="CNIC Back"
-                    className="w-full h-48 object-cover rounded-lg shadow-md border border-[#E5E1DA]"
-                  />
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="text-center py-8 text-[#4A5568]">
-              <ImageIcon className="w-12 h-12 text-[#89A8B2] mx-auto mb-3" />
-              <p>No CNIC images available</p>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Agreement Document */}
       <div className="bg-white rounded-lg shadow-sm border border-[#E5E1DA] overflow-hidden">
         <div className="bg-gradient-to-r from-[#89A8B2] to-[#7a9aa4] px-6 py-4">
           <h3 className="text-lg font-semibold text-white flex items-center gap-2">
             <FileText className="w-5 h-5" />
-            Agreement Document
+            CNIC Images
           </h3>
         </div>
         <div className="p-6">
-          {customer.agreement_document ? (
-            <button
-              onClick={() => {
-                const token = getToken()
-                fetch(`/customers/agreement-document/${customer.id}`, {
-                  headers: { Authorization: `Bearer ${token}` },
-                })
-                  .then((response) => response.blob())
-                  .then((blob) => {
-                    const url = window.URL.createObjectURL(blob)
-                    const a = document.createElement("a")
-                    a.style.display = "none"
-                    a.href = url
-                    a.target = "_blank"
-                    document.body.appendChild(a)
-                    a.click()
-                    window.URL.revokeObjectURL(url)
-                  })
-                  .catch((error) => console.error("Error:", error))
-              }}
-              className="px-6 py-3 bg-[#89A8B2] text-white rounded-lg font-semibold hover:bg-[#7a9aa4] transition-colors"
-            >
-              View Agreement Document
-            </button>
-          ) : (
-            <div className="text-center py-8 text-[#4A5568]">
-              <FileText className="w-12 h-12 text-[#89A8B2] mx-auto mb-3" />
-              <p>No agreement document available</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <h4 className="font-semibold text-[#2A5C8A] mb-3">Front Side</h4>
+              {cnicImageUrls.front ? (
+                <img
+                  src={cnicImageUrls.front}
+                  alt="CNIC Front"
+                  className="w-full max-w-md h-auto border border-[#E5E1DA] rounded-lg shadow-sm"
+                />
+              ) : (
+                <div className="border border-[#E5E1DA] rounded-lg p-8 text-center">
+                  <ImageIcon className="w-12 h-12 text-[#89A8B2] mx-auto mb-3" />
+                  <p className="text-[#4A5568]">CNIC front image not available</p>
+                </div>
+              )}
             </div>
-          )}
+            <div>
+              <h4 className="font-semibold text-[#2A5C8A] mb-3">Back Side</h4>
+              {cnicImageUrls.back ? (
+                <img
+                  src={cnicImageUrls.back}
+                  alt="CNIC Back"
+                  className="w-full max-w-md h-auto border border-[#E5E1DA] rounded-lg shadow-sm"
+                />
+              ) : (
+                <div className="border border-[#E5E1DA] rounded-lg p-8 text-center">
+                  <ImageIcon className="w-12 h-12 text-[#89A8B2] mx-auto mb-3" />
+                  <p className="text-[#4A5568]">CNIC back image not available</p>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
+
+      {customer.agreement_document && (
+        <div className="bg-white rounded-lg shadow-sm border border-[#E5E1DA] overflow-hidden">
+          <div className="bg-gradient-to-r from-[#89A8B2] to-[#7a9aa4] px-6 py-4">
+            <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+              <FileText className="w-5 h-5" />
+              Agreement Document
+            </h3>
+          </div>
+          <div className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h4 className="font-semibold text-[#2A5C8A]">Customer Agreement</h4>
+                <p className="text-sm text-[#4A5568] mt-1">Signed on {new Date(customer.installation_date).toLocaleDateString()}</p>
+              </div>
+              <button className="px-4 py-2 bg-[#2A5C8A] text-white rounded-lg hover:bg-[#1e4568] transition-colors duration-200">
+                Download
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 
-  const renderTabContent = () => {
+  const renderContent = () => {
     switch (activeTab) {
       case "overview":
         return renderOverviewTab()
@@ -885,70 +962,55 @@ const CustomerDetail: React.FC = () => {
 
   return (
     <div className="flex h-screen bg-[#F1F0E8]">
-      <Sidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} setIsOpen={setIsSidebarOpen} />
-
+      <Sidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} />
       <div className="flex-1 flex flex-col overflow-hidden">
         <Topbar toggleSidebar={toggleSidebar} />
-
-        <div
-          className={`flex-1 overflow-x-hidden overflow-y-auto bg-[#F1F0E8] transition-all duration-300 ${isSidebarOpen ? "ml-72" : "ml-20"}`}
-        >
-          <div className="pt-20 pb-8">
-            {/* Header Section */}
-            <div className="bg-white shadow-sm border-b border-[#E5E1DA] px-8 py-6">
-              <div className="max-w-[1400px] mx-auto">
-                <div className="flex items-center justify-between mb-6">
-                  <div>
-                    <h1 className="text-3xl font-bold text-[#2A5C8A] mb-1">
-                      {`${customer.first_name} ${customer.last_name}`}
-                    </h1>
-                    <p className="text-[#4A5568] text-sm">Internet ID: {customer.internet_id}</p>
-                  </div>
-                  <StatusBadge status={customer.is_active ? "active" : "inactive"} />
-                </div>
-
-                {/* Tab Navigation */}
-                <div className="flex overflow-x-auto scrollbar-hide space-x-2 bg-[#F1F0E8] p-2 rounded-lg">
-                  {sections.map((section) => {
-                    const Icon = section.icon
-                    return (
-                      <button
-                        key={section.id}
-                        onClick={() => setActiveTab(section.id)}
-                        className={`flex-shrink-0 px-4 py-2.5 text-sm font-medium rounded-md transition-all duration-200 whitespace-nowrap flex items-center gap-2 ${
-                          activeTab === section.id
-                            ? "bg-white text-[#89A8B2] shadow-sm border border-[#E5E1DA]"
-                            : "text-[#4A5568] hover:text-[#2A5C8A] hover:bg-white/60"
-                        }`}
-                      >
-                        <Icon className="w-4 h-4" />
-                        {section.name}
-                      </button>
-                    )
-                  })}
-                </div>
+        <main className="flex-1 overflow-y-auto p-4 md:p-6 mt-12">
+          <div className="max-w-7xl mx-auto">
+            {/* Header */}
+            <div className="mb-6">
+              <h1 className="text-2xl md:text-3xl font-bold text-[#2A5C8A]">
+                {customer.first_name} {customer.last_name}
+              </h1>
+              <p className="text-[#4A5568] mt-1">
+                {customer.internet_id} • {customer.area} • {customer.service_plan}
+              </p>
+              <div className="flex items-center gap-2 mt-2">
+                <StatusBadge status={customer.is_active ? "active" : "inactive"} />
+                <span className="text-sm text-[#4A5568]">
+                  Member since {new Date(customer.installation_date).toLocaleDateString()}
+                </span>
               </div>
             </div>
 
-            {/* Content Section */}
-            <div className="px-8 py-6">
-              <div className="max-w-[1400px] mx-auto">
-                <div className="transition-all duration-300 ease-in-out">{renderTabContent()}</div>
+            {/* Navigation Tabs */}
+            <div className="bg-white rounded-lg shadow-sm border border-[#E5E1DA] mb-6 overflow-hidden">
+              <div className="flex overflow-x-auto">
+                {sections.map((section) => {
+                  const Icon = section.icon
+                  return (
+                    <button
+                      key={section.id}
+                      onClick={() => setActiveTab(section.id)}
+                      className={`flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors duration-200 whitespace-nowrap ${
+                        activeTab === section.id
+                          ? "bg-[#2A5C8A] text-white"
+                          : "text-[#4A5568] hover:bg-[#F8F7F2]"
+                      }`}
+                    >
+                      <Icon className="w-4 h-4" />
+                      {section.name}
+                    </button>
+                  )
+                })}
               </div>
             </div>
+
+            {/* Content */}
+            {renderContent()}
           </div>
-        </div>
+        </main>
       </div>
-
-      <style jsx>{`
-        .scrollbar-hide {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
-        }
-        .scrollbar-hide::-webkit-scrollbar {
-          display: none;
-        }
-      `}</style>
     </div>
   )
 }

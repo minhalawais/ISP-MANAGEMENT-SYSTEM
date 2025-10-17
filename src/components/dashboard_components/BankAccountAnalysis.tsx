@@ -476,6 +476,7 @@ export const BankAccountAnalysis: React.FC<BankAccountAnalysisProps> = ({ filter
 
   // Safe data accessors with proper type checking
   const safeData = useMemo(() => {
+    console.log('analyticsData ',analyticsData)
     if (!analyticsData) return null
     
     return {

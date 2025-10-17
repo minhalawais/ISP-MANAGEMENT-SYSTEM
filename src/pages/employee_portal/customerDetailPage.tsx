@@ -276,7 +276,7 @@ const CustomerDetail: React.FC = () => {
       <div className="flex-1 flex flex-col overflow-hidden">
         <Topbar toggleSidebar={toggleSidebar} />
         <div
-          className={`flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-6 pt-20 transition-all duration-300 ${isSidebarOpen ? "ml-72" : "ml-20"}`}
+          className={`flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-6 pt-20 transition-all duration-300 ${isSidebarOpen ? "ml-72" : "ml-0 md:ml-20"}`}
         >
           <div className="max-w-5xl mx-auto">
             <div className="mb-8 flex items-center justify-between">

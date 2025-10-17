@@ -4,6 +4,7 @@ import type React from "react"
 import { useState, useEffect, useCallback, useMemo } from "react"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts"
 import axiosInstance from "../../utils/axiosConfig.ts"
+import { Ledger } from "./ledger/Ledger.tsx"
 
 // Production-grade type definitions
 interface CustomerGrowthData {
@@ -375,11 +376,12 @@ const ServicePlanChart: React.FC<{ data: ServicePlanData[] }> = ({ data }) => {
   )
 }
 
-// Main component with production-grade practices
-export const ExecutiveSummary: React.FC = () => {
+// Main Executive Dashboard component
+export const ExecutiveDashboard: React.FC = () => {
   const [dashboardData, setDashboardData] = useState<ExecutiveDashboardData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [activeTab, setActiveTab] = useState<"executive" | "ledger">("executive")
 
   const fetchDashboardData = useCallback(async () => {
     try {
@@ -478,92 +480,133 @@ export const ExecutiveSummary: React.FC = () => {
 
   return (
     <div className="space-y-8">
-      {/* Header */}
-      <div className="flex items-center">
-        <IconDashboard className="w-8 h-8 mr-3" style={{ color: COLORS.primary }} />
-        <h2 className="text-3xl font-bold" style={{ color: COLORS.gray[800] }}>
-          Executive Summary
-        </h2>
-      </div>
-
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {kpiData.map((kpi, index) => (
-          <KPICard key={index} {...kpi} />
-        ))}
-      </div>
-
-      {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Customer Growth Trend */}
-        <div className="bg-white rounded-xl border border-[#E5E1DA] p-6">
-          <div className="mb-6">
-            <h3 className="text-xl font-bold text-[#1F2937] mb-2">Customer Growth Trend</h3>
-            <p className="text-sm text-[#6B7280]">Monthly customer acquisition and growth patterns</p>
-          </div>
-          <ResponsiveContainer width="100%" height={350}>
-            <AreaChart 
-              data={dashboardData.customer_growth_data} 
-              margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
-            >
-              <defs>
-                <linearGradient id="customerGrowthGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={COLORS.primary} stopOpacity={0.8}/>
-                  <stop offset="100%" stopColor={COLORS.primary} stopOpacity={0.1}/>
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke={COLORS.tertiary} opacity={0.7} />
-              <XAxis 
-                dataKey="month" 
-                tick={{ fill: COLORS.gray[600], fontSize: 12 }}
-                tickLine={{ stroke: COLORS.tertiary }}
-                axisLine={{ stroke: COLORS.tertiary }}
-              />
-              <YAxis 
-                tick={{ fill: COLORS.gray[600], fontSize: 12 }}
-                tickLine={{ stroke: COLORS.tertiary }}
-                axisLine={{ stroke: COLORS.tertiary }}
-              />
-              <Tooltip content={<CustomTooltip />} />
-              <Area
-                type="monotone"
-                dataKey="customers"
-                stroke={COLORS.primary}
-                strokeWidth={3}
-                fill="url(#customerGrowthGradient)"
-                dot={{ fill: COLORS.primary, strokeWidth: 2, r: 4 }}
-                activeDot={{ r: 6, stroke: COLORS.primary, strokeWidth: 2 }}
-                name="Customers"
-              />
-            </AreaChart>
-          </ResponsiveContainer>
+      {/* Header with Tabs */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex items-center">
+          <IconDashboard className="w-8 h-8 mr-3" style={{ color: COLORS.primary }} />
+          <h2 className="text-3xl font-bold" style={{ color: COLORS.gray[800] }}>
+            Executive Dashboard
+          </h2>
         </div>
+        
+        {/* Tab Navigation */}
+        <div className="grid grid-cols-2 w-full sm:w-auto bg-[#F1F0E8] border border-[#E5E1DA] rounded-lg p-1">
+          <button
+            onClick={() => setActiveTab("executive")}
+            className={`px-4 py-2 rounded-md font-medium transition-all duration-200 ${
+              activeTab === "executive"
+                ? "bg-white text-[#1F2937] shadow-sm"
+                : "text-[#6B7280] hover:text-[#1F2937]"
+            }`}
+          >
+            Executive Summary
+          </button>
+          <button
+            onClick={() => setActiveTab("ledger")}
+            className={`px-4 py-2 rounded-md font-medium transition-all duration-200 ${
+              activeTab === "ledger"
+                ? "bg-white text-[#1F2937] shadow-sm"
+                : "text-[#6B7280] hover:text-[#1F2937]"
+            }`}
+          >
+            Ledger
+          </button>
+        </div>
+      </div>
 
-        {/* Business Health Overview Placeholder */}
-        <div className="bg-white rounded-xl border border-[#E5E1DA] p-6">
-          <div className="mb-6">
-            <h3 className="text-xl font-bold text-[#1F2937] mb-2">Business Health Overview</h3>
-            <p className="text-sm text-[#6B7280]">Key performance indicators and health metrics</p>
-          </div>
-          <div className="h-[350px] flex items-center justify-center bg-[#F1F0E8] rounded-xl border-2 border-dashed border-[#B3C8CF]">
-            <div className="text-center">
-              <div className="w-16 h-16 mx-auto mb-4 bg-[#89A8B2]/10 rounded-full flex items-center justify-center">
-                <svg className="w-8 h-8 text-[#89A8B2]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                </svg>
-              </div>
-              <h4 className="text-lg font-semibold text-[#1F2937] mb-2">Advanced Analytics</h4>
-              <p className="text-sm text-[#6B7280] mb-4">Comprehensive business insights coming soon</p>
-              <button className="px-4 py-2 bg-[#89A8B2] text-white rounded-lg hover:bg-[#6B8E95] transition-colors duration-200 text-sm font-medium">
-                View Detailed Report
-              </button>
+      {/* Tab Content */}
+      <div className="mt-4">
+        {activeTab === "executive" && (
+          <>
+            {/* KPI Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {kpiData.map((kpi, index) => (
+                <KPICard key={index} {...kpi} />
+              ))}
             </div>
-          </div>
-        </div>
-      </div>
 
-      {/* Service Plan Distribution */}
-      <ServicePlanChart data={dashboardData.service_plan_data} />
+            {/* Charts Section */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
+              {/* Customer Growth Trend */}
+              <div className="bg-white rounded-xl border border-[#E5E1DA] p-6">
+                <div className="mb-6">
+                  <h3 className="text-xl font-bold text-[#1F2937] mb-2">Customer Growth Trend</h3>
+                  <p className="text-sm text-[#6B7280]">Monthly customer acquisition and growth patterns</p>
+                </div>
+                <ResponsiveContainer width="100%" height={350}>
+                  <AreaChart 
+                    data={dashboardData.customer_growth_data} 
+                    margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
+                  >
+                    <defs>
+                      <linearGradient id="customerGrowthGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor={COLORS.primary} stopOpacity={0.8}/>
+                        <stop offset="100%" stopColor={COLORS.primary} stopOpacity={0.1}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke={COLORS.tertiary} opacity={0.7} />
+                    <XAxis 
+                      dataKey="month" 
+                      tick={{ fill: COLORS.gray[600], fontSize: 12 }}
+                      tickLine={{ stroke: COLORS.tertiary }}
+                      axisLine={{ stroke: COLORS.tertiary }}
+                    />
+                    <YAxis 
+                      tick={{ fill: COLORS.gray[600], fontSize: 12 }}
+                      tickLine={{ stroke: COLORS.tertiary }}
+                      axisLine={{ stroke: COLORS.tertiary }}
+                    />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Area
+                      type="monotone"
+                      dataKey="customers"
+                      stroke={COLORS.primary}
+                      strokeWidth={3}
+                      fill="url(#customerGrowthGradient)"
+                      dot={{ fill: COLORS.primary, strokeWidth: 2, r: 4 }}
+                      activeDot={{ r: 6, stroke: COLORS.primary, strokeWidth: 2 }}
+                      name="Customers"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+
+              {/* Business Health Overview Placeholder */}
+              <div className="bg-white rounded-xl border border-[#E5E1DA] p-6">
+                <div className="mb-6">
+                  <h3 className="text-xl font-bold text-[#1F2937] mb-2">Business Health Overview</h3>
+                  <p className="text-sm text-[#6B7280]">Key performance indicators and health metrics</p>
+                </div>
+                <div className="h-[350px] flex items-center justify-center bg-[#F1F0E8] rounded-xl border-2 border-dashed border-[#B3C8CF]">
+                  <div className="text-center">
+                    <div className="w-16 h-16 mx-auto mb-4 bg-[#89A8B2]/10 rounded-full flex items-center justify-center">
+                      <svg className="w-8 h-8 text-[#89A8B2]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                      </svg>
+                    </div>
+                    <h4 className="text-lg font-semibold text-[#1F2937] mb-2">Advanced Analytics</h4>
+                    <p className="text-sm text-[#6B7280] mb-4">Comprehensive business insights coming soon</p>
+                    <button className="px-4 py-2 bg-[#89A8B2] text-white rounded-lg hover:bg-[#6B8E95] transition-colors duration-200 text-sm font-medium">
+                      View Detailed Report
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Service Plan Distribution */}
+            <div className="mt-8">
+              <ServicePlanChart data={dashboardData.service_plan_data} />
+            </div>
+          </>
+        )}
+
+        {activeTab === "ledger" && (
+          <div className="mt-4">
+            <Ledger />
+          </div>
+        )}
+      </div>
     </div>
   )
 }

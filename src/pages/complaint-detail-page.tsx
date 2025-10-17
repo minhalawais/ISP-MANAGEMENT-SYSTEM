@@ -242,7 +242,7 @@ const ComplaintDetailPage = () => {
         <Topbar toggleSidebar={toggleSidebar} />
         <main
           className={`flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-6 pt-20 transition-all duration-300 ${
-            isSidebarOpen ? "ml-72" : "ml-20"
+            isSidebarOpen ? "ml-72" : "ml-0 md:ml-20"
           }`}
         >
           <div className="container mx-auto max-w-5xl">

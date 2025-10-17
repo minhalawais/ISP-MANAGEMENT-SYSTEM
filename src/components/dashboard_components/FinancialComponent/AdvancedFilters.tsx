@@ -1,6 +1,47 @@
 "use client"
 
 import type React from "react"
+import { motion } from "framer-motion"
+
+const COLORS = {
+  primary: "#89A8B2",
+  secondary: "#B3C8CF",
+  tertiary: "#E5E1DA",
+  background: "#F1F0E8",
+}
+
+const IconFilter: React.FC<{ className?: string }> = ({ className = "w-5 h-5" }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
+    />
+  </svg>
+)
+
+const IconCalendar: React.FC<{ className?: string }> = ({ className = "w-5 h-5" }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+    />
+  </svg>
+)
+
+const IconBank: React.FC<{ className?: string }> = ({ className = "w-5 h-5" }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z"
+    />
+  </svg>
+)
 
 interface FilterState {
   startDate: string
@@ -47,13 +88,6 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
     { value: "credit_card", label: "Credit Card" },
   ]
 
-  const invoiceStatuses = [
-    { value: "all", label: "All Statuses" },
-    { value: "paid", label: "Paid" },
-    { value: "pending", label: "Pending" },
-    { value: "overdue", label: "Overdue" },
-  ]
-
   const ispPaymentTypes = [
     { value: "all", label: "All Types" },
     { value: "monthly_subscription", label: "Monthly Subscription" },
@@ -63,48 +97,70 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
   ]
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
-      <div className="flex items-center mb-4">
-        <svg className="w-5 h-5 text-gray-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.207A1 1 0 013 6.5V4z"
-          />
-        </svg>
-        <h3 className="text-lg font-semibold text-gray-900">Filters</h3>
+    <motion.div
+      className="bg-white rounded-2xl border border-[#E5E1DA] p-4 md:p-6 mb-6 shadow-sm hover:shadow-md transition-shadow duration-300"
+      initial={{ opacity: 0, y: -20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+    >
+      {/* Header */}
+      <div className="flex items-center mb-6 pb-4 border-b border-[#E5E1DA]">
+        <div className="w-10 h-10 rounded-lg flex items-center justify-center mr-3 shadow-sm bg-[#89A8B2]/10">
+          <IconFilter className="w-5 h-5" style={{ color: COLORS.primary }} />
+        </div>
+        <div>
+          <h3 className="text-lg font-bold text-[#1F2937]">Advanced Filters</h3>
+          <p className="text-sm text-[#6B7280]">Refine your data view with custom filters</p>
+        </div>
       </div>
 
       {/* Quick Filters */}
       <div className="mb-6">
-        <label className="text-sm font-medium text-gray-700 mb-3 block">Quick Periods</label>
+        <label className="text-sm font-semibold text-[#1F2937] mb-3 flex items-center">
+          <IconCalendar className="w-4 h-4 mr-2" style={{ color: COLORS.primary }} />
+          Quick Time Periods
+        </label>
         <div className="flex flex-wrap gap-2">
-          {quickFilters.map((filter) => (
-            <button
+          {quickFilters.map((filter, index) => (
+            <motion.button
               key={filter.key}
               onClick={() => onQuickFilter(filter.key)}
-              className={`px-3 py-2 text-sm font-medium rounded-lg border transition-colors ${
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: index * 0.05 }}
+              className={`px-3 md:px-4 py-2 text-xs md:text-sm font-medium rounded-lg border transition-all duration-200 ${
                 filters.timeRange === filter.key
-                  ? "bg-blue-600 text-white border-blue-600"
-                  : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+                  ? "text-white shadow-md"
+                  : "bg-white text-[#1F2937] border-[#E5E1DA] hover:border-[#89A8B2]"
               }`}
+              style={
+                filters.timeRange === filter.key ? { backgroundColor: COLORS.primary, borderColor: COLORS.primary } : {}
+              }
             >
               {filter.label}
-            </button>
+            </motion.button>
           ))}
         </div>
       </div>
 
-      {/* Advanced Filters */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-        {/* Bank Account - NEW */}
-        <div>
-          <label className="text-sm font-medium text-gray-700 mb-2 block">Bank Account</label>
+      {/* Advanced Filters Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 md:gap-4">
+        {/* Bank Account */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.1 }}
+        >
+          <label className="text-xs md:text-sm font-semibold text-[#1F2937] mb-2 flex items-center">
+            <IconBank className="w-4 h-4 mr-1.5" style={{ color: COLORS.primary }} />
+            Bank Account
+          </label>
           <select
             value={filters.bankAccount}
             onChange={(e) => onFilterChange("bankAccount", e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full px-3 py-2 md:py-2.5 border border-[#E5E1DA] rounded-lg text-xs md:text-sm focus:outline-none focus:ring-2 focus:ring-[#89A8B2] focus:border-transparent transition-all duration-200 bg-white text-[#1F2937]"
           >
             <option value="all">All Accounts</option>
             {bankAccounts.map((acc) => (
@@ -113,36 +169,49 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
               </option>
             ))}
           </select>
-        </div>
+        </motion.div>
 
-        {/* Date Range */}
-        <div>
-          <label className="text-sm font-medium text-gray-700 mb-2 block">Start Date</label>
+        {/* Start Date */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.15 }}
+        >
+          <label className="text-xs md:text-sm font-semibold text-[#1F2937] mb-2 block">Start Date</label>
           <input
             type="date"
             value={filters.startDate}
             onChange={(e) => onFilterChange("startDate", e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full px-3 py-2 md:py-2.5 border border-[#E5E1DA] rounded-lg text-xs md:text-sm focus:outline-none focus:ring-2 focus:ring-[#89A8B2] focus:border-transparent transition-all duration-200 bg-white text-[#1F2937]"
           />
-        </div>
+        </motion.div>
 
-        <div>
-          <label className="text-sm font-medium text-gray-700 mb-2 block">End Date</label>
+        {/* End Date */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.2 }}
+        >
+          <label className="text-xs md:text-sm font-semibold text-[#1F2937] mb-2 block">End Date</label>
           <input
             type="date"
             value={filters.endDate}
             onChange={(e) => onFilterChange("endDate", e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full px-3 py-2 md:py-2.5 border border-[#E5E1DA] rounded-lg text-xs md:text-sm focus:outline-none focus:ring-2 focus:ring-[#89A8B2] focus:border-transparent transition-all duration-200 bg-white text-[#1F2937]"
           />
-        </div>
+        </motion.div>
 
         {/* Payment Method */}
-        <div>
-          <label className="text-sm font-medium text-gray-700 mb-2 block">Payment Method</label>
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.25 }}
+        >
+          <label className="text-xs md:text-sm font-semibold text-[#1F2937] mb-2 block">Payment Method</label>
           <select
             value={filters.paymentMethod}
             onChange={(e) => onFilterChange("paymentMethod", e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full px-3 py-2 md:py-2.5 border border-[#E5E1DA] rounded-lg text-xs md:text-sm focus:outline-none focus:ring-2 focus:ring-[#89A8B2] focus:border-transparent transition-all duration-200 bg-white text-[#1F2937]"
           >
             {paymentMethods.map((method) => (
               <option key={method.value} value={method.value}>
@@ -150,15 +219,19 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
               </option>
             ))}
           </select>
-        </div>
+        </motion.div>
 
         {/* ISP Payment Type */}
-        <div>
-          <label className="text-sm font-medium text-gray-700 mb-2 block">ISP Payment Type</label>
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.3 }}
+        >
+          <label className="text-xs md:text-sm font-semibold text-[#1F2937] mb-2 block">ISP Payment Type</label>
           <select
             value={filters.ispPaymentType}
             onChange={(e) => onFilterChange("ispPaymentType", e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full px-3 py-2 md:py-2.5 border border-[#E5E1DA] rounded-lg text-xs md:text-sm focus:outline-none focus:ring-2 focus:ring-[#89A8B2] focus:border-transparent transition-all duration-200 bg-white text-[#1F2937]"
           >
             {ispPaymentTypes.map((type) => (
               <option key={type.value} value={type.value}>
@@ -166,8 +239,8 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
               </option>
             ))}
           </select>
-        </div>
+        </motion.div>
       </div>
-    </div>
+    </motion.div>
   )
 }

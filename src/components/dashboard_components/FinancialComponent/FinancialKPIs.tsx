@@ -2,6 +2,7 @@
 
 import type React from "react"
 import { useMemo } from "react"
+import { motion } from "framer-motion"
 
 // Production-grade color system (matching AreaAnalysis)
 const COLORS = {
@@ -126,6 +127,29 @@ const IconBank: React.FC<{ className?: string }> = ({ className = "w-5 h-5" }) =
   </svg>
 )
 
+// Animation variants
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1
+    }
+  }
+}
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.5,
+      ease: "easeOut"
+    }
+  }
+}
+
 // ============ FINANCIAL KPIs COMPONENT ============
 
 interface KPIData {
@@ -163,8 +187,8 @@ export const FinancialKPIs: React.FC<FinancialKPIsProps> = ({ data }) => {
         value: formatCurrency(data.total_revenue),
         icon: IconRevenue,
         color: COLORS.success,
-        bgColor: "bg-[#10B981]/10",
-        borderColor: "border-[#10B981]/20",
+        bgColor: "bg-emerald-50",
+        borderColor: "border-emerald-100",
         description: "Total invoiced amount",
       },
       {
@@ -172,8 +196,8 @@ export const FinancialKPIs: React.FC<FinancialKPIsProps> = ({ data }) => {
         value: formatCurrency(data.total_collections),
         icon: IconCollection,
         color: COLORS.blue,
-        bgColor: "bg-[#3A86FF]/10",
-        borderColor: "border-[#3A86FF]/20",
+        bgColor: "bg-blue-50",
+        borderColor: "border-blue-100",
         description: "Total payments received",
       },
       // NEW: Extra Income KPI
@@ -182,8 +206,8 @@ export const FinancialKPIs: React.FC<FinancialKPIsProps> = ({ data }) => {
         value: formatCurrency(data.total_extra_income),
         icon: IconProfit,
         color: COLORS.indigo,
-        bgColor: "bg-[#6366F1]/10",
-        borderColor: "border-[#6366F1]/20",
+        bgColor: "bg-indigo-50",
+        borderColor: "border-indigo-100",
         description: "Non-invoice income",
       },
       {
@@ -191,8 +215,8 @@ export const FinancialKPIs: React.FC<FinancialKPIsProps> = ({ data }) => {
         value: formatCurrency(data.total_isp_payments),
         icon: IconPayment,
         color: COLORS.warning,
-        bgColor: "bg-[#F59E0B]/10",
-        borderColor: "border-[#F59E0B]/20",
+        bgColor: "bg-amber-50",
+        borderColor: "border-amber-100",
         description: "Payments to ISPs",
       },
       {
@@ -200,8 +224,8 @@ export const FinancialKPIs: React.FC<FinancialKPIsProps> = ({ data }) => {
         value: formatCurrency(data.total_expenses),
         icon: IconPayment,
         color: COLORS.error,
-        bgColor: "bg-[#EF4444]/10",
-        borderColor: "border-[#EF4444]/20",
+        bgColor: "bg-red-50",
+        borderColor: "border-red-100",
         description: "Operational & other expenses",
       },
       {
@@ -209,8 +233,8 @@ export const FinancialKPIs: React.FC<FinancialKPIsProps> = ({ data }) => {
         value: formatCurrency(data.net_cash_flow),
         icon: IconCashFlow,
         color: data.net_cash_flow >= 0 ? COLORS.emerald : COLORS.error,
-        bgColor: data.net_cash_flow >= 0 ? "bg-[#059669]/10" : "bg-[#EF4444]/10",
-        borderColor: data.net_cash_flow >= 0 ? "border-[#059669]/20" : "border-[#EF4444]/20",
+        bgColor: data.net_cash_flow >= 0 ? "bg-emerald-50" : "bg-red-50",
+        borderColor: data.net_cash_flow >= 0 ? "border-emerald-100" : "border-red-100",
         description: "Inflows minus outflows",
       },
       {
@@ -218,8 +242,8 @@ export const FinancialKPIs: React.FC<FinancialKPIsProps> = ({ data }) => {
         value: formatCurrency(totalInitialBalance),
         icon: IconBank,
         color: COLORS.purple,
-        bgColor: "bg-[#7C3AED]/10",
-        borderColor: "border-[#7C3AED]/20",
+        bgColor: "bg-purple-50",
+        borderColor: "border-purple-100",
         description: "Total bank balances",
       },
       {
@@ -227,8 +251,8 @@ export const FinancialKPIs: React.FC<FinancialKPIsProps> = ({ data }) => {
         value: formatCurrency(adjustedCashFlow),
         icon: IconCashFlow,
         color: adjustedCashFlow >= 0 ? COLORS.emerald : COLORS.error,
-        bgColor: adjustedCashFlow >= 0 ? "bg-[#059669]/10" : "bg-[#EF4444]/10",
-        borderColor: adjustedCashFlow >= 0 ? "border-[#059669]/20" : "border-[#EF4444]/20",
+        bgColor: adjustedCashFlow >= 0 ? "bg-emerald-50" : "bg-red-50",
+        borderColor: adjustedCashFlow >= 0 ? "border-emerald-100" : "border-red-100",
         description: "Cash flow + initial balance",
       },
       {
@@ -236,69 +260,76 @@ export const FinancialKPIs: React.FC<FinancialKPIsProps> = ({ data }) => {
         value: formatCurrency(operatingProfit),
         icon: IconProfit,
         color: COLORS.indigo,
-        bgColor: "bg-[#6366F1]/10",
-        borderColor: "border-[#6366F1]/20",
+        bgColor: "bg-indigo-50",
+        borderColor: "border-indigo-100",
         description: "Collections+Extra income - all expenses",
       },
     ]
   }, [data])
 
   return (
-    <div className="mb-6">
-      {/* First row - 5 KPIs */}
-      <div className="grid grid-cols-5 gap-4 mb-4">
+    <motion.div 
+      className="mb-6"
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+    >
+      {/* Responsive grid layout */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 mb-4">
         {kpis.slice(0, 5).map((kpi, index) => {
           const IconComponent = kpi.icon
           return (
-            <div
+            <motion.div
               key={index}
-              className={`bg-white rounded-xl border ${kpi.borderColor} p-6 hover:shadow-lg transition-all duration-300 group`}
+              variants={itemVariants}
+              className={`bg-white rounded-2xl border ${kpi.borderColor} p-6 hover:shadow-lg transition-all duration-300 ease-in-out group backdrop-blur-sm bg-white/90`}
             >
               <div className="flex items-start justify-between mb-4">
                 <div
-                  className={`w-12 h-12 rounded-lg flex items-center justify-center text-white group-hover:scale-110 transition-transform duration-300 ${kpi.bgColor}`}
+                  className={`w-12 h-12 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 ${kpi.bgColor}`}
                   style={{ backgroundColor: kpi.color }}
                 >
-                  <IconComponent className="w-6 h-6" />
+                  <IconComponent className="w-6 h-6 text-white" />
                 </div>
               </div>
               <div>
-                <h3 className="text-sm font-medium text-[#6B7280] mb-2 leading-tight">{kpi.title}</h3>
-                <p className="text-2xl font-bold text-[#1F2937] mb-1 leading-none">{kpi.value}</p>
-                <p className="text-xs text-[#9CA3AF] leading-tight">{kpi.description}</p>
+                <h3 className="text-sm font-semibold text-gray-600 mb-2 leading-tight">{kpi.title}</h3>
+                <p className="text-2xl font-bold text-gray-900 mb-1 leading-none">{kpi.value}</p>
+                <p className="text-xs text-gray-500 leading-tight">{kpi.description}</p>
               </div>
-            </div>
+            </motion.div>
           )
         })}
       </div>
       
-      {/* Remaining rows - 4 KPIs each */}
-      <div className="grid grid-cols-4 gap-4">
+      {/* Second row - responsive grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {kpis.slice(5).map((kpi, index) => {
           const IconComponent = kpi.icon
           return (
-            <div
+            <motion.div
               key={index + 5}
-              className={`bg-white rounded-xl border ${kpi.borderColor} p-6 hover:shadow-lg transition-all duration-300 group`}
+              variants={itemVariants}
+              className={`bg-white rounded-2xl border ${kpi.borderColor} p-6 hover:shadow-lg transition-all duration-300 ease-in-out group backdrop-blur-sm bg-white/90`}
             >
               <div className="flex items-start justify-between mb-4">
                 <div
-                  className={`w-12 h-12 rounded-lg flex items-center justify-center text-white group-hover:scale-110 transition-transform duration-300 ${kpi.bgColor}`}
+                  className={`w-12 h-12 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 ${kpi.bgColor}`}
                   style={{ backgroundColor: kpi.color }}
                 >
-                  <IconComponent className="w-6 h-6" />
+                  <IconComponent className="w-6 h-6 text-white" />
                 </div>
               </div>
               <div>
-                <h3 className="text-sm font-medium text-[#6B7280] mb-2 leading-tight">{kpi.title}</h3>
-                <p className="text-2xl font-bold text-[#1F2937] mb-1 leading-none">{kpi.value}</p>
-                <p className="text-xs text-[#9CA3AF] leading-tight">{kpi.description}</p>
+                <h3 className="text-sm font-semibold text-gray-600 mb-2 leading-tight">{kpi.title}</h3>
+                <p className="text-2xl font-bold text-gray-900 mb-1 leading-none">{kpi.value}</p>
+                <p className="text-xs text-gray-500 leading-tight">{kpi.description}</p>
               </div>
-            </div>
+            </motion.div>
           )
         })}
       </div>
-    </div>
+    </motion.div>
   )
 }
 
@@ -365,53 +396,60 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
   ]
 
   return (
-    <div className="bg-white rounded-xl border border-[#E5E1DA] p-6 mb-6">
+    <motion.div 
+      className="bg-white rounded-2xl border border-gray-200 p-6 mb-6 shadow-sm hover:shadow-md transition-all duration-300 ease-in-out"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+    >
       {/* Header */}
-      <div className="flex items-center mb-6 pb-4 border-b border-[#E5E1DA]">
-        <div className="w-10 h-10 rounded-lg bg-[#89A8B2]/10 flex items-center justify-center mr-3">
-          <IconFilter className="w-5 h-5 text-[#89A8B2]" />
+      <div className="flex items-center mb-6 pb-4 border-b border-gray-100">
+        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center mr-3">
+          <IconFilter className="w-5 h-5 text-primary" />
         </div>
         <div>
-          <h3 className="text-lg font-bold text-[#1F2937]">Advanced Filters</h3>
-          <p className="text-sm text-[#6B7280]">Refine your data view with custom filters</p>
+          <h3 className="text-lg font-bold text-gray-900">Advanced Filters</h3>
+          <p className="text-sm text-gray-600">Refine your data view with custom filters</p>
         </div>
       </div>
 
       {/* Quick Filters */}
       <div className="mb-6">
-        <label className="text-sm font-semibold text-[#374151] mb-3 flex items-center">
-          <IconCalendar className="w-4 h-4 mr-2 text-[#89A8B2]" />
+        <label className="text-sm font-semibold text-gray-700 mb-3 flex items-center">
+          <IconCalendar className="w-4 h-4 mr-2 text-primary" />
           Quick Time Periods
         </label>
         <div className="flex flex-wrap gap-2">
           {quickFilters.map((filter) => (
-            <button
+            <motion.button
               key={filter.key}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
               onClick={() => onQuickFilter(filter.key)}
-              className={`px-4 py-2 text-sm font-medium rounded-lg border transition-all duration-200 ${
+              className={`px-4 py-2 text-sm font-medium rounded-xl border transition-all duration-200 ${
                 filters.timeRange === filter.key
-                  ? "bg-[#89A8B2] text-white border-[#89A8B2] shadow-md"
-                  : "bg-white text-[#374151] border-[#E5E1DA] hover:border-[#89A8B2] hover:bg-[#F1F0E8]"
+                  ? "bg-primary text-white border-primary shadow-lg"
+                  : "bg-white text-gray-700 border-gray-300 hover:border-primary hover:bg-gray-50"
               }`}
             >
               {filter.label}
-            </button>
+            </motion.button>
           ))}
         </div>
       </div>
 
       {/* Advanced Filters Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
         {/* Bank Account */}
-        <div>
-          <label className="text-sm font-semibold text-[#374151] mb-2 flex items-center">
-            <IconBank className="w-4 h-4 mr-1.5 text-[#89A8B2]" />
+        <div className="space-y-2">
+          <label className="text-sm font-semibold text-gray-700 flex items-center">
+            <IconBank className="w-4 h-4 mr-1.5 text-primary" />
             Bank Account
           </label>
           <select
             value={filters.bankAccount}
             onChange={(e) => onFilterChange("bankAccount", e.target.value)}
-            className="w-full px-3 py-2.5 border border-[#E5E1DA] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#89A8B2]/20 focus:border-[#89A8B2] transition-colors duration-200 bg-white"
+            className="w-full px-3 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200 bg-white hover:border-gray-400"
           >
             <option value="all">All Accounts</option>
             {bankAccounts.map((acc) => (
@@ -423,34 +461,34 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
         </div>
 
         {/* Start Date */}
-        <div>
-          <label className="text-sm font-semibold text-[#374151] mb-2 block">Start Date</label>
+        <div className="space-y-2">
+          <label className="text-sm font-semibold text-gray-700 block">Start Date</label>
           <input
             type="date"
             value={filters.startDate}
             onChange={(e) => onFilterChange("startDate", e.target.value)}
-            className="w-full px-3 py-2.5 border border-[#E5E1DA] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#89A8B2]/20 focus:border-[#89A8B2] transition-colors duration-200"
+            className="w-full px-3 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200 hover:border-gray-400"
           />
         </div>
 
         {/* End Date */}
-        <div>
-          <label className="text-sm font-semibold text-[#374151] mb-2 block">End Date</label>
+        <div className="space-y-2">
+          <label className="text-sm font-semibold text-gray-700 block">End Date</label>
           <input
             type="date"
             value={filters.endDate}
             onChange={(e) => onFilterChange("endDate", e.target.value)}
-            className="w-full px-3 py-2.5 border border-[#E5E1DA] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#89A8B2]/20 focus:border-[#89A8B2] transition-colors duration-200"
+            className="w-full px-3 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200 hover:border-gray-400"
           />
         </div>
 
         {/* Payment Method */}
-        <div>
-          <label className="text-sm font-semibold text-[#374151] mb-2 block">Payment Method</label>
+        <div className="space-y-2">
+          <label className="text-sm font-semibold text-gray-700 block">Payment Method</label>
           <select
             value={filters.paymentMethod}
             onChange={(e) => onFilterChange("paymentMethod", e.target.value)}
-            className="w-full px-3 py-2.5 border border-[#E5E1DA] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#89A8B2]/20 focus:border-[#89A8B2] transition-colors duration-200 bg-white"
+            className="w-full px-3 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200 bg-white hover:border-gray-400"
           >
             {paymentMethods.map((method) => (
               <option key={method.value} value={method.value}>
@@ -461,12 +499,12 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
         </div>
 
         {/* ISP Payment Type */}
-        <div>
-          <label className="text-sm font-semibold text-[#374151] mb-2 block">ISP Payment Type</label>
+        <div className="space-y-2">
+          <label className="text-sm font-semibold text-gray-700 block">ISP Payment Type</label>
           <select
             value={filters.ispPaymentType}
             onChange={(e) => onFilterChange("ispPaymentType", e.target.value)}
-            className="w-full px-3 py-2.5 border border-[#E5E1DA] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#89A8B2]/20 focus:border-[#89A8B2] transition-colors duration-200 bg-white"
+            className="w-full px-3 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200 bg-white hover:border-gray-400"
           >
             {ispPaymentTypes.map((type) => (
               <option key={type.value} value={type.value}>
@@ -476,6 +514,6 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
           </select>
         </div>
       </div>
-    </div>
+    </motion.div>
   )
 }

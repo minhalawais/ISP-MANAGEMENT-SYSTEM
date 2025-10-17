@@ -4,7 +4,7 @@ import type React from "react"
 import { useMemo, useState } from "react"
 import useSWR from "swr"
 import axiosInstance from "../../../utils/axiosConfig.ts"
-import { AdvancedFilters } from "../FinancialComponent/FinancialKPIs.tsx"
+import { AdvancedFilters } from "../FinancialComponent/AdvancedFilters.tsx"
 import { X } from "lucide-react"
 
 type FilterState = {
@@ -249,11 +249,27 @@ const CustomModal: React.FC<{
 }
 
 export const Ledger: React.FC = () => {
-  const today = new Date()
-  const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split("T")[0]
+  // Helper functions (define these at the top of your component or in a utils file)
+  const getPakistaniDate = () => {
+    const now = new Date()
+    const utc = now.getTime() + (now.getTimezoneOffset() * 60000)
+    return new Date(utc + (3600000 * 5)) // Add 5 hours for PKT
+  }
+
+  const formatDate = (date: Date) => {
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }
+
+  // Initial state
+  const today = getPakistaniDate()
+  const startOfMonth = formatDate(new Date(today.getFullYear(), today.getMonth(), 1))
+
   const [filters, setFilters] = useState<FilterState>({
     startDate: startOfMonth,
-    endDate: new Date().toISOString().split("T")[0],
+    endDate: formatDate(today),
     bankAccount: "all",
     paymentMethod: "all",
     invoiceStatus: "all",
@@ -315,44 +331,46 @@ export const Ledger: React.FC = () => {
     return { credits, debits, net: credits - debits, count: filtered.length }
   }, [filtered])
 
-  const onQuickFilter = (timeRange: string) => {
-    const t = new Date()
-    let start = new Date()
-    switch (timeRange) {
-      case "today":
-        start = t
-        break
-      case "week":
-        start = new Date(t.getFullYear(), t.getMonth(), t.getDate() - 7)
-        break
-      case "mtd":
-        start = new Date(t.getFullYear(), t.getMonth(), 1)
-        break
-      case "qtd":
-        start = new Date(t.getFullYear(), Math.floor(t.getMonth() / 3) * 3, 1)
-        break
-      case "ytd":
-        start = new Date(t.getFullYear(), 0, 1)
-        break
-      case "last_month":
-        start = new Date(t.getFullYear(), t.getMonth() - 1, 1)
-        const end = new Date(t.getFullYear(), t.getMonth(), 0)
-        setFilters((prev) => ({
-          ...prev,
-          timeRange,
-          startDate: start.toISOString().split("T")[0],
-          endDate: end.toISOString().split("T")[0],
-        }))
-        return
-    }
-    setFilters((prev) => ({
-      ...prev,
-      timeRange,
-      startDate: start.toISOString().split("T")[0],
-      endDate: new Date().toISOString().split("T")[0],
-    }))
+// Quick filter function
+const onQuickFilter = (timeRange: string) => {
+  const t = getPakistaniDate()
+  let start = new Date(t)
+  
+  switch (timeRange) {
+    case "today":
+      start = new Date(t)
+      break
+    case "week":
+      start = new Date(t.getFullYear(), t.getMonth(), t.getDate() - 7)
+      break
+    case "mtd":
+      start = new Date(t.getFullYear(), t.getMonth(), 1)
+      break
+    case "qtd":
+      start = new Date(t.getFullYear(), Math.floor(t.getMonth() / 3) * 3, 1)
+      break
+    case "ytd":
+      start = new Date(t.getFullYear(), 0, 1)
+      break
+    case "last_month":
+      start = new Date(t.getFullYear(), t.getMonth() - 1, 1)
+      const end = new Date(t.getFullYear(), t.getMonth(), 0)
+      setFilters((prev) => ({
+        ...prev,
+        timeRange,
+        startDate: formatDate(start),
+        endDate: formatDate(end),
+      }))
+      return
   }
-
+  
+  setFilters((prev) => ({
+    ...prev,
+    timeRange,
+    startDate: formatDate(start),
+    endDate: formatDate(getPakistaniDate()),
+  }))
+}
   return (
     <div className="space-y-6">
       {/* Filters */}

@@ -42,7 +42,7 @@ interface ValidationResult {
   errors: Array<{
     row: number
     errors: string[]
-    fieldErrors: Record<string, string> // Add this field
+    fieldErrors: Record<string, string>
     data: Record<string, any>
   }>
 }
@@ -73,7 +73,6 @@ export function EnhancedBulkAddModal({
   const [rowsPerPage] = useState(10)
   const [isProcessing, setIsProcessing] = useState(false)
 
-  // Fetch dropdown data when modal opens
   useEffect(() => {
     if (isVisible) {
       fetchDropdownData()
@@ -97,16 +96,17 @@ export function EnhancedBulkAddModal({
       console.error("Failed to fetch dropdown data:", error)
     }
   }
+
   const getFieldErrors = (rowIndex: number, field: string): string[] => {
     if (showValidRowsOnly) return []
-    
+
     const errorRow = validationResult?.errors.find((error) => error.row === rowIndex)
     if (!errorRow || !errorRow.fieldErrors) return []
-  
-    // Directly get errors for the specific field
+
     const fieldError = errorRow.fieldErrors[field]
     return fieldError ? [fieldError] : []
   }
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       const selectedFile = e.target.files[0]
@@ -382,31 +382,26 @@ export function EnhancedBulkAddModal({
     fieldErrors: Record<string, string> = {},
   ) => {
     if (!validationResult) return
-  
+
     setValidationResult((prev) => {
       if (!prev) return prev
-  
-      // Create deep copies to avoid mutation issues
+
       const newValidationResult = JSON.parse(JSON.stringify(prev))
-      
+
       if (isValid) {
-        // Find the error row and remove it from errors array
         const errorIndex = newValidationResult.errors.findIndex((error: any) => error.row === rowIndex)
         if (errorIndex !== -1) {
           const [movedRow] = newValidationResult.errors.splice(errorIndex, 1)
-          
-          // Add the row to validRows with updated data
+
           newValidationResult.validRows.push({
             ...movedRow.data,
             ...rowData,
           })
-          
-          // Update counts
+
           newValidationResult.successCount += 1
           newValidationResult.failedCount -= 1
         }
       } else {
-        // Update the error row with new validation results
         const errorIndex = newValidationResult.errors.findIndex((error: any) => error.row === rowIndex)
         if (errorIndex !== -1) {
           newValidationResult.errors[errorIndex] = {
@@ -419,7 +414,6 @@ export function EnhancedBulkAddModal({
             },
           }
         } else {
-          // If this was previously a valid row, move it back to errors
           const validIndex = newValidationResult.validRows.findIndex((row: any, index: number) => index === rowIndex)
           if (validIndex !== -1) {
             const [movedRow] = newValidationResult.validRows.splice(validIndex, 1)
@@ -437,38 +431,36 @@ export function EnhancedBulkAddModal({
           }
         }
       }
-  
+
       return newValidationResult
     })
-  
-    // Exit editing mode
+
     setEditingRows((prev) => {
       const newSet = new Set(prev)
       newSet.delete(rowIndex)
       return newSet
     })
   }
-  
 
   const saveRowChanges = async (rowIndex: number) => {
     const rowData = editedData[rowIndex]
     if (!rowData || !validationResult) return
-  
+
     try {
       const originalRow = validationResult.errors.find((error) => error.row === rowIndex)
       if (!originalRow) return
-  
+
       const completeRowData = {
         ...originalRow.data,
         ...rowData,
       }
-  
+
       const clientErrors = validateRowClientSide(completeRowData)
-  
+
       if (clientErrors.length === 0) {
         setIsUploading(true)
         const token = getToken()
-  
+
         const response = await axiosInstance.post(
           `/${endpoint}/validate-single-row`,
           {
@@ -481,19 +473,17 @@ export function EnhancedBulkAddModal({
             },
           },
         )
-  
+
         const responseData = typeof response.data === "string" ? JSON.parse(response.data) : response.data
-  
+
         if (responseData.successCount === 1) {
           updateValidationResultAfterEdit(rowIndex, completeRowData, true)
           toast.success("Row validation passed", {
             style: { background: "#D1FAE5", color: "#10B981" },
           })
         } else {
-          // Handle field-specific errors from backend
           const rowErrors = responseData.errors.find((error: any) => error.row === 0)
           if (rowErrors && rowErrors.fieldErrors) {
-            // Convert fieldErrors object to array of error messages
             const errorMessages = Object.values(rowErrors.fieldErrors) as string[]
             updateValidationResultAfterEdit(rowIndex, completeRowData, false, errorMessages, rowErrors.fieldErrors)
           } else {
@@ -553,31 +543,29 @@ export function EnhancedBulkAddModal({
     const isEditing = editingRows.has(rowIndex)
     const currentValue = editedData[rowIndex]?.[field] || value
     const fieldErrors = getFieldErrors(rowIndex, field)
-  
+
     if (!isEditing) {
       const option = options.find((opt) => opt.id === currentValue)
       return (
         <div className="flex flex-col gap-1">
-          <span className="text-sm">{option?.name || currentValue || "-"}</span>
+          <span className="text-sm text-[#2C3E50]">{option?.name || currentValue || "-"}</span>
           {fieldErrors.length > 0 && (
             <div className="flex items-start gap-1">
-              <AlertCircle className="h-3 w-3 text-coral-red mt-0.5 flex-shrink-0" />
-              <span className="text-xs text-coral-red">{fieldErrors[0]}</span>
+              <AlertCircle className="h-3 w-3 text-red-600 mt-0.5 flex-shrink-0" />
+              <span className="text-xs text-red-600">{fieldErrors[0]}</span>
             </div>
           )}
         </div>
       )
     }
-  
+
     return (
       <div className="flex flex-col gap-1">
         <select
           value={currentValue}
           onChange={(e) => handleFieldChange(rowIndex, field, e.target.value)}
           className={`w-full px-2 py-1 text-xs border rounded focus:outline-none focus:ring-2 ${
-            fieldErrors.length > 0
-              ? "border-coral-red focus:ring-coral-red"
-              : "border-slate-gray/20 focus:ring-electric-blue"
+            fieldErrors.length > 0 ? "border-red-600 focus:ring-red-600" : "border-[#B3C8CF] focus:ring-[#89A8B2]"
           }`}
         >
           <option value="">Select {label}</option>
@@ -589,8 +577,8 @@ export function EnhancedBulkAddModal({
         </select>
         {fieldErrors.length > 0 && (
           <div className="flex items-start gap-1">
-            <AlertCircle className="h-3 w-3 text-coral-red mt-0.5 flex-shrink-0" />
-            <span className="text-xs text-coral-red">{fieldErrors[0]}</span>
+            <AlertCircle className="h-3 w-3 text-red-600 mt-0.5 flex-shrink-0" />
+            <span className="text-xs text-red-600">{fieldErrors[0]}</span>
           </div>
         )}
       </div>
@@ -601,15 +589,15 @@ export function EnhancedBulkAddModal({
     const isEditing = editingRows.has(rowIndex)
     const currentValue = editedData[rowIndex]?.[field] || value
     const fieldErrors = getFieldErrors(rowIndex, field)
-  
+
     if (!isEditing) {
       return (
         <div className="flex flex-col gap-1">
-          <span className="text-sm break-words">{currentValue || "-"}</span>
+          <span className="text-sm text-[#2C3E50] break-words">{currentValue || "-"}</span>
           {fieldErrors.length > 0 && (
             <div className="flex items-start gap-1">
-              <AlertCircle className="h-3 w-3 text-coral-red mt-0.5 flex-shrink-0" />
-              <span className="text-xs text-coral-red leading-tight">{fieldErrors[0]}</span>
+              <AlertCircle className="h-3 w-3 text-red-600 mt-0.5 flex-shrink-0" />
+              <span className="text-xs text-red-600 leading-tight">{fieldErrors[0]}</span>
             </div>
           )}
         </div>
@@ -623,9 +611,7 @@ export function EnhancedBulkAddModal({
             value={currentValue}
             onChange={(e) => handleFieldChange(rowIndex, field, e.target.value)}
             className={`w-full px-2 py-1 text-xs border rounded focus:outline-none focus:ring-2 ${
-              fieldErrors.length > 0
-                ? "border-coral-red focus:ring-coral-red"
-                : "border-slate-gray/20 focus:ring-electric-blue"
+              fieldErrors.length > 0 ? "border-red-600 focus:ring-red-600" : "border-[#B3C8CF] focus:ring-[#89A8B2]"
             }`}
           >
             <option value="">Select...</option>
@@ -635,8 +621,8 @@ export function EnhancedBulkAddModal({
           </select>
           {fieldErrors.length > 0 && (
             <div className="flex items-start gap-1">
-              <AlertCircle className="h-3 w-3 text-coral-red mt-0.5 flex-shrink-0" />
-              <span className="text-xs text-coral-red">{fieldErrors[0]}</span>
+              <AlertCircle className="h-3 w-3 text-red-600 mt-0.5 flex-shrink-0" />
+              <span className="text-xs text-red-600">{fieldErrors[0]}</span>
             </div>
           )}
         </div>
@@ -650,9 +636,7 @@ export function EnhancedBulkAddModal({
             value={currentValue}
             onChange={(e) => handleFieldChange(rowIndex, field, e.target.value)}
             className={`w-full px-2 py-1 text-xs border rounded focus:outline-none focus:ring-2 ${
-              fieldErrors.length > 0
-                ? "border-coral-red focus:ring-coral-red"
-                : "border-slate-gray/20 focus:ring-electric-blue"
+              fieldErrors.length > 0 ? "border-red-600 focus:ring-red-600" : "border-[#B3C8CF] focus:ring-[#89A8B2]"
             }`}
           >
             <option value="">Select...</option>
@@ -661,8 +645,8 @@ export function EnhancedBulkAddModal({
           </select>
           {fieldErrors.length > 0 && (
             <div className="flex items-start gap-1">
-              <AlertCircle className="h-3 w-3 text-coral-red mt-0.5 flex-shrink-0" />
-              <span className="text-xs text-coral-red">{fieldErrors[0]}</span>
+              <AlertCircle className="h-3 w-3 text-red-600 mt-0.5 flex-shrink-0" />
+              <span className="text-xs text-red-600">{fieldErrors[0]}</span>
             </div>
           )}
         </div>
@@ -676,9 +660,7 @@ export function EnhancedBulkAddModal({
             value={currentValue}
             onChange={(e) => handleFieldChange(rowIndex, field, e.target.value)}
             className={`w-full px-2 py-1 text-xs border rounded focus:outline-none focus:ring-2 ${
-              fieldErrors.length > 0
-                ? "border-coral-red focus:ring-coral-red"
-                : "border-slate-gray/20 focus:ring-electric-blue"
+              fieldErrors.length > 0 ? "border-red-600 focus:ring-red-600" : "border-[#B3C8CF] focus:ring-[#89A8B2]"
             }`}
           >
             <option value="">Select...</option>
@@ -687,8 +669,8 @@ export function EnhancedBulkAddModal({
           </select>
           {fieldErrors.length > 0 && (
             <div className="flex items-start gap-1">
-              <AlertCircle className="h-3 w-3 text-coral-red mt-0.5 flex-shrink-0" />
-              <span className="text-xs text-coral-red">{fieldErrors[0]}</span>
+              <AlertCircle className="h-3 w-3 text-red-600 mt-0.5 flex-shrink-0" />
+              <span className="text-xs text-red-600">{fieldErrors[0]}</span>
             </div>
           )}
         </div>
@@ -702,16 +684,14 @@ export function EnhancedBulkAddModal({
           value={currentValue}
           onChange={(e) => handleFieldChange(rowIndex, field, e.target.value)}
           className={`w-full px-2 py-1 text-xs border rounded focus:outline-none focus:ring-2 ${
-            fieldErrors.length > 0
-              ? "border-coral-red focus:ring-coral-red"
-              : "border-slate-gray/20 focus:ring-electric-blue"
+            fieldErrors.length > 0 ? "border-red-600 focus:ring-red-600" : "border-[#B3C8CF] focus:ring-[#89A8B2]"
           }`}
           placeholder={label}
         />
         {fieldErrors.length > 0 && (
           <div className="flex items-start gap-1">
-            <AlertCircle className="h-3 w-3 text-coral-red mt-0.5 flex-shrink-0" />
-            <span className="text-xs text-coral-red">{fieldErrors[0]}</span>
+            <AlertCircle className="h-3 w-3 text-red-600 mt-0.5 flex-shrink-0" />
+            <span className="text-xs text-red-600">{fieldErrors[0]}</span>
           </div>
         )}
       </div>
@@ -751,100 +731,90 @@ export function EnhancedBulkAddModal({
   if (!isVisible) return null
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-[95vw] max-h-[95vh] overflow-hidden flex flex-col">
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-slate-gray/10 flex-shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="bg-electric-blue/10 p-2 rounded-lg">
-              <Database className="h-6 w-6 text-electric-blue" />
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-[95vw] max-h-[95vh] overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-300">
+        <div className="flex items-center justify-between p-6 sm:p-8 bg-gradient-to-r from-[#89A8B2] to-[#B3C8CF] border-b border-[#B3C8CF]/20 flex-shrink-0">
+          <div className="flex items-center gap-4">
+            <div className="bg-white/20 p-3 rounded-lg">
+              <Database className="h-6 w-6 text-white" />
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-deep-ocean">Enhanced Bulk Import</h2>
-              <p className="text-sm text-slate-gray">Advanced {entityName} import with validation & editing</p>
+              <h2 className="text-2xl sm:text-3xl font-bold text-white">Enhanced Bulk Import</h2>
+              <p className="text-white/80 text-sm mt-1">Advanced {entityName} import with validation & editing</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="text-slate-gray hover:text-deep-ocean transition-colors rounded-full p-1"
+            className="text-white/80 hover:text-white transition-all duration-200 p-2 rounded-full hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/30"
           >
             <X className="h-6 w-6" />
           </button>
         </div>
 
-        {/* Progress Steps */}
-        <div className="px-6 py-4 bg-light-sky/20 border-b border-slate-gray/10 flex-shrink-0">
-          <div className="flex items-center justify-between">
-            <div
-              className={`flex items-center gap-2 ${step === "initial" ? "text-electric-blue" : step === "uploading" || step === "validation" || step === "processing" || step === "complete" ? "text-emerald-green" : "text-slate-gray"}`}
-            >
-              <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${step === "initial" ? "bg-electric-blue text-white" : step === "uploading" || step === "validation" || step === "processing" || step === "complete" ? "bg-emerald-green text-white" : "bg-slate-gray/20"}`}
-              >
-                1
+        <div className="px-6 sm:px-8 py-4 bg-[#F1F0E8] border-b border-[#B3C8CF]/20 flex-shrink-0">
+          <div className="flex items-center justify-between gap-2 sm:gap-4 overflow-x-auto">
+            {[
+              { num: 1, label: "Upload File", active: step === "initial", completed: step !== "initial" },
+              {
+                num: 2,
+                label: "Validate & Edit",
+                active: step === "validation",
+                completed: step === "processing" || step === "complete",
+              },
+              { num: 3, label: "Process Data", active: step === "processing", completed: step === "complete" },
+              { num: 4, label: "Complete", active: step === "complete", completed: false },
+            ].map((item, idx) => (
+              <div key={item.num} className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+                <div
+                  className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-all duration-200 ${
+                    item.active
+                      ? "bg-[#89A8B2] text-white shadow-md"
+                      : item.completed
+                        ? "bg-green-500 text-white"
+                        : "bg-[#B3C8CF]/30 text-[#89A8B2]"
+                  }`}
+                >
+                  {item.completed ? <CheckCircle className="h-4 w-4" /> : item.num}
+                </div>
+                <span
+                  className={`text-xs sm:text-sm font-medium whitespace-nowrap ${
+                    item.active || item.completed ? "text-[#89A8B2]" : "text-[#5A6C7D]"
+                  }`}
+                >
+                  {item.label}
+                </span>
+                {idx < 3 && <div className="w-6 sm:w-8 h-0.5 bg-[#B3C8CF]/20 flex-shrink-0" />}
               </div>
-              <span className="font-medium">Upload File</span>
-            </div>
-            <div
-              className={`flex items-center gap-2 ${step === "validation" ? "text-electric-blue" : step === "processing" || step === "complete" ? "text-emerald-green" : "text-slate-gray"}`}
-            >
-              <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${step === "validation" ? "bg-electric-blue text-white" : step === "processing" || step === "complete" ? "bg-emerald-green text-white" : "bg-slate-gray/20"}`}
-              >
-                2
-              </div>
-              <span className="font-medium">Validate & Edit</span>
-            </div>
-            <div
-              className={`flex items-center gap-2 ${step === "processing" ? "text-electric-blue" : step === "complete" ? "text-emerald-green" : "text-slate-gray"}`}
-            >
-              <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${step === "processing" ? "bg-electric-blue text-white" : step === "complete" ? "bg-emerald-green text-white" : "bg-slate-gray/20"}`}
-              >
-                3
-              </div>
-              <span className="font-medium">Process Data</span>
-            </div>
-            <div
-              className={`flex items-center gap-2 ${step === "complete" ? "text-emerald-green" : "text-slate-gray"}`}
-            >
-              <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${step === "complete" ? "bg-emerald-green text-white" : "bg-slate-gray/20"}`}
-              >
-                4
-              </div>
-              <span className="font-medium">Complete</span>
-            </div>
+            ))}
           </div>
         </div>
 
-        {/* Content */}
         <div className="flex-1 overflow-hidden flex flex-col">
           {step === "initial" && (
-            <div className="p-6 overflow-y-auto">
-              <div className="space-y-6">
-                <div className="bg-gradient-to-r from-electric-blue/5 to-light-sky/30 rounded-lg p-6 border border-electric-blue/20">
+            <div className="p-6 sm:p-8 overflow-y-auto">
+              <div className="space-y-6 animate-in fade-in duration-300">
+                <div className="bg-gradient-to-r from-[#89A8B2]/10 to-[#B3C8CF]/10 rounded-xl p-6 border border-[#89A8B2]/20">
                   <div className="flex items-start gap-4">
-                    <div className="bg-electric-blue/10 p-3 rounded-full">
-                      <Settings className="h-6 w-6 text-electric-blue" />
+                    <div className="bg-[#89A8B2]/20 p-3 rounded-full flex-shrink-0">
+                      <Settings className="h-6 w-6 text-[#89A8B2]" />
                     </div>
                     <div className="flex-1">
-                      <h3 className="font-semibold text-deep-ocean mb-2">Advanced Import Features</h3>
-                      <ul className="text-sm text-slate-gray space-y-2">
+                      <h3 className="font-semibold text-[#2C3E50] mb-3">Advanced Import Features</h3>
+                      <ul className="text-sm text-[#5A6C7D] space-y-2">
                         <li className="flex items-center gap-2">
-                          <CheckCircle className="h-4 w-4 text-emerald-green" />
+                          <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
                           Dynamic Excel template with real-time dropdowns
                         </li>
                         <li className="flex items-center gap-2">
-                          <CheckCircle className="h-4 w-4 text-emerald-green" />
+                          <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
                           Comprehensive validation with inline error display
                         </li>
                         <li className="flex items-center gap-2">
-                          <CheckCircle className="h-4 w-4 text-emerald-green" />
+                          <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
                           Edit invalid rows directly in the interface
                         </li>
                         <li className="flex items-center gap-2">
-                          <CheckCircle className="h-4 w-4 text-emerald-green" />
+                          <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
                           Real-time stats and batch processing
                         </li>
                       </ul>
@@ -853,41 +823,37 @@ export function EnhancedBulkAddModal({
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="bg-white border border-slate-gray/20 rounded-xl p-6 hover:border-electric-blue/40 transition-all hover:shadow-lg">
+                  <div className="bg-white border-2 border-[#B3C8CF]/30 rounded-xl p-6 hover:border-[#89A8B2] hover:shadow-lg transition-all duration-200">
                     <div className="flex flex-col items-center text-center">
-                      <div className="bg-gradient-to-br from-electric-blue to-electric-blue/80 p-4 rounded-full mb-4">
+                      <div className="bg-gradient-to-br from-[#89A8B2] to-[#7A96A3] p-4 rounded-full mb-4">
                         <FileSpreadsheet className="h-8 w-8 text-white" />
                       </div>
-                      <h3 className="text-lg font-semibold text-deep-ocean mb-2">Download Template</h3>
-                      <p className="text-sm text-slate-gray mb-4">
-                        Get an Excel template with dropdowns and validation
-                      </p>
+                      <h3 className="text-lg font-semibold text-[#2C3E50] mb-2">Download Template</h3>
+                      <p className="text-sm text-[#5A6C7D] mb-4">Get an Excel template with dropdowns and validation</p>
                       <button
                         onClick={downloadTemplate}
-                        className="px-6 py-3 bg-electric-blue text-white rounded-lg hover:bg-btn-hover transition-colors flex items-center gap-2 font-medium"
+                        className="px-6 py-3 bg-gradient-to-r from-[#89A8B2] to-[#7A96A3] text-white rounded-lg hover:shadow-lg hover:shadow-[#89A8B2]/30 transition-all duration-200 flex items-center gap-2 font-medium"
                       >
                         <Download className="h-4 w-4" /> Download Template
                       </button>
                     </div>
                   </div>
 
-                  <div className="bg-white border border-slate-gray/20 rounded-xl p-6 hover:border-electric-blue/40 transition-all hover:shadow-lg">
+                  <div className="bg-white border-2 border-[#B3C8CF]/30 rounded-xl p-6 hover:border-[#89A8B2] hover:shadow-lg transition-all duration-200">
                     <div className="flex flex-col items-center text-center">
-                      <div className="bg-gradient-to-br from-deep-ocean to-deep-ocean/80 p-4 rounded-full mb-4">
+                      <div className="bg-gradient-to-br from-[#2C3E50] to-[#1A252F] p-4 rounded-full mb-4">
                         <Upload className="h-8 w-8 text-white" />
                       </div>
-                      <h3 className="text-lg font-semibold text-deep-ocean mb-2">Upload & Validate</h3>
-                      <p className="text-sm text-slate-gray mb-4">
-                        Upload your completed file for validation
-                      </p>
+                      <h3 className="text-lg font-semibold text-[#2C3E50] mb-2">Upload & Validate</h3>
+                      <p className="text-sm text-[#5A6C7D] mb-4">Upload your completed file for validation</p>
                       <div className="w-full">
-                        <label className="flex flex-col items-center px-6 py-3 bg-white text-deep-ocean rounded-lg border-2 border-dashed border-deep-ocean/30 cursor-pointer hover:border-deep-ocean/60 hover:bg-deep-ocean/5 transition-all">
+                        <label className="flex flex-col items-center px-6 py-3 bg-white text-[#2C3E50] rounded-lg border-2 border-dashed border-[#89A8B2]/40 cursor-pointer hover:border-[#89A8B2] hover:bg-[#89A8B2]/5 transition-all duration-200">
                           <div className="flex items-center gap-2">
                             <Upload className="h-4 w-4" />
                             <span className="font-medium">{file ? file.name : "Choose file"}</span>
                           </div>
                           {file && (
-                            <span className="text-xs text-slate-gray mt-1">{(file.size / 1024).toFixed(2)} KB</span>
+                            <span className="text-xs text-[#5A6C7D] mt-1">{(file.size / 1024).toFixed(2)} KB</span>
                           )}
                           <input type="file" className="hidden" accept=".csv,.xls,.xlsx" onChange={handleFileChange} />
                         </label>
@@ -900,62 +866,62 @@ export function EnhancedBulkAddModal({
           )}
 
           {step === "uploading" && (
-            <div className="flex flex-col items-center justify-center py-12">
-              <div className="bg-electric-blue/10 p-6 rounded-full mb-6">
-                <Loader className="animate-spin h-12 w-12 text-electric-blue" />
+            <div className="flex flex-col items-center justify-center py-16 animate-in fade-in duration-300">
+              <div className="bg-[#89A8B2]/10 p-6 rounded-full mb-6">
+                <Loader className="animate-spin h-12 w-12 text-[#89A8B2]" />
               </div>
-              <h3 className="text-xl font-semibold text-deep-ocean mb-2">Validating Your Data</h3>
-              <p className="text-slate-gray mb-8 text-center max-w-md">
+              <h3 className="text-xl font-semibold text-[#2C3E50] mb-2">Validating Your Data</h3>
+              <p className="text-[#5A6C7D] mb-8 text-center max-w-md">
                 Please wait while we analyze your file and validate all customer data...
               </p>
-              <div className="w-full max-w-md bg-light-sky/30 rounded-full h-3 mb-3">
+              <div className="w-full max-w-md bg-[#B3C8CF]/20 rounded-full h-3 mb-3">
                 <div
-                  className="bg-gradient-to-r from-electric-blue to-electric-blue/80 h-3 rounded-full transition-all duration-300"
+                  className="bg-gradient-to-r from-[#89A8B2] to-[#7A96A3] h-3 rounded-full transition-all duration-300"
                   style={{ width: `${uploadProgress}%` }}
                 ></div>
               </div>
-              <p className="text-sm text-slate-gray">{uploadProgress}% Complete</p>
+              <p className="text-sm text-[#5A6C7D]">{uploadProgress}% Complete</p>
             </div>
           )}
 
           {step === "validation" && validationResult && (
             <div className="flex-1 overflow-hidden flex flex-col">
               {/* Stats Cards */}
-              <div className="px-6 py-4 bg-light-sky/20 border-b border-slate-gray/10 flex-shrink-0">
+              <div className="px-6 sm:px-8 py-4 bg-[#F1F0E8] border-b border-[#B3C8CF]/20 flex-shrink-0">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="bg-light-sky/50 rounded-lg p-4 border border-slate-gray/10">
+                  <div className="bg-white rounded-lg p-4 border border-[#B3C8CF]/20 shadow-sm">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-slate-gray text-sm">Total Records</p>
-                        <h3 className="text-2xl font-bold text-deep-ocean">{validationResult.totalRecords}</h3>
+                        <p className="text-[#5A6C7D] text-sm">Total Records</p>
+                        <h3 className="text-2xl font-bold text-[#2C3E50]">{validationResult.totalRecords}</h3>
                       </div>
-                      <FileText className="h-8 w-8 text-electric-blue" />
+                      <FileText className="h-8 w-8 text-[#89A8B2]" />
                     </div>
                   </div>
-                  <div className="bg-emerald-green/5 rounded-lg p-4 border border-emerald-green/10">
+                  <div className="bg-green-50 rounded-lg p-4 border border-green-200 shadow-sm">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-slate-gray text-sm">Valid Records</p>
-                        <h3 className="text-2xl font-bold text-emerald-green">{validationResult.successCount}</h3>
+                        <p className="text-green-700 text-sm">Valid Records</p>
+                        <h3 className="text-2xl font-bold text-green-600">{validationResult.successCount}</h3>
                       </div>
-                      <CheckCircle className="h-8 w-8 text-emerald-green" />
+                      <CheckCircle className="h-8 w-8 text-green-600" />
                     </div>
                   </div>
-                  <div className="bg-coral-red/5 rounded-lg p-4 border border-coral-red/10">
+                  <div className="bg-red-50 rounded-lg p-4 border border-red-200 shadow-sm">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-slate-gray text-sm">Errors Found</p>
-                        <h3 className="text-2xl font-bold text-coral-red">{validationResult.failedCount}</h3>
+                        <p className="text-red-700 text-sm">Errors Found</p>
+                        <h3 className="text-2xl font-bold text-red-600">{validationResult.failedCount}</h3>
                       </div>
-                      <AlertCircle className="h-8 w-8 text-coral-red" />
+                      <AlertCircle className="h-8 w-8 text-red-600" />
                     </div>
                   </div>
                 </div>
               </div>
 
               {/* View Toggle */}
-              <div className="px-6 py-3 border-b border-slate-gray/10 flex items-center justify-between flex-shrink-0">
-                <div className="flex items-center gap-3">
+              <div className="px-6 sm:px-8 py-3 border-b border-[#B3C8CF]/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 flex-shrink-0">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full sm:w-auto">
                   <button
                     onClick={() => {
                       setShowValidRowsOnly(false)
@@ -963,8 +929,8 @@ export function EnhancedBulkAddModal({
                     }}
                     className={`px-4 py-2 rounded-lg font-medium transition-all flex items-center gap-2 ${
                       !showValidRowsOnly
-                        ? "bg-coral-red text-white shadow-md"
-                        : "bg-coral-red/10 text-coral-red hover:bg-coral-red/20"
+                        ? "bg-red-600 text-white shadow-md"
+                        : "bg-red-100 text-red-600 hover:bg-red-200"
                     }`}
                   >
                     <XCircle className="h-4 w-4" />
@@ -977,25 +943,24 @@ export function EnhancedBulkAddModal({
                     }}
                     className={`px-4 py-2 rounded-lg font-medium transition-all flex items-center gap-2 ${
                       showValidRowsOnly
-                        ? "bg-emerald-green text-white shadow-md"
-                        : "bg-emerald-green/10 text-emerald-green hover:bg-emerald-green/20"
+                        ? "bg-green-600 text-white shadow-md"
+                        : "bg-green-100 text-green-600 hover:bg-green-200"
                     }`}
                   >
                     <CheckCircle className="h-4 w-4" />
                     Valid Rows ({validationResult.successCount})
                   </button>
                 </div>
-                <div className="text-sm text-slate-gray">
+                <div className="text-sm text-[#5A6C7D]">
                   {showValidRowsOnly ? "Review valid rows" : "Fix errors to proceed"}
                 </div>
               </div>
 
-              {/* Table Container with Sticky Header */}
+              {/* Table Container */}
               <div className="flex-1 overflow-auto">
                 <div className="min-w-full">
                   <table className="w-full border-collapse">
-                    {/* Sticky Header */}
-                    <thead className="bg-deep-ocean text-white sticky top-0 z-10 shadow-md">
+                    <thead className="bg-[#2C3E50] text-white sticky top-0 z-10 shadow-md">
                       <tr>
                         <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider min-w-[80px]">
                           Row
@@ -1048,14 +1013,13 @@ export function EnhancedBulkAddModal({
                         <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider min-w-[160px]">
                           GPS
                         </th>
-                        <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider min-w-[120px] sticky right-0 bg-deep-ocean">
+                        <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider min-w-[120px] sticky right-0 bg-[#2C3E50]">
                           Actions
                         </th>
                       </tr>
                     </thead>
 
-                    {/* Table Body */}
-                    <tbody className="divide-y divide-slate-gray/10 bg-white">
+                    <tbody className="divide-y divide-[#B3C8CF]/20 bg-white">
                       {currentRows.map((row) => {
                         const actualRowIndex = row._originalIndex
                         const isEditing = editingRows.has(actualRowIndex)
@@ -1067,115 +1031,143 @@ export function EnhancedBulkAddModal({
                             key={actualRowIndex}
                             className={`${
                               isEditing
-                                ? "bg-electric-blue/10 border-l-4 border-electric-blue"
+                                ? "bg-[#89A8B2]/10 border-l-4 border-[#89A8B2]"
                                 : hasErrors
-                                ? "bg-coral-red/5"
-                                : "hover:bg-light-sky/20"
+                                  ? "bg-red-50"
+                                  : "hover:bg-[#F1F0E8]"
                             } transition-colors`}
                           >
-                            {/* Row Number */}
                             <td className="px-3 py-3 text-sm font-medium">
                               <div className="flex items-center gap-2">
-                                <span className="text-deep-ocean">{row._displayIndex}</span>
-                                {hasErrors && <AlertTriangle className="h-4 w-4 text-coral-red" />}
+                                <span className="text-[#2C3E50]">{row._displayIndex}</span>
+                                {hasErrors && <AlertTriangle className="h-4 w-4 text-red-600" />}
                               </div>
                             </td>
 
-                            {/* Internet ID */}
                             <td className="px-3 py-3">
-                              {renderEditableField(actualRowIndex, "internet_id", rowData.internet_id || "", "text", "Internet ID")}
+                              {renderEditableField(
+                                actualRowIndex,
+                                "internet_id",
+                                rowData.internet_id || "",
+                                "text",
+                                "Internet ID",
+                              )}
                             </td>
-
-                            {/* First Name */}
                             <td className="px-3 py-3">
-                              {renderEditableField(actualRowIndex, "first_name", rowData.first_name || "", "text", "First Name")}
+                              {renderEditableField(
+                                actualRowIndex,
+                                "first_name",
+                                rowData.first_name || "",
+                                "text",
+                                "First Name",
+                              )}
                             </td>
-
-                            {/* Last Name */}
                             <td className="px-3 py-3">
-                              {renderEditableField(actualRowIndex, "last_name", rowData.last_name || "", "text", "Last Name")}
+                              {renderEditableField(
+                                actualRowIndex,
+                                "last_name",
+                                rowData.last_name || "",
+                                "text",
+                                "Last Name",
+                              )}
                             </td>
-
-                            {/* Email */}
                             <td className="px-3 py-3">
                               {renderEditableField(actualRowIndex, "email", rowData.email || "", "email", "Email")}
                             </td>
-
-                            {/* Phone 1 */}
                             <td className="px-3 py-3">
                               {renderEditableField(actualRowIndex, "phone_1", rowData.phone_1 || "", "tel", "Phone 1")}
                             </td>
-
-                            {/* Phone 2 */}
                             <td className="px-3 py-3">
                               {renderEditableField(actualRowIndex, "phone_2", rowData.phone_2 || "", "tel", "Phone 2")}
                             </td>
-
-                            {/* Area */}
                             <td className="px-3 py-3">
-                              {renderDropdownField(actualRowIndex, "area_id", rowData.area_id || "", dropdownData.areas, "Area")}
+                              {renderDropdownField(
+                                actualRowIndex,
+                                "area_id",
+                                rowData.area_id || "",
+                                dropdownData.areas,
+                                "Area",
+                              )}
                             </td>
-
-                            {/* Address */}
                             <td className="px-3 py-3">
-                              {renderEditableField(actualRowIndex, "installation_address", rowData.installation_address || "", "text", "Address")}
+                              {renderEditableField(
+                                actualRowIndex,
+                                "installation_address",
+                                rowData.installation_address || "",
+                                "text",
+                                "Address",
+                              )}
                             </td>
-
-                            {/* Service Plan */}
                             <td className="px-3 py-3">
-                              {renderDropdownField(actualRowIndex, "service_plan_id", rowData.service_plan_id || "", dropdownData.servicePlans, "Plan")}
+                              {renderDropdownField(
+                                actualRowIndex,
+                                "service_plan_id",
+                                rowData.service_plan_id || "",
+                                dropdownData.servicePlans,
+                                "Plan",
+                              )}
                             </td>
-
-                            {/* ISP */}
                             <td className="px-3 py-3">
-                              {renderDropdownField(actualRowIndex, "isp_id", rowData.isp_id || "", dropdownData.isps, "ISP")}
+                              {renderDropdownField(
+                                actualRowIndex,
+                                "isp_id",
+                                rowData.isp_id || "",
+                                dropdownData.isps,
+                                "ISP",
+                              )}
                             </td>
-
-                            {/* Connection Type */}
                             <td className="px-3 py-3">
                               {renderEditableField(actualRowIndex, "connection_type", rowData.connection_type || "")}
                             </td>
-
-                            {/* Internet Connection Type */}
                             <td className="px-3 py-3">
-                              {renderEditableField(actualRowIndex, "internet_connection_type", rowData.internet_connection_type || "")}
+                              {renderEditableField(
+                                actualRowIndex,
+                                "internet_connection_type",
+                                rowData.internet_connection_type || "",
+                              )}
                             </td>
-
-                            {/* TV Cable Connection Type */}
                             <td className="px-3 py-3">
-                              {renderEditableField(actualRowIndex, "tv_cable_connection_type", rowData.tv_cable_connection_type || "")}
+                              {renderEditableField(
+                                actualRowIndex,
+                                "tv_cable_connection_type",
+                                rowData.tv_cable_connection_type || "",
+                              )}
                             </td>
-
-                            {/* Installation Date */}
                             <td className="px-3 py-3">
-                              {renderEditableField(actualRowIndex, "installation_date", rowData.installation_date || "", "date")}
+                              {renderEditableField(
+                                actualRowIndex,
+                                "installation_date",
+                                rowData.installation_date || "",
+                                "date",
+                              )}
                             </td>
-
-                            {/* CNIC */}
                             <td className="px-3 py-3">
                               {renderEditableField(actualRowIndex, "cnic", rowData.cnic || "", "text", "CNIC")}
                             </td>
-
-                            {/* GPS Coordinates */}
                             <td className="px-3 py-3">
-                              {renderEditableField(actualRowIndex, "gps_coordinates", rowData.gps_coordinates || "", "text", "GPS")}
+                              {renderEditableField(
+                                actualRowIndex,
+                                "gps_coordinates",
+                                rowData.gps_coordinates || "",
+                                "text",
+                                "GPS",
+                              )}
                             </td>
 
-                            {/* Actions - Sticky */}
                             <td className="px-3 py-3 sticky right-0 bg-white">
                               <div className="flex items-center gap-2 justify-end">
                                 {isEditing ? (
                                   <>
                                     <button
                                       onClick={() => saveRowChanges(actualRowIndex)}
-                                      className="p-2 text-white bg-emerald-green rounded-md hover:bg-emerald-green/90 transition-colors shadow-sm"
+                                      className="p-2 text-white bg-green-600 rounded-md hover:bg-green-700 transition-colors shadow-sm"
                                       title="Save changes"
                                     >
                                       <Save className="h-4 w-4" />
                                     </button>
                                     <button
                                       onClick={() => resetRowChanges(actualRowIndex)}
-                                      className="p-2 text-white bg-slate-gray rounded-md hover:bg-slate-gray/90 transition-colors shadow-sm"
+                                      className="p-2 text-white bg-[#5A6C7D] rounded-md hover:bg-[#2C3E50] transition-colors shadow-sm"
                                       title="Cancel"
                                     >
                                       <RotateCcw className="h-4 w-4" />
@@ -1184,7 +1176,7 @@ export function EnhancedBulkAddModal({
                                 ) : (
                                   <button
                                     onClick={() => handleEditRow(actualRowIndex)}
-                                    className="p-2 text-white bg-electric-blue rounded-md hover:bg-electric-blue/90 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="p-2 text-white bg-[#89A8B2] rounded-md hover:bg-[#7A96A3] transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                                     title="Edit row"
                                     disabled={row._isValid}
                                   >
@@ -1199,20 +1191,19 @@ export function EnhancedBulkAddModal({
                     </tbody>
                   </table>
 
-                  {/* Empty State */}
                   {displayRows.length === 0 && (
                     <div className="p-12 text-center">
-                      <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-gray/10 mb-4">
+                      <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[#B3C8CF]/10 mb-4">
                         {showValidRowsOnly ? (
-                          <CheckCircle className="h-8 w-8 text-slate-gray/50" />
+                          <CheckCircle className="h-8 w-8 text-[#89A8B2]/50" />
                         ) : (
-                          <AlertCircle className="h-8 w-8 text-slate-gray/50" />
+                          <AlertCircle className="h-8 w-8 text-[#89A8B2]/50" />
                         )}
                       </div>
-                      <p className="text-lg font-medium text-deep-ocean mb-2">
+                      <p className="text-lg font-medium text-[#2C3E50] mb-2">
                         {showValidRowsOnly ? "No Valid Rows Found" : "No Error Rows"}
                       </p>
-                      <p className="text-sm text-slate-gray">
+                      <p className="text-sm text-[#5A6C7D]">
                         {showValidRowsOnly
                           ? "All rows contain validation errors. Switch to Error Rows to fix them."
                           : "All rows are valid and ready for processing!"}
@@ -1224,15 +1215,15 @@ export function EnhancedBulkAddModal({
 
               {/* Pagination */}
               {totalPages > 1 && (
-                <div className="px-6 py-3 bg-light-sky/10 border-t border-slate-gray/10 flex items-center justify-between flex-shrink-0">
-                  <div className="text-sm text-slate-gray">
+                <div className="px-6 sm:px-8 py-3 bg-[#F1F0E8] border-t border-[#B3C8CF]/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 flex-shrink-0">
+                  <div className="text-sm text-[#5A6C7D]">
                     Showing {startIndex + 1} to {Math.min(endIndex, displayRows.length)} of {displayRows.length} rows
                   </div>
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
                       disabled={currentPage === 1}
-                      className="p-2 text-slate-gray hover:text-deep-ocean disabled:opacity-50 disabled:cursor-not-allowed transition-colors rounded-md hover:bg-slate-gray/10"
+                      className="p-2 text-[#5A6C7D] hover:text-[#2C3E50] disabled:opacity-50 disabled:cursor-not-allowed transition-colors rounded-md hover:bg-[#B3C8CF]/20"
                     >
                       <ChevronLeft className="h-5 w-5" />
                     </button>
@@ -1254,8 +1245,8 @@ export function EnhancedBulkAddModal({
                             onClick={() => setCurrentPage(pageNum)}
                             className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
                               currentPage === pageNum
-                                ? "bg-electric-blue text-white"
-                                : "bg-slate-gray/10 text-slate-gray hover:bg-slate-gray/20"
+                                ? "bg-[#89A8B2] text-white"
+                                : "bg-[#B3C8CF]/20 text-[#5A6C7D] hover:bg-[#B3C8CF]/40"
                             }`}
                           >
                             {pageNum}
@@ -1266,7 +1257,7 @@ export function EnhancedBulkAddModal({
                     <button
                       onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
                       disabled={currentPage === totalPages}
-                      className="p-2 text-slate-gray hover:text-deep-ocean disabled:opacity-50 disabled:cursor-not-allowed transition-colors rounded-md hover:bg-slate-gray/10"
+                      className="p-2 text-[#5A6C7D] hover:text-[#2C3E50] disabled:opacity-50 disabled:cursor-not-allowed transition-colors rounded-md hover:bg-[#B3C8CF]/20"
                     >
                       <ChevronRight className="h-5 w-5" />
                     </button>
@@ -1277,37 +1268,37 @@ export function EnhancedBulkAddModal({
           )}
 
           {step === "processing" && (
-            <div className="flex flex-col items-center justify-center py-12">
-              <div className="bg-electric-blue/10 p-6 rounded-full mb-6">
-                <Loader className="animate-spin h-12 w-12 text-electric-blue" />
+            <div className="flex flex-col items-center justify-center py-16 animate-in fade-in duration-300">
+              <div className="bg-[#89A8B2]/10 p-6 rounded-full mb-6">
+                <Loader className="animate-spin h-12 w-12 text-[#89A8B2]" />
               </div>
-              <h3 className="text-xl font-semibold text-deep-ocean mb-2">Processing Validated Data</h3>
-              <p className="text-slate-gray mb-8 text-center max-w-md">
+              <h3 className="text-xl font-semibold text-[#2C3E50] mb-2">Processing Validated Data</h3>
+              <p className="text-[#5A6C7D] mb-8 text-center max-w-md">
                 Saving validated customer records to the database...
               </p>
             </div>
           )}
 
           {step === "complete" && validationResult && (
-            <div className="flex flex-col items-center justify-center py-12">
-              <div className="bg-emerald-green/10 p-6 rounded-full mb-6">
-                <CheckCircle className="h-12 w-12 text-emerald-green" />
+            <div className="flex flex-col items-center justify-center py-16 animate-in fade-in duration-300">
+              <div className="bg-green-100 p-6 rounded-full mb-6">
+                <CheckCircle className="h-12 w-12 text-green-600" />
               </div>
-              <h3 className="text-2xl font-semibold text-deep-ocean mb-2">Import Completed Successfully!</h3>
-              <p className="text-center text-slate-gray mb-8 max-w-md">
+              <h3 className="text-2xl font-semibold text-[#2C3E50] mb-2">Import Completed Successfully!</h3>
+              <p className="text-center text-[#5A6C7D] mb-8 max-w-md">
                 Successfully processed {validationResult.successCount} out of {validationResult.totalRecords}{" "}
                 {entityName.toLowerCase()}s with advanced validation and error correction.
               </p>
               <div className="flex flex-col sm:flex-row gap-3">
                 <button
                   onClick={resetForm}
-                  className="px-6 py-3 bg-light-sky/50 text-deep-ocean rounded-lg hover:bg-light-sky transition-colors font-medium"
+                  className="px-6 py-3 border-2 border-[#B3C8CF] text-[#89A8B2] rounded-lg hover:bg-[#F1F0E8] transition-all duration-200 font-medium"
                 >
                   Import Another File
                 </button>
                 <button
                   onClick={onClose}
-                  className="px-6 py-3 bg-electric-blue text-white rounded-lg hover:bg-btn-hover transition-colors font-medium"
+                  className="px-6 py-3 bg-gradient-to-r from-[#89A8B2] to-[#7A96A3] text-white rounded-lg hover:shadow-lg hover:shadow-[#89A8B2]/30 transition-all duration-200 font-medium"
                 >
                   Close
                 </button>
@@ -1316,84 +1307,85 @@ export function EnhancedBulkAddModal({
           )}
         </div>
 
-        {/* Footer Actions */}
-        {step === "initial" && (
-          <div className="p-6 border-t border-slate-gray/10 flex justify-end gap-3 flex-shrink-0">
-            <button
-              onClick={onClose}
-              className="px-6 py-3 border border-slate-gray/20 text-slate-gray rounded-lg hover:bg-light-sky/50 transition-colors font-medium"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={validateFile}
-              disabled={!file || isUploading}
-              className="px-6 py-3 bg-electric-blue text-white rounded-lg hover:bg-btn-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-electric-blue disabled:opacity-50 transition-colors flex items-center gap-2 font-medium"
-            >
-              {isUploading ? (
-                <>
-                  <Loader className="animate-spin h-5 w-5" /> Validating...
-                </>
-              ) : (
-                <>
-                  <Upload className="h-5 w-5" /> Validate & Review
-                </>
-              )}
-            </button>
-          </div>
-        )}
-
-        {step === "validation" && (
-          <div className="p-6 border-t border-slate-gray/10 flex justify-between items-center flex-shrink-0 bg-white">
-            <div className="flex items-center gap-2 text-sm">
-              {validationResult && validationResult.failedCount > 0 && (
-                <div className="flex items-center gap-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg">
-                  <AlertTriangle className="h-4 w-4 text-amber-600" />
-                  <span className="text-amber-700">
-                    Fix {validationResult.failedCount} error{validationResult.failedCount !== 1 ? "s" : ""} to proceed
-                  </span>
-                </div>
-              )}
-              {validationResult && validationResult.successCount > 0 && validationResult.failedCount === 0 && (
-                <div className="flex items-center gap-2 px-3 py-2 bg-emerald-50 border border-emerald-200 rounded-lg">
-                  <CheckCircle className="h-4 w-4 text-emerald-600" />
-                  <span className="text-emerald-700">All records validated successfully!</span>
-                </div>
-              )}
-            </div>
-
-            <div className="flex gap-3">
-              <button
-                onClick={resetForm}
-                className="px-6 py-3 border border-slate-gray/20 text-slate-gray rounded-lg hover:bg-light-sky/50 transition-colors font-medium"
-              >
-                Start Over
-              </button>
+        <div className="p-6 sm:p-8 border-t border-[#B3C8CF]/20 bg-white flex flex-col-reverse sm:flex-row justify-between gap-3 flex-shrink-0">
+          {step === "initial" && (
+            <>
               <button
                 onClick={onClose}
-                className="px-6 py-3 border border-slate-gray/20 text-slate-gray rounded-lg hover:bg-light-sky/50 transition-colors font-medium"
+                className="px-6 py-3 border-2 border-[#B3C8CF] text-[#89A8B2] rounded-lg hover:bg-[#F1F0E8] transition-all duration-200 font-medium focus:outline-none focus:ring-2 focus:ring-[#89A8B2]/30"
               >
                 Cancel
               </button>
               <button
-                onClick={processValidatedData}
-                disabled={isProcessing || !validationResult || validationResult.successCount === 0}
-                className="px-6 py-3 bg-emerald-green text-white rounded-lg hover:bg-emerald-green/90 transition-colors flex items-center gap-2 font-medium disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
+                onClick={validateFile}
+                disabled={!file || isUploading}
+                className="px-6 py-3 bg-gradient-to-r from-[#89A8B2] to-[#7A96A3] text-white rounded-lg hover:shadow-lg hover:shadow-[#89A8B2]/30 transition-all duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-[#89A8B2]/50 flex items-center justify-center gap-2"
               >
-                {isProcessing ? (
+                {isUploading ? (
                   <>
-                    <Loader className="animate-spin h-5 w-5" /> Processing...
+                    <Loader className="animate-spin h-5 w-5" /> Validating...
                   </>
                 ) : (
                   <>
-                    <Database className="h-5 w-5" /> Process {validationResult?.successCount || 0} Record
-                    {validationResult && validationResult.successCount !== 1 ? "s" : ""}
+                    <Upload className="h-5 w-5" /> Validate & Review
                   </>
                 )}
               </button>
-            </div>
-          </div>
-        )}
+            </>
+          )}
+
+          {step === "validation" && (
+            <>
+              <div className="flex items-center gap-2 text-sm">
+                {validationResult && validationResult.failedCount > 0 && (
+                  <div className="flex items-center gap-2 px-3 py-2 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <AlertTriangle className="h-4 w-4 text-yellow-600" />
+                    <span className="text-yellow-700">
+                      Fix {validationResult.failedCount} error{validationResult.failedCount !== 1 ? "s" : ""} to proceed
+                    </span>
+                  </div>
+                )}
+                {validationResult && validationResult.successCount > 0 && validationResult.failedCount === 0 && (
+                  <div className="flex items-center gap-2 px-3 py-2 bg-green-50 border border-green-200 rounded-lg">
+                    <CheckCircle className="h-4 w-4 text-green-600" />
+                    <span className="text-green-700">All records validated successfully!</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex flex-col-reverse sm:flex-row gap-3">
+                <button
+                  onClick={resetForm}
+                  className="px-6 py-3 border-2 border-[#B3C8CF] text-[#89A8B2] rounded-lg hover:bg-[#F1F0E8] transition-all duration-200 font-medium"
+                >
+                  Start Over
+                </button>
+                <button
+                  onClick={onClose}
+                  className="px-6 py-3 border-2 border-[#B3C8CF] text-[#89A8B2] rounded-lg hover:bg-[#F1F0E8] transition-all duration-200 font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={processValidatedData}
+                  disabled={isProcessing || !validationResult || validationResult.successCount === 0}
+                  className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all duration-200 flex items-center justify-center gap-2 font-medium disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
+                >
+                  {isProcessing ? (
+                    <>
+                      <Loader className="animate-spin h-5 w-5" /> Processing...
+                    </>
+                  ) : (
+                    <>
+                      <Database className="h-5 w-5" /> Process {validationResult?.successCount || 0} Record
+                      {validationResult && validationResult.successCount !== 1 ? "s" : ""}
+                    </>
+                  )}
+                </button>
+              </div>
+            </>
+          )}
+        </div>
       </div>
     </div>
   )

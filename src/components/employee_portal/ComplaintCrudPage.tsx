@@ -272,7 +272,7 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
       <div className="flex-1 flex flex-col overflow-hidden">
         <Topbar toggleSidebar={toggleSidebar} />
         <main
-          className={`flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-6 pt-20 transition-all duration-300 ${isSidebarOpen ? "ml-72" : "ml-20"}`}
+          className={`flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-6 pt-20 transition-all duration-300 ${isSidebarOpen ? "ml-72" : "ml-0 md:ml-20"}`}
         >
           <div className="container mx-auto">
             <h1 className="text-4xl font-bold text-center text-[#8b5cf6] mb-8">{title} Management</h1>

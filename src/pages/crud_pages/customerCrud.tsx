@@ -47,56 +47,16 @@ const CustomerManagement: React.FC = () => {
         accessorFn: (row) => `${row.first_name} ${row.last_name}`,
       },
       {
-        header: "Email",
-        accessorKey: "email",
-      },
-      {
         header: "Phone 1",
         accessorKey: "phone_1",
-      },
-      {
-        header: "Phone 2",
-        accessorKey: "phone_2",
       },
       {
         header: "Area",
         accessorKey: "area",
       },
       {
-        header: "Installation Address",
-        accessorKey: "installation_address",
-      },
-      {
         header: "Service Plan",
         accessorKey: "service_plan",
-      },
-      {
-        header: "ISP",
-        accessorKey: "isp",
-      },
-      {
-        header: "Connection Type",
-        accessorKey: "connection_type",
-      },
-      {
-        header: "Internet Connection Type",
-        accessorKey: "internet_connection_type",
-      },
-      {
-        header: "TV Cable Connection Type",
-        accessorKey: "tv_cable_connection_type",
-      },
-      {
-        header: "Installation Date",
-        accessorKey: "installation_date",
-      },
-      {
-        header: "CNIC",
-        accessorKey: "cnic",
-      },
-      {
-        header: "GPS Coordinates",
-        accessorKey: "gps_coordinates",
       },
       {
         header: "CNIC Front Image",
