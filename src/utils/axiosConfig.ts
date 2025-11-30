@@ -5,8 +5,8 @@ import { removeToken, getToken, getRefreshToken } from "./auth.ts";
 
 // Environment-based configuration
 const getBaseURL = () => {
-  return process.env.REACT_APP_API_BASE_URL || 
-    (process.env.NODE_ENV === "development" 
+  return process.env.REACT_APP_API_BASE_URL ||
+    (process.env.NODE_ENV === "development"
       ? "http://127.0.0.1:8000/"  // REMOVE /api/ from here
       : "http://127.0.0.1:8000/"
     );
@@ -43,7 +43,7 @@ axiosInstance.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
-    
+
     // Add timestamp to prevent caching for GET requests
     if (config.method?.toLowerCase() === 'get') {
       config.params = {
@@ -51,7 +51,7 @@ axiosInstance.interceptors.request.use(
         _t: Date.now(),
       };
     }
-    
+
     return config;
   },
   (error) => {
@@ -67,7 +67,7 @@ axiosInstance.interceptors.response.use(
   },
   async (error) => {
     const originalRequest = error.config;
-    
+
     if (error.response?.status === 401 && !originalRequest._retry) {
       if (isRefreshing) {
         // Add request to queue
@@ -85,7 +85,7 @@ axiosInstance.interceptors.response.use(
       isRefreshing = true;
 
       const refreshToken = getRefreshToken();
-      
+
       if (!refreshToken) {
         // No refresh token available, redirect to login
         handleUnauthorized();
@@ -99,19 +99,19 @@ axiosInstance.interceptors.response.use(
         });
 
         const { access_token, refresh_token } = response.data;
-        
+
         // Store new tokens (you'll need to implement setToken and setRefreshToken)
         // setToken(access_token);
         // setRefreshToken(refresh_token);
-        
+
         // Update Authorization header
         axiosInstance.defaults.headers.common.Authorization = `Bearer ${access_token}`;
         originalRequest.headers.Authorization = `Bearer ${access_token}`;
-        
+
         // Process queued requests
         processQueue(null, access_token);
         isRefreshing = false;
-        
+
         // Retry the original request
         return axiosInstance(originalRequest);
       } catch (refreshError) {
@@ -143,7 +143,7 @@ const handleUnauthorized = () => {
 // Helper function for error handling
 const handleError = (error: any) => {
   const { response } = error;
-  
+
   if (response?.status === 403) {
     toast.error("You don't have permission to perform this action.");
   } else if (response?.status === 404) {
@@ -155,7 +155,7 @@ const handleError = (error: any) => {
   } else if (!response) {
     toast.error("Network error. Please check your connection.");
   }
-  
+
   // You can add more specific error handling here
 };
 
@@ -174,7 +174,7 @@ export const downloadFile = async (url: string, filename: string) => {
   const response = await axiosInstance.get(url, {
     responseType: 'blob',
   });
-  
+
   const blob = new Blob([response.data]);
   const downloadUrl = window.URL.createObjectURL(blob);
   const link = document.createElement('a');
@@ -189,13 +189,13 @@ export const downloadFile = async (url: string, filename: string) => {
 export const uploadFile = async (url: string, file: File, data?: any) => {
   const formData = new FormData();
   formData.append('file', file);
-  
+
   if (data) {
     Object.keys(data).forEach(key => {
       formData.append(key, data[key]);
     });
   }
-  
+
   return axiosInstance.post(url, formData, {
     headers: {
       'Content-Type': 'multipart/form-data',

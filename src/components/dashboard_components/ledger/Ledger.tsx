@@ -304,8 +304,16 @@ export const Ledger: React.FC = () => {
 
   const bankAccounts: BankOption[] = useMemo(() => {
     if (!data) return []
-    if (Array.isArray((data as LedgerApiResponse)?.bank_accounts)) return (data as LedgerApiResponse).bank_accounts!
-    if (Array.isArray((data as UnifiedResponse)?.bank_accounts)) return (data as UnifiedResponse).bank_accounts!
+    
+    // Try multiple possible locations for bank accounts
+    const ledgerResp = data as LedgerApiResponse
+    const unifiedResp = data as UnifiedResponse
+    
+    if (Array.isArray(ledgerResp?.bank_accounts)) return ledgerResp.bank_accounts
+    if (Array.isArray(unifiedResp?.bank_accounts)) return unifiedResp.bank_accounts
+    if (Array.isArray((data as any)?.bank_accounts)) return (data as any).bank_accounts
+    
+    // If no bank accounts in response, return empty array but don't reset the filter
     return []
   }, [data])
 

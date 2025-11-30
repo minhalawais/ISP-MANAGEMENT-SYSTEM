@@ -36,6 +36,7 @@ interface CustomerFormProps {
   formData: Partial<Customer>
   handleInputChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void
   handleFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void
+  handleFileRemove?: (fieldName: string) => void // Add this prop
   isEditing: boolean
   validationErrors?: Record<string, string>
 }
@@ -286,6 +287,7 @@ export function CustomerForm({
   formData,
   handleInputChange,
   handleFileChange,
+  handleFileRemove, // Add this to destructuring
   isEditing,
   validationErrors = {},
 }: CustomerFormProps) {
@@ -536,6 +538,7 @@ export function CustomerForm({
     return null
   }
 
+  
   const inputFieldProps = useMemo(
     () => ({
       internetIdStatus,
@@ -1114,6 +1117,7 @@ export function CustomerForm({
             label="CNIC Front Image"
             name="cnic_front_image"
             onChange={memoizedHandleFileChange}
+            onFileRemove={handleFileRemove} // Use the prop
             currentImage={formData.cnic_front_image ? `/customers/cnic-front-image/${formData.id}` : undefined}
             disabled={false}
           />
@@ -1121,6 +1125,7 @@ export function CustomerForm({
             label="CNIC Back Image"
             name="cnic_back_image"
             onChange={memoizedHandleFileChange}
+            onFileRemove={handleFileRemove} // Use the prop
             currentImage={formData.cnic_back_image ? `/customers/cnic-back-image/${formData.id}` : undefined}
             disabled={false}
           />
@@ -1128,6 +1133,7 @@ export function CustomerForm({
             label="Agreement Document"
             name="agreement_document"
             onChange={memoizedHandleFileChange}
+            onFileRemove={handleFileRemove} // Use the prop
             currentImage={formData.agreement_document ? `/customers/agreement-document/${formData.id}` : undefined}
             disabled={false}
           />

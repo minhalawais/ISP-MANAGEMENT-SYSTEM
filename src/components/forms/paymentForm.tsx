@@ -4,8 +4,8 @@ import type React from "react"
 import { useEffect, useState } from "react"
 import { getToken } from "../../utils/auth.ts"
 import axiosInstance from "../../utils/axiosConfig.ts"
-import { FileText, DollarSign, Building, Calendar, CreditCard, Hash, User, ChevronDown, MessageSquare } from "lucide-react"
-import {SearchableSelect} from "../SearchableSelect.tsx"
+import { FileText, DollarSign, Building, Calendar, CreditCard, Hash, User, ChevronDown, MessageSquare, Clock } from "lucide-react"
+import { SearchableSelect } from "../SearchableSelect.tsx"
 
 interface PaymentFormProps {
   formData: any
@@ -34,6 +34,23 @@ interface BankAccount {
   iban?: string
 }
 
+// Helper functions for Pakistani timezone (PKT = UTC+5)
+const getPakistaniDateTime = () => {
+  const now = new Date()
+  // Convert to Pakistani time (UTC+5)
+  const pktOffset = 5 * 60 * 60 * 1000
+  const pktTime = new Date(now.getTime() + pktOffset - (now.getTimezoneOffset() * 60 * 1000))
+  return pktTime
+}
+
+const getPakistaniDate = () => {
+  return getPakistaniDateTime().toISOString().split('T')[0]
+}
+
+const getPakistaniTime = () => {
+  return getPakistaniDateTime().toTimeString().slice(0, 5)
+}
+
 export function PaymentForm({ formData, handleInputChange, handleSubmit, isEditing }: PaymentFormProps) {
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [employees, setEmployees] = useState<{ id: string; name: string }[]>([])
@@ -50,11 +67,20 @@ export function PaymentForm({ formData, handleInputChange, handleSubmit, isEditi
         handleInputChange({
           target: {
             name: "payment_date",
-            value: new Date().toISOString().split("T")[0],
+            value: getPakistaniDate(),
           },
         } as React.ChangeEvent<HTMLInputElement>)
       }
-      
+
+      if (!formData.payment_time) {
+        handleInputChange({
+          target: {
+            name: "payment_time",
+            value: getPakistaniTime(),
+          },
+        } as React.ChangeEvent<HTMLInputElement>)
+      }
+
       // Set default status if not already set
       if (!formData.status) {
         handleInputChange({
@@ -65,7 +91,7 @@ export function PaymentForm({ formData, handleInputChange, handleSubmit, isEditi
         } as React.ChangeEvent<HTMLInputElement>)
       }
     }
-    
+
     fetchInvoices()
     fetchEmployees()
     fetchBankAccounts()
@@ -109,15 +135,15 @@ export function PaymentForm({ formData, handleInputChange, handleSubmit, isEditi
       const response = await axiosInstance.get("/invoices/list", {
         headers: { Authorization: `Bearer ${token}` },
       })
-      
+
       // When editing, show all invoices (including the one being edited)
       // When adding, show only pending invoices
-      const filteredInvoices = isEditing 
-        ? response.data 
-        : response.data.filter((invoice: any) => 
-            invoice.status === 'pending' || invoice.status === 'Pending' || invoice.status === 'partially_paid' || invoice.status === 'Partially Paid'
-          )
-      
+      const filteredInvoices = isEditing
+        ? response.data
+        : response.data.filter((invoice: any) =>
+          invoice.status === 'pending' || invoice.status === 'Pending' || invoice.status === 'partially_paid' || invoice.status === 'Partially Paid'
+        )
+
       setInvoices(
         filteredInvoices.map((invoice: any) => ({
           id: invoice.id,
@@ -195,12 +221,12 @@ export function PaymentForm({ formData, handleInputChange, handleSubmit, isEditi
     if (!formData.payment_method) newErrors.payment_method = "Payment method is required"
     if (!formData.status) newErrors.status = "Status is required"
     if (!formData.received_by) newErrors.received_by = "Receiver is required"
-    
+
     // Only require bank account if payment method is bank transfer
     if (formData.payment_method === "bank_transfer" && !formData.bank_account_id) {
       newErrors.bank_account_id = "Bank account is required for bank transfers"
     }
-    
+
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
@@ -246,9 +272,8 @@ export function PaymentForm({ formData, handleInputChange, handleSubmit, isEditi
               value={formData.amount || ""}
               onChange={handleInputChange}
               placeholder="Enter amount"
-              className={`w-full pl-10 pr-4 py-2.5 border ${
-                errors.amount ? "border-coral-red" : "border-slate-gray/20"
-              } rounded-lg bg-light-sky/30 text-deep-ocean placeholder-slate-gray/50 focus:outline-none focus:ring-2 focus:ring-electric-blue/30 focus:border-transparent transition-all duration-200`}
+              className={`w-full pl-10 pr-4 py-2.5 border ${errors.amount ? "border-coral-red" : "border-slate-gray/20"
+                } rounded-lg bg-light-sky/30 text-deep-ocean placeholder-slate-gray/50 focus:outline-none focus:ring-2 focus:ring-electric-blue/30 focus:border-transparent transition-all duration-200`}
               required
             />
           </div>
@@ -269,13 +294,34 @@ export function PaymentForm({ formData, handleInputChange, handleSubmit, isEditi
               name="payment_date"
               value={formData.payment_date || ""}
               onChange={handleInputChange}
-              className={`w-full pl-10 pr-4 py-2.5 border ${
-                errors.payment_date ? "border-coral-red" : "border-slate-gray/20"
-              } rounded-lg bg-light-sky/30 text-deep-ocean placeholder-slate-gray/50 focus:outline-none focus:ring-2 focus:ring-electric-blue/30 focus:border-transparent transition-all duration-200`}
+              className={`w-full pl-10 pr-4 py-2.5 border ${errors.payment_date ? "border-coral-red" : "border-slate-gray/20"
+                } rounded-lg bg-light-sky/30 text-deep-ocean placeholder-slate-gray/50 focus:outline-none focus:ring-2 focus:ring-electric-blue/30 focus:border-transparent transition-all duration-200`}
               required
             />
           </div>
           {errors.payment_date && <p className="text-coral-red text-xs mt-1">{errors.payment_date}</p>}
+        </div>
+
+        <div className="space-y-2">
+          <label htmlFor="payment_time" className="block text-sm font-medium text-deep-ocean">
+            Payment Time
+          </label>
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Clock className="h-5 w-5 text-slate-gray/60" />
+            </div>
+            <input
+              type="time"
+              id="payment_time"
+              name="payment_time"
+              value={formData.payment_time || ""}
+              onChange={handleInputChange}
+              className={`w-full pl-10 pr-4 py-2.5 border ${errors.payment_time ? "border-coral-red" : "border-slate-gray/20"
+                } rounded-lg bg-light-sky/30 text-deep-ocean placeholder-slate-gray/50 focus:outline-none focus:ring-2 focus:ring-electric-blue/30 focus:border-transparent transition-all duration-200`}
+              required
+            />
+          </div>
+          {errors.payment_time && <p className="text-coral-red text-xs mt-1">{errors.payment_time}</p>}
         </div>
       </div>
 
@@ -293,9 +339,8 @@ export function PaymentForm({ formData, handleInputChange, handleSubmit, isEditi
               name="payment_method"
               value={formData.payment_method || ""}
               onChange={handleInputChange}
-              className={`w-full pl-10 pr-10 py-2.5 border ${
-                errors.payment_method ? "border-coral-red" : "border-slate-gray/20"
-              } rounded-lg bg-light-sky/30 text-deep-ocean placeholder-slate-gray/50 focus:outline-none focus:ring-2 focus:ring-electric-blue/30 focus:border-transparent transition-all duration-200 appearance-none`}
+              className={`w-full pl-10 pr-10 py-2.5 border ${errors.payment_method ? "border-coral-red" : "border-slate-gray/20"
+                } rounded-lg bg-light-sky/30 text-deep-ocean placeholder-slate-gray/50 focus:outline-none focus:ring-2 focus:ring-electric-blue/30 focus:border-transparent transition-all duration-200 appearance-none`}
               required
             >
               <option value="">Select Payment Method</option>
@@ -324,9 +369,8 @@ export function PaymentForm({ formData, handleInputChange, handleSubmit, isEditi
                 name="bank_account_id"
                 value={formData.bank_account_id || ""}
                 onChange={handleInputChange}
-                className={`w-full pl-10 pr-10 py-2.5 border ${
-                  errors.bank_account_id ? "border-coral-red" : "border-slate-gray/20"
-                } rounded-lg bg-light-sky/30 text-deep-ocean placeholder-slate-gray/50 focus:outline-none focus:ring-2 focus:ring-electric-blue/30 focus:border-transparent transition-all duration-200 appearance-none`}
+                className={`w-full pl-10 pr-10 py-2.5 border ${errors.bank_account_id ? "border-coral-red" : "border-slate-gray/20"
+                  } rounded-lg bg-light-sky/30 text-deep-ocean placeholder-slate-gray/50 focus:outline-none focus:ring-2 focus:ring-electric-blue/30 focus:border-transparent transition-all duration-200 appearance-none`}
               >
                 <option value="">Select Bank Account</option>
                 {bankAccounts.map((account) => (
@@ -376,9 +420,8 @@ export function PaymentForm({ formData, handleInputChange, handleSubmit, isEditi
             name="status"
             value={formData.status || ""}
             onChange={handleInputChange}
-            className={`w-full pl-10 pr-10 py-2.5 border ${
-              errors.status ? "border-coral-red" : "border-slate-gray/20"
-            } rounded-lg bg-light-sky/30 text-deep-ocean placeholder-slate-gray/50 focus:outline-none focus:ring-2 focus:ring-electric-blue/30 focus:border-transparent transition-all duration-200 appearance-none`}
+            className={`w-full pl-10 pr-10 py-2.5 border ${errors.status ? "border-coral-red" : "border-slate-gray/20"
+              } rounded-lg bg-light-sky/30 text-deep-ocean placeholder-slate-gray/50 focus:outline-none focus:ring-2 focus:ring-electric-blue/30 focus:border-transparent transition-all duration-200 appearance-none`}
             required
           >
             <option value="">Select Status</option>
@@ -448,9 +491,8 @@ export function PaymentForm({ formData, handleInputChange, handleSubmit, isEditi
             name="received_by"
             value={formData.received_by || ""}
             onChange={handleInputChange}
-            className={`w-full pl-10 pr-10 py-2.5 border ${
-              errors.received_by ? "border-coral-red" : "border-slate-gray/20"
-            } rounded-lg bg-light-sky/30 text-deep-ocean placeholder-slate-gray/50 focus:outline-none focus:ring-2 focus:ring-electric-blue/30 focus:border-transparent transition-all duration-200 appearance-none`}
+            className={`w-full pl-10 pr-10 py-2.5 border ${errors.received_by ? "border-coral-red" : "border-slate-gray/20"
+              } rounded-lg bg-light-sky/30 text-deep-ocean placeholder-slate-gray/50 focus:outline-none focus:ring-2 focus:ring-electric-blue/30 focus:border-transparent transition-all duration-200 appearance-none`}
             required
           >
             <option value="">Select Employee</option>

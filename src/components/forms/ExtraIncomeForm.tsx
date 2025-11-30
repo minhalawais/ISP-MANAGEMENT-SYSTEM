@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { Building, Calendar, FileText, User, CreditCard, Settings, DollarSign } from "lucide-react"
+import { Building, Calendar, FileText, User, CreditCard, Settings, DollarSign, Clock } from "lucide-react"
 import { useState, useEffect } from "react"
 import { getToken } from "../../utils/auth.ts"
 import axiosInstance from "../../utils/axiosConfig.ts"
@@ -27,6 +27,22 @@ interface ExtraIncomeType {
   is_active: boolean
 }
 
+// Helper functions for Pakistani timezone (PKT = UTC+5)
+const getPakistaniDateTime = () => {
+  const now = new Date()
+  const pktOffset = 5 * 60 * 60 * 1000
+  const pktTime = new Date(now.getTime() + pktOffset - (now.getTimezoneOffset() * 60 * 1000))
+  return pktTime
+}
+
+const getPakistaniDate = () => {
+  return getPakistaniDateTime().toISOString().split('T')[0]
+}
+
+const getPakistaniTime = () => {
+  return getPakistaniDateTime().toTimeString().slice(0, 5)
+}
+
 export function ExtraIncomeForm({ formData, handleInputChange, isEditing, onManageIncomeTypes }: ExtraIncomeFormProps) {
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([])
   const [incomeTypes, setIncomeTypes] = useState<ExtraIncomeType[]>([])
@@ -43,7 +59,7 @@ export function ExtraIncomeForm({ formData, handleInputChange, isEditing, onMana
     const fetchData = async () => {
       try {
         const token = getToken()
-        
+
         // Fetch bank accounts
         const bankResponse = await axiosInstance.get('/bank-accounts/list', {
           headers: { Authorization: `Bearer ${token}` },
@@ -61,7 +77,28 @@ export function ExtraIncomeForm({ formData, handleInputChange, isEditing, onMana
     }
 
     fetchData()
-  }, [])
+
+    // Set default date and time for new income entries
+    if (!isEditing) {
+      if (!formData.income_date) {
+        handleInputChange({
+          target: {
+            name: "income_date",
+            value: getPakistaniDate(),
+          },
+        } as React.ChangeEvent<HTMLInputElement>)
+      }
+
+      if (!formData.income_time) {
+        handleInputChange({
+          target: {
+            name: "income_time",
+            value: getPakistaniTime(),
+          },
+        } as React.ChangeEvent<HTMLInputElement>)
+      }
+    }
+  }, [isEditing])
 
   // Check if bank account field should be shown
   const showBankAccountField = formData.payment_method === 'online' || formData.payment_method === 'bank_transfer'
@@ -135,7 +172,7 @@ export function ExtraIncomeForm({ formData, handleInputChange, isEditing, onMana
               type="date"
               id="income_date"
               name="income_date"
-              value={formData.income_date || ""}
+              value={formData.income_date || getPakistaniDate()}
               onChange={handleInputChange}
               className="w-full pl-10 pr-4 py-2.5 border border-slate-gray/20 rounded-lg bg-light-sky/30 text-deep-ocean focus:outline-none focus:ring-2 focus:ring-electric-blue/30 focus:border-transparent transition-all duration-200"
               required
@@ -144,22 +181,42 @@ export function ExtraIncomeForm({ formData, handleInputChange, isEditing, onMana
         </div>
 
         <div className="space-y-2">
-          <label htmlFor="payment_method" className="block text-sm font-medium text-deep-ocean">
-            Payment Method
+          <label htmlFor="income_time" className="block text-sm font-medium text-deep-ocean">
+            Income Time *
           </label>
-          <select
-            id="payment_method"
-            name="payment_method"
-            value={formData.payment_method || ""}
-            onChange={handleInputChange}
-            className="w-full px-4 py-2.5 border border-slate-gray/20 rounded-lg bg-light-sky/30 text-deep-ocean focus:outline-none focus:ring-2 focus:ring-electric-blue/30 focus:border-transparent transition-all duration-200"
-          >
-            <option value="">Select Payment Method</option>
-            {paymentMethods.map(method => (
-              <option key={method.value} value={method.value}>{method.label}</option>
-            ))}
-          </select>
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Clock className="h-5 w-5 text-slate-gray/60" />
+            </div>
+            <input
+              type="time"
+              id="income_time"
+              name="income_time"
+              value={formData.income_time || getPakistaniTime()}
+              onChange={handleInputChange}
+              className="w-full pl-10 pr-4 py-2.5 border border-slate-gray/20 rounded-lg bg-light-sky/30 text-deep-ocean focus:outline-none focus:ring-2 focus:ring-electric-blue/30 focus:border-transparent transition-all duration-200"
+              required
+            />
+          </div>
         </div>
+      </div>
+
+      <div className="space-y-2">
+        <label htmlFor="payment_method" className="block text-sm font-medium text-deep-ocean">
+          Payment Method
+        </label>
+        <select
+          id="payment_method"
+          name="payment_method"
+          value={formData.payment_method || ""}
+          onChange={handleInputChange}
+          className="w-full px-4 py-2.5 border border-slate-gray/20 rounded-lg bg-light-sky/30 text-deep-ocean focus:outline-none focus:ring-2 focus:ring-electric-blue/30 focus:border-transparent transition-all duration-200"
+        >
+          <option value="">Select Payment Method</option>
+          {paymentMethods.map(method => (
+            <option key={method.value} value={method.value}>{method.label}</option>
+          ))}
+        </select>
       </div>
 
       <div className="space-y-2">

@@ -17,10 +17,26 @@ interface Invoice {
   total_amount: number;
 }
 
+// Helper functions for Pakistani timezone (PKT = UTC+5)
+const getPakistaniDateTime = () => {
+  const now = new Date()
+  const pktOffset = 5 * 60 * 60 * 1000
+  const pktTime = new Date(now.getTime() + pktOffset - (now.getTimezoneOffset() * 60 * 1000))
+  return pktTime
+}
+
+const getPakistaniDate = () => {
+  return getPakistaniDateTime().toISOString().split('T')[0]
+}
+
+const getPakistaniTime = () => {
+  return getPakistaniDateTime().toTimeString().slice(0, 5)
+}
+
 export function PaymentForm({ formData, handleInputChange, handleSubmit, isEditing }: PaymentFormProps) {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [employees, setEmployees] = useState<{ id: string; name: string }[]>([]);
-  const [errors, setErrors] = useState<{[key: string]: string}>({});
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
   useEffect(() => {
     fetchInvoices();
@@ -33,8 +49,8 @@ export function PaymentForm({ formData, handleInputChange, handleSubmit, isEditi
       const response = await axiosInstance.get('/invoices/list', {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setInvoices(response.data.map((invoice: any) => ({ 
-        id: invoice.id, 
+      setInvoices(response.data.map((invoice: any) => ({
+        id: invoice.id,
         invoice_number: invoice.invoice_number,
         customer_name: invoice.customer_name,
         total_amount: invoice.total_amount
@@ -50,9 +66,9 @@ export function PaymentForm({ formData, handleInputChange, handleSubmit, isEditi
       const response = await axiosInstance.get('/employees/list', {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setEmployees(response.data.map((employee: any) => ({ 
-        id: employee.id, 
-        name: `${employee.first_name} ${employee.last_name}` 
+      setEmployees(response.data.map((employee: any) => ({
+        id: employee.id,
+        name: `${employee.first_name} ${employee.last_name}`
       })));
     } catch (error) {
       console.error('Failed to fetch employees', error);
@@ -74,7 +90,7 @@ export function PaymentForm({ formData, handleInputChange, handleSubmit, isEditi
   const handleInvoiceChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const selectedInvoiceId = e.target.value;
     const selectedInvoice = invoices.find(invoice => invoice.id === selectedInvoiceId);
-    
+
     handleInputChange(e);
 
     if (selectedInvoice) {
@@ -88,7 +104,7 @@ export function PaymentForm({ formData, handleInputChange, handleSubmit, isEditi
   };
 
   const validateForm = () => {
-    const newErrors: {[key: string]: string} = {};
+    const newErrors: { [key: string]: string } = {};
     if (!formData.invoice_id) newErrors.invoice_id = "Invoice is required";
     if (!formData.amount) newErrors.amount = "Amount is required";
     if (!formData.payment_date) newErrors.payment_date = "Payment date is required";
@@ -132,12 +148,23 @@ export function PaymentForm({ formData, handleInputChange, handleSubmit, isEditi
       <input
         type="date"
         name="payment_date"
-        value={formData.payment_date || ''}
+        value={formData.payment_date || getPakistaniDate()}
         onChange={handleInputChange}
+        placeholder="Payment Date"
         className={`w-full p-2 border ${errors.payment_date ? 'border-red-500' : 'border-gray-300'} rounded-md`}
         required
       />
       {errors.payment_date && <p className="text-red-500 text-sm mt-1">{errors.payment_date}</p>}
+      <input
+        type="time"
+        name="payment_time"
+        value={formData.payment_time || getPakistaniTime()}
+        onChange={handleInputChange}
+        placeholder="Payment Time"
+        className={`w-full p-2 border ${errors.payment_time ? 'border-red-500' : 'border-gray-300'} rounded-md`}
+        required
+      />
+      {errors.payment_time && <p className="text-red-500 text-sm mt-1">{errors.payment_time}</p>}
       <select
         name="payment_method"
         value={formData.payment_method || ''}

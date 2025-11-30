@@ -11,6 +11,7 @@ interface FileUploadFieldProps {
   label: string
   name: string
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void
+  onFileRemove?: (fieldName: string) => void // New prop for file removal
   currentImage?: string
   disabled?: boolean
   accept?: string
@@ -21,6 +22,7 @@ export function FileUploadField({
   label,
   name,
   onChange,
+  onFileRemove,
   currentImage,
   disabled = false,
   accept = "image/*,.pdf",
@@ -105,15 +107,43 @@ export function FileUploadField({
       setIsUploading(false)
     }
   }
-
-  const removeFile = () => {
+  const removeFile = async () => {
+    try {
+      const token = getToken()
+      
+      // Prepare the file path to delete
+      const filePathToDelete = uploadedFile || currentImage
+      
+      if (filePathToDelete) {
+        // Make DELETE request with proper headers and data
+        await axiosInstance.delete(`/customers/remove-file`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          data: {
+            file_path: filePathToDelete,
+            field_name: name
+          }
+        })
+      }
+      
+    } catch (error) {
+      console.error("Error deleting file from server:", error)
+      // Continue with removal even if server deletion fails
+      toast.error("Failed to delete file from server, but removed locally", {
+        style: { background: "#FEE2E2", color: "#EF4444" },
+      })
+    }
+  
+    // Clear local state
     setUploadedFile(null)
     setPreviewUrl(null)
     if (fileInputRef.current) {
       fileInputRef.current.value = ""
     }
-
-    // Trigger onChange with empty value
+  
+    // Trigger onChange with empty value to update form data
     const syntheticEvent = {
       target: {
         name,
@@ -121,8 +151,16 @@ export function FileUploadField({
         files: null,
       },
     } as React.ChangeEvent<HTMLInputElement>
-
     onChange(syntheticEvent)
+  
+    // Notify parent about file removal
+    if (onFileRemove) {
+      onFileRemove(name)
+    }
+  
+    toast.success("File removed successfully", {
+      style: { background: "#D1FAE5", color: "#10B981" },
+    })
   }
 
   const viewFile = async () => {
@@ -194,7 +232,9 @@ export function FileUploadField({
                 )}
                 <div>
                   <p className="text-sm font-medium text-deep-ocean">File uploaded successfully</p>
-                  <p className="text-xs text-slate-gray">{uploadedFile ? "New file uploaded" : "Current file"}</p>
+                  <p className="text-xs text-slate-gray">
+                    {uploadedFile ? "New file uploaded" : currentImage ? "Current file" : "File uploaded"}
+                  </p>
                 </div>
               </div>
 
@@ -212,7 +252,7 @@ export function FileUploadField({
                 <button
                   type="button"
                   onClick={removeFile}
-                  disabled={disabled}
+                  disabled={disabled || isUploading}
                   className="p-2 text-coral-red hover:bg-coral-red/10 rounded-lg transition-colors disabled:opacity-50"
                   title="Remove file"
                 >

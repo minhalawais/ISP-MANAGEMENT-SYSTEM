@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo, useCallback  } from "react"
 import { CSVLink } from "react-csv"
 import type { ColumnDef } from "@tanstack/react-table"
 import {
@@ -13,8 +13,8 @@ import {
   LayoutDashboard,
   ChevronRight,
   Users,
-  CheckCircle2,
-  XCircle,
+  CheckCircle2,  // Make sure this is imported
+  XCircle,       // Make sure this is imported
   Upload,
 } from "lucide-react"
 import { Table } from "./table/table.tsx"
@@ -35,6 +35,7 @@ interface CRUDPageProps<T> {
     formData: Partial<T>
     handleInputChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void
     handleFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void
+    handleFileRemove?: (fieldName: string) => void // Add this
     isEditing: boolean
     validateBeforeSubmit?: (formData: Partial<T>) => string | null
     supportsBulkAdd?: boolean
@@ -46,7 +47,6 @@ interface CRUDPageProps<T> {
   validateBeforeSubmit?: (formData: Partial<T>) => string | null
   supportsBulkAdd?: boolean
 }
-
 export function CRUDPage<T extends { id: string; is_active?: boolean }>({
   title,
   endpoint,
@@ -324,7 +324,13 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
       setFormData((prev) => ({ ...prev, [name]: files[0] }))
     }
   }
-
+  const handleFileRemove = useCallback((fieldName: string) => {
+    // Update form data to remove the file reference
+    setFormData((prev) => ({
+      ...prev,
+      [fieldName]: ""
+    }))
+  }, [])
   const toggleSidebar = () => {
     setIsSidebarOpen((prev) => !prev)
   }
@@ -491,18 +497,44 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
                 </div>
               </div>
             </div>
-
+{/* Bulk Actions */}
+{selectedRows.length > 0 && (
+  <div className="bg-electric-blue/5 border border-electric-blue/20 rounded-lg p-4 mb-6 flex flex-wrap items-center justify-between gap-4">
+    <div className="flex items-center gap-2">
+      <span className="text-deep-ocean font-medium">
+        {selectedRows.length} {title.toLowerCase()}
+        {selectedRows.length > 1 ? "s" : ""} selected
+      </span>
+    </div>
+    <div className="flex flex-wrap gap-2">
+      <button
+        onClick={() => handleBulkStatusChange(true)}
+        disabled={selectedRows.length === 0 || isLoading}
+        className="px-4 py-2 text-sm font-medium bg-emerald-green text-white rounded-md hover:bg-emerald-green/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-green disabled:opacity-50 transition-colors flex items-center gap-1.5"
+      >
+        <CheckCircle2 className="h-4 w-4" /> Activate
+      </button>
+      <button
+        onClick={() => handleBulkStatusChange(false)}
+        disabled={selectedRows.length === 0 || isLoading}
+        className="px-4 py-2 text-sm font-medium bg-coral-red text-white rounded-md hover:bg-coral-red/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-coral-red disabled:opacity-50 transition-colors flex items-center gap-1.5"
+      >
+        <XCircle className="h-4 w-4" /> Deactivate
+      </button>
+    </div>
+  </div>
+)}
             {/* Table Section */}
             <div className="mb-8">
-              <Table
-                data={data}
-                columns={memoizedColumns}
-                selectedRows={selectedRows}
-                setSelectedRows={setSelectedRows}
-                handleToggleStatus={handleToggleStatus}
-                isLoading={isLoading}
-              />
-            </div>
+  <Table
+    data={data}
+    columns={memoizedColumns}
+    selectedRows={selectedRows}
+    setSelectedRows={setSelectedRows}
+    handleToggleStatus={handleToggleStatus}
+    isLoading={isLoading}
+  />
+</div>
           </div>
         </main>
       </div>
@@ -515,15 +547,16 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
         isLoading={isLoading}
       >
         <form onSubmit={handleSubmit}>
-          <FormComponent
-            formData={formData}
-            handleInputChange={handleInputChange}
-            handleFileChange={handleFileChange}
-            isEditing={!!editingItem}
-            validationErrors={validationErrors}
-            loadingStates={loadingStates}
-            setLoadingStates={setLoadingStates}
-          />
+        <FormComponent
+  formData={formData}
+  handleInputChange={handleInputChange}
+  handleFileChange={handleFileChange}
+  handleFileRemove={handleFileRemove} // Add this prop
+  isEditing={!!editingItem}
+  validationErrors={validationErrors}
+  loadingStates={loadingStates}
+  setLoadingStates={setLoadingStates}
+/>
           <div className="mt-6 flex justify-end gap-3">
             <button
               type="button"

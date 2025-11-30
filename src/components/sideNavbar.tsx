@@ -24,7 +24,8 @@ import {
   Network,
   DollarSign,
   TrendingUp,
-  X
+  X,
+  ChevronDown
 } from "lucide-react"
 import { removeToken } from "../utils/auth.ts"
 import axiosInstance from "../utils/axiosConfig.ts"
@@ -76,7 +77,7 @@ export const menuItems = [
     title: "Bank Accounts",
     icon: Banknote,
     description: "Handle bank accounts",
-    path: "/bank-management", 
+    path: "/bank-management",
   },
   {
     title: "Expense Management",
@@ -139,6 +140,30 @@ export const menuItems = [
     path: "/task-management",
   },
   {
+    title: "WhatsApp Messaging",
+    icon: MessageSquare,
+    description: "Automated messaging and queue management",
+    path: "/whatsapp",
+    isDropdown: true,
+    subItems: [
+      {
+        title: "Message Queue",
+        description: "View and manage message queue",
+        path: "/whatsapp/queue"
+      },
+      {
+        title: "Bulk Sender",
+        description: "Send bulk messages to customers",
+        path: "/whatsapp/bulk-sender"
+      },
+      {
+        title: "Settings",
+        description: "Configure WhatsApp API settings",
+        path: "/whatsapp/settings"
+      }
+    ]
+  },
+  {
     title: "Logs Management",
     icon: Clipboard,
     description: "View and manage system logs",
@@ -155,6 +180,7 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar, setIsOpen }) => {
   const [searchQuery, setSearchQuery] = useState("")
   const [activeItem, setActiveItem] = useState("")
+  const [openDropdowns, setOpenDropdowns] = useState<string[]>([])
   const location = useLocation()
   const [isHovered, setIsHovered] = useState(false)
   const [scrollPosition, setScrollPosition] = useState(0)
@@ -162,7 +188,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar, setIsOp
   const navigate = useNavigate()
   const [isMobile, setIsMobile] = useState(false)
 
-  const filteredMenuItems = menuItems.filter((item) => 
+  const filteredMenuItems = menuItems.filter((item) =>
     item.title.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
@@ -176,14 +202,22 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar, setIsOp
     }
   }
 
+  const toggleDropdown = (title: string) => {
+    setOpenDropdowns(prev =>
+      prev.includes(title)
+        ? prev.filter(t => t !== title)
+        : [...prev, title]
+    )
+  }
+
   useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 1024)
     }
-    
+
     checkMobile()
     window.addEventListener('resize', checkMobile)
-    
+
     return () => window.removeEventListener('resize', checkMobile)
   }, [])
 
@@ -224,7 +258,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar, setIsOp
     <>
       {/* Overlay for mobile */}
       {isMobile && isOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden transition-opacity duration-300"
           onClick={() => setIsOpen(false)}
         />
@@ -293,64 +327,167 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar, setIsOp
         )}
 
         {/* Navigation Items */}
-        <nav 
-          className="flex-1 overflow-y-auto px-2 py-2 scrollbar-thin scrollbar-thumb-[#EBF5FF] scrollbar-track-transparent hover:scrollbar-thumb-[#3A86FF]/30" 
+        <nav
+          className="flex-1 overflow-y-auto px-2 py-2 scrollbar-thin scrollbar-thumb-[#EBF5FF] scrollbar-track-transparent hover:scrollbar-thumb-[#3A86FF]/30"
           ref={navRef}
         >
-          {filteredMenuItems.map((item, index) => (
-            <Link
-              key={index}
-              to={item.path}
-              className={`
-                group
-                flex 
-                items-center 
-                px-4 
-                py-3 
-                my-1 
-                rounded-lg 
-                text-[#4A5568]
-                hover:bg-[#EBF5FF]
-                transition-all 
-                duration-200
-                ${!shouldExpand ? "justify-center" : ""}
-                ${
-                  location.pathname === item.path
-                    ? "bg-[#EBF5FF] border-l-4 border-[#3A86FF] text-[#2A5C8A]"
-                    : "border-l-4 border-transparent"
-                }
-                relative
-                cursor-pointer
-              `}
-              onClick={handleLinkClick}
-            >
-              <item.icon
-                className={`h-5 w-5 flex-shrink-0 ${shouldExpand ? "mr-3" : ""} ${
-                  location.pathname === item.path ? "text-[#3A86FF]" : "text-[#4A5568]/80"
-                }`}
-              />
-              {shouldExpand ? (
-                <div className="flex-1 min-w-0">
-                  <span
-                    className={`font-medium text-sm block truncate ${
-                      location.pathname === item.path ? "text-[#2A5C8A]" : "text-[#4A5568]"
-                    }`}
+          {filteredMenuItems.map((item, index) => {
+            const isActive = item.isDropdown
+              ? item.subItems?.some(sub => location.pathname === sub.path)
+              : location.pathname === item.path
+            const isDropdownOpen = openDropdowns.includes(item.title)
+
+            return (
+              <div key={index}>
+                {item.isDropdown ? (
+                  <>
+                    <button
+                      className={`
+                        group
+                        flex 
+                        items-center 
+                        w-full
+                        px-4 
+                        py-3 
+                        my-1 
+                        rounded-lg 
+                        text-[#4A5568]
+                        hover:bg-[#EBF5FF]
+                        transition-all 
+                        duration-200
+                        ${!shouldExpand ? "justify-center" : ""}
+                        ${isActive
+                          ? "bg-[#EBF5FF] border-l-4 border-[#3A86FF] text-[#2A5C8A]"
+                          : "border-l-4 border-transparent"
+                        }
+                        relative
+                        cursor-pointer
+                      `}
+                      onClick={() => shouldExpand && toggleDropdown(item.title)}
+                    >
+                      <item.icon
+                        className={`h-5 w-5 flex-shrink-0 ${shouldExpand ? "mr-3" : ""} ${isActive ? "text-[#3A86FF]" : "text-[#4A5568]/80"
+                          }`}
+                      />
+                      {shouldExpand ? (
+                        <>
+                          <div className="flex-1 min-w-0">
+                            <span
+                              className={`font-medium text-sm block truncate ${isActive ? "text-[#2A5C8A]" : "text-[#4A5568]"
+                                }`}
+                            >
+                              {item.title}
+                            </span>
+                            <p className="text-xs text-[#4A5568]/60 mt-0.5 truncate">{item.description}</p>
+                          </div>
+                          <ChevronDown
+                            className={`h-4 w-4 ml-2 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`}
+                          />
+                        </>
+                      ) : (
+                        <span className="sr-only">{item.title}</span>
+                      )}
+                      {!shouldExpand && !isMobile && (
+                        <div className="absolute left-full ml-2 px-3 py-2 bg-[#2A5C8A] text-white text-xs rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap shadow-lg z-50 pointer-events-none">
+                          {item.title}
+                          <div className="absolute top-1/2 -left-1 transform -translate-y-1/2 w-0 h-0 border-t-4 border-t-transparent border-b-4 border-b-transparent border-r-4 border-r-[#2A5C8A]"></div>
+                        </div>
+                      )}
+                    </button>
+                    {/* Dropdown Items */}
+                    {shouldExpand && isDropdownOpen && item.subItems && (
+                      <div className="ml-4 space-y-1 mt-1">
+                        {item.subItems.map((subItem, subIndex) => (
+                          <Link
+                            key={subIndex}
+                            to={subItem.path}
+                            className={`
+                              group
+                              flex 
+                              items-center 
+                              px-4 
+                              py-2.5
+                              rounded-lg 
+                              text-[#4A5568]
+                              hover:bg-[#EBF5FF]
+                              transition-all 
+                              duration-200
+                              ${location.pathname === subItem.path
+                                ? "bg-[#EBF5FF] border-l-2 border-[#3A86FF] text-[#2A5C8A]"
+                                : "border-l-2 border-transparent"
+                              }
+                              relative
+                              cursor-pointer
+                            `}
+                            onClick={handleLinkClick}
+                          >
+                            <div className="flex-1 min-w-0">
+                              <span
+                                className={`font-medium text-sm block truncate ${location.pathname === subItem.path ? "text-[#2A5C8A]" : "text-[#4A5568]"
+                                  }`}
+                              >
+                                {subItem.title}
+                              </span>
+                              <p className="text-xs text-[#4A5568]/50 mt-0.5 truncate">{subItem.description}</p>
+                            </div>
+                          </Link>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <Link
+                    to={item.path}
+                    className={`
+                      group
+                      flex 
+                      items-center 
+                      px-4 
+                      py-3 
+                      my-1 
+                      rounded-lg 
+                      text-[#4A5568]
+                      hover:bg-[#EBF5FF]
+                      transition-all 
+                      duration-200
+                      ${!shouldExpand ? "justify-center" : ""}
+                      ${location.pathname === item.path
+                        ? "bg-[#EBF5FF] border-l-4 border-[#3A86FF] text-[#2A5C8A]"
+                        : "border-l-4 border-transparent"
+                      }
+                      relative
+                      cursor-pointer
+                    `}
+                    onClick={handleLinkClick}
                   >
-                    {item.title}
-                  </span>
-                  <p className="text-xs text-[#4A5568]/60 mt-0.5 truncate">{item.description}</p>
-                </div>
-              ) : (
-                <span className="sr-only">{item.title}</span>
-              )}
-              {!shouldExpand && !isMobile && (
-                <div className="absolute left-full ml-2 px-3 py-2 bg-[#2A5C8A] text-white text-xs rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap shadow-lg z-50 pointer-events-none">
-                  {item.title}
-                  <div className="absolute top-1/2 -left-1 transform -translate-y-1/2 w-0 h-0 border-t-4 border-t-transparent border-b-4 border-b-transparent border-r-4 border-r-[#2A5C8A]"></div>
-                </div>
-              )}
-            </Link>
-          ))}
+                    <item.icon
+                      className={`h-5 w-5 flex-shrink-0 ${shouldExpand ? "mr-3" : ""} ${location.pathname === item.path ? "text-[#3A86FF]" : "text-[#4A5568]/80"
+                        }`}
+                    />
+                    {shouldExpand ? (
+                      <div className="flex-1 min-w-0">
+                        <span
+                          className={`font-medium text-sm block truncate ${location.pathname === item.path ? "text-[#2A5C8A]" : "text-[#4A5568]"
+                            }`}
+                        >
+                          {item.title}
+                        </span>
+                        <p className="text-xs text-[#4A5568]/60 mt-0.5 truncate">{item.description}</p>
+                      </div>
+                    ) : (
+                      <span className="sr-only">{item.title}</span>
+                    )}
+                    {!shouldExpand && !isMobile && (
+                      <div className="absolute left-full ml-2 px-3 py-2 bg-[#2A5C8A] text-white text-xs rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap shadow-lg z-50 pointer-events-none">
+                        {item.title}
+                        <div className="absolute top-1/2 -left-1 transform -translate-y-1/2 w-0 h-0 border-t-4 border-t-transparent border-b-4 border-b-transparent border-r-4 border-r-[#2A5C8A]"></div>
+                      </div>
+                    )}
+                  </Link>
+                )}
+              </div>
+            )
+          })}
         </nav>
 
         {/* Logout Button */}
@@ -390,7 +527,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar, setIsOp
         </div>
       </aside>
 
-      <style jsx>{`
+      <style>{`
         .scrollbar-thin::-webkit-scrollbar {
           width: 6px;
         }

@@ -39,6 +39,13 @@ import BankAccountManagement from "./pages/crud_pages/BankAccountCrud.tsx"
 import ISPPaymentManagement from "./pages/crud_pages/ISPPaymentCrud.tsx"
 import "./styles/toastStyles.css"
 import PublicInvoicePage from "./pages/PublicInvoicePage.tsx"
+
+// WhatsApp Messaging Pages
+import WhatsAppQueueDashboard from "./pages/whatsapp/WhatsAppQueueDashboard.tsx"
+import BulkMessageSender from "./pages/whatsapp/BulkMessageSender.tsx"
+import WhatsAppSettings from "./pages/whatsapp/WhatsAppSettings.tsx"
+
+
 const PrivateRoute: React.FC<{ element: React.ReactElement }> = ({ element }) => {
   const isAuthenticated = !!localStorage.getItem("token")
   return isAuthenticated ? element : <Navigate to="/login" />
@@ -80,6 +87,12 @@ const App: React.FC = () => {
         <Route path="/extra-income-management" element={<PrivateRoute element={<ExtraIncomeManagement />} />} />
 
         <Route path="/public/invoice/:id" element={<PublicInvoicePage />} />
+
+        {/* WhatsApp Messaging Routes */}
+        <Route path="/whatsapp/queue" element={<PrivateRoute element={<WhatsAppQueueDashboard />} />} />
+        <Route path="/whatsapp/bulk-sender" element={<PrivateRoute element={<BulkMessageSender />} />} />
+        <Route path="/whatsapp/settings" element={<PrivateRoute element={<WhatsAppSettings />} />} />
+
 
         <Route
           path="/employee_portal/customer-management"

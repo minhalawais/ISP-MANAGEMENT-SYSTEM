@@ -4,7 +4,7 @@ import type React from "react"
 import { useEffect, useState } from "react"
 import { getToken } from "../../utils/auth.ts"
 import axiosInstance from "../../utils/axiosConfig.ts"
-import { FileText, DollarSign, Building, Calendar, CreditCard, Hash, User, ChevronDown, MessageSquare, Wifi } from "lucide-react"
+import { FileText, DollarSign, Building, Calendar, CreditCard, Hash, User, ChevronDown, MessageSquare, Wifi, Clock } from "lucide-react"
 
 interface ISPPaymentFormProps {
   formData: any
@@ -28,6 +28,22 @@ interface BankAccount {
   iban?: string
 }
 
+// Helper functions for Pakistani timezone (PKT = UTC+5)
+const getPakistaniDateTime = () => {
+  const now = new Date()
+  const pktOffset = 5 * 60 * 60 * 1000
+  const pktTime = new Date(now.getTime() + pktOffset - (now.getTimezoneOffset() * 60 * 1000))
+  return pktTime
+}
+
+const getPakistaniDate = () => {
+  return getPakistaniDateTime().toISOString().split('T')[0]
+}
+
+const getPakistaniTime = () => {
+  return getPakistaniDateTime().toTimeString().slice(0, 5)
+}
+
 export function ISPPaymentForm({ formData, handleInputChange, handleSubmit, isEditing }: ISPPaymentFormProps) {
   const [isps, setISPs] = useState<ISP[]>([])
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([])
@@ -38,11 +54,20 @@ export function ISPPaymentForm({ formData, handleInputChange, handleSubmit, isEd
       handleInputChange({
         target: {
           name: "payment_date",
-          value: new Date().toISOString().split("T")[0],
+          value: getPakistaniDate(),
         },
       } as React.ChangeEvent<HTMLInputElement>)
     }
-    
+
+    if (!formData.payment_time) {
+      handleInputChange({
+        target: {
+          name: "payment_time",
+          value: getPakistaniTime(),
+        },
+      } as React.ChangeEvent<HTMLInputElement>)
+    }
+
     // Set default billing period to current month
     if (!formData.billing_period) {
       const now = new Date()
@@ -54,7 +79,7 @@ export function ISPPaymentForm({ formData, handleInputChange, handleSubmit, isEd
         },
       } as React.ChangeEvent<HTMLInputElement>)
     }
-    
+
     // Set default payment method
     if (!formData.payment_method) {
       handleInputChange({
@@ -64,7 +89,7 @@ export function ISPPaymentForm({ formData, handleInputChange, handleSubmit, isEd
         },
       } as React.ChangeEvent<HTMLInputElement>)
     }
-    
+
     fetchISPs()
     fetchBankAccounts()
   }, [])
@@ -93,50 +118,50 @@ export function ISPPaymentForm({ formData, handleInputChange, handleSubmit, isEd
     }
   }
 
-// Add this function to handle file uploads before form submission
-const handleFileUpload = async (file: File, fileType: string): Promise<string | null> => {
-  try {
-    const token = getToken()
-    const formData = new FormData()
-    formData.append(fileType, file)
+  // Add this function to handle file uploads before form submission
+  const handleFileUpload = async (file: File, fileType: string): Promise<string | null> => {
+    try {
+      const token = getToken()
+      const formData = new FormData()
+      formData.append(fileType, file)
 
-    const response = await axiosInstance.post(`/isp-payments/upload-file/${fileType}`, formData, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "multipart/form-data",
-      },
-    })
-
-    if (response.data.success) {
-      return response.data.file_path
-    }
-    return null
-  } catch (error) {
-    console.error(`Error uploading ${fileType}:`, error)
-    return null
-  }
-}
-
-// Update the handleFileChange function
-const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-  if (e.target.files && e.target.files[0]) {
-    const file = e.target.files[0]
-    
-    // Upload file immediately and get file path
-    const filePath = await handleFileUpload(file, "payment_proof")
-    
-    if (filePath) {
-      handleInputChange({
-        target: {
-          name: "payment_proof",
-          value: filePath, // Store file path string
+      const response = await axiosInstance.post(`/isp-payments/upload-file/${fileType}`, formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data",
         },
-      } as React.ChangeEvent<HTMLInputElement>)
-    } else {
-      alert("Failed to upload payment proof")
+      })
+
+      if (response.data.success) {
+        return response.data.file_path
+      }
+      return null
+    } catch (error) {
+      console.error(`Error uploading ${fileType}:`, error)
+      return null
     }
   }
-}
+
+  // Update the handleFileChange function
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0]
+
+      // Upload file immediately and get file path
+      const filePath = await handleFileUpload(file, "payment_proof")
+
+      if (filePath) {
+        handleInputChange({
+          target: {
+            name: "payment_proof",
+            value: filePath, // Store file path string
+          },
+        } as React.ChangeEvent<HTMLInputElement>)
+      } else {
+        alert("Failed to upload payment proof")
+      }
+    }
+  }
 
   const handlePaymentTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     handleInputChange(e)
@@ -185,9 +210,8 @@ const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
             name="isp_id"
             value={formData.isp_id || ""}
             onChange={handleInputChange}
-            className={`w-full pl-10 pr-10 py-2.5 border ${
-              errors.isp_id ? "border-coral-red" : "border-slate-gray/20"
-            } rounded-lg bg-light-sky/30 text-deep-ocean placeholder-slate-gray/50 focus:outline-none focus:ring-2 focus:ring-electric-blue/30 focus:border-transparent transition-all duration-200 appearance-none`}
+            className={`w-full pl-10 pr-10 py-2.5 border ${errors.isp_id ? "border-coral-red" : "border-slate-gray/20"
+              } rounded-lg bg-light-sky/30 text-deep-ocean placeholder-slate-gray/50 focus:outline-none focus:ring-2 focus:ring-electric-blue/30 focus:border-transparent transition-all duration-200 appearance-none`}
             required
           >
             <option value="">Select ISP *</option>
@@ -235,41 +259,40 @@ const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         </div>
 
         {/* Bank Account - Conditionally Required */}
-<div className="space-y-2">
-  <label htmlFor="bank_account_id" className="block text-sm font-medium text-deep-ocean">
-    Bank Account {formData.payment_method === "bank_transfer" ? "*" : "(Optional)"}
-  </label>
-  <div className="relative">
-    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-      <CreditCard className="h-5 w-5 text-slate-gray/60" />
-    </div>
-    <select
-      id="bank_account_id"
-      name="bank_account_id"
-      value={formData.bank_account_id || ""}
-      onChange={handleBankAccountChange}
-      className={`w-full pl-10 pr-10 py-2.5 border ${
-        errors.bank_account_id && formData.payment_method === "bank_transfer" 
-          ? "border-coral-red" 
-          : "border-slate-gray/20"
-      } rounded-lg bg-light-sky/30 text-deep-ocean placeholder-slate-gray/50 focus:outline-none focus:ring-2 focus:ring-electric-blue/30 focus:border-transparent transition-all duration-200 appearance-none`}
-      required={formData.payment_method === "bank_transfer"}
-    >
-      <option value="">Select Bank Account {formData.payment_method === "bank_transfer" ? "*" : "(Optional)"}</option>
-      {bankAccounts.map((account) => (
-        <option key={account.id} value={account.id}>
-          {account.bank_name} - {account.account_number}
-        </option>
-      ))}
-    </select>
-    <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-      <ChevronDown className="h-5 w-5 text-slate-gray/60" />
-    </div>
-  </div>
-  {errors.bank_account_id && formData.payment_method === "bank_transfer" && (
-    <p className="text-coral-red text-xs mt-1">{errors.bank_account_id}</p>
-  )}
-</div>
+        <div className="space-y-2">
+          <label htmlFor="bank_account_id" className="block text-sm font-medium text-deep-ocean">
+            Bank Account {formData.payment_method === "bank_transfer" ? "*" : "(Optional)"}
+          </label>
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <CreditCard className="h-5 w-5 text-slate-gray/60" />
+            </div>
+            <select
+              id="bank_account_id"
+              name="bank_account_id"
+              value={formData.bank_account_id || ""}
+              onChange={handleBankAccountChange}
+              className={`w-full pl-10 pr-10 py-2.5 border ${errors.bank_account_id && formData.payment_method === "bank_transfer"
+                ? "border-coral-red"
+                : "border-slate-gray/20"
+                } rounded-lg bg-light-sky/30 text-deep-ocean placeholder-slate-gray/50 focus:outline-none focus:ring-2 focus:ring-electric-blue/30 focus:border-transparent transition-all duration-200 appearance-none`}
+              required={formData.payment_method === "bank_transfer"}
+            >
+              <option value="">Select Bank Account {formData.payment_method === "bank_transfer" ? "*" : "(Optional)"}</option>
+              {bankAccounts.map((account) => (
+                <option key={account.id} value={account.id}>
+                  {account.bank_name} - {account.account_number}
+                </option>
+              ))}
+            </select>
+            <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+              <ChevronDown className="h-5 w-5 text-slate-gray/60" />
+            </div>
+          </div>
+          {errors.bank_account_id && formData.payment_method === "bank_transfer" && (
+            <p className="text-coral-red text-xs mt-1">{errors.bank_account_id}</p>
+          )}
+        </div>
       </div>
 
       {/* Bandwidth Usage Field - Conditionally Shown */}
@@ -315,9 +338,8 @@ const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
             onChange={handleInputChange}
             placeholder="Enter amount"
             step="0.01"
-            className={`w-full pl-10 pr-4 py-2.5 border ${
-              errors.amount ? "border-coral-red" : "border-slate-gray/20"
-            } rounded-lg bg-light-sky/30 text-deep-ocean placeholder-slate-gray/50 focus:outline-none focus:ring-2 focus:ring-electric-blue/30 focus:border-transparent transition-all duration-200`}
+            className={`w-full pl-10 pr-4 py-2.5 border ${errors.amount ? "border-coral-red" : "border-slate-gray/20"
+              } rounded-lg bg-light-sky/30 text-deep-ocean placeholder-slate-gray/50 focus:outline-none focus:ring-2 focus:ring-electric-blue/30 focus:border-transparent transition-all duration-200`}
             required
           />
         </div>
@@ -340,9 +362,8 @@ const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
               name="payment_date"
               value={formData.payment_date || ""}
               onChange={handleInputChange}
-              className={`w-full pl-10 pr-4 py-2.5 border ${
-                errors.payment_date ? "border-coral-red" : "border-slate-gray/20"
-              } rounded-lg bg-light-sky/30 text-deep-ocean placeholder-slate-gray/50 focus:outline-none focus:ring-2 focus:ring-electric-blue/30 focus:border-transparent transition-all duration-200`}
+              className={`w-full pl-10 pr-4 py-2.5 border ${errors.payment_date ? "border-coral-red" : "border-slate-gray/20"
+                } rounded-lg bg-light-sky/30 text-deep-ocean placeholder-slate-gray/50 focus:outline-none focus:ring-2 focus:ring-electric-blue/30 focus:border-transparent transition-all duration-200`}
               required
             />
           </div>
@@ -350,27 +371,48 @@ const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         </div>
 
         <div className="space-y-2">
-          <label htmlFor="billing_period" className="block text-sm font-medium text-deep-ocean">
-            Billing Period *
+          <label htmlFor="payment_time" className="block text-sm font-medium text-deep-ocean">
+            Payment Time *
           </label>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Calendar className="h-5 w-5 text-slate-gray/60" />
+              <Clock className="h-5 w-5 text-slate-gray/60" />
             </div>
             <input
-              type="month"
-              id="billing_period"
-              name="billing_period"
-              value={formData.billing_period || ""}
+              type="time"
+              id="payment_time"
+              name="payment_time"
+              value={formData.payment_time || ""}
               onChange={handleInputChange}
-              className={`w-full pl-10 pr-4 py-2.5 border ${
-                errors.billing_period ? "border-coral-red" : "border-slate-gray/20"
-              } rounded-lg bg-light-sky/30 text-deep-ocean placeholder-slate-gray/50 focus:outline-none focus:ring-2 focus:ring-electric-blue/30 focus:border-transparent transition-all duration-200`}
+              className={`w-full pl-10 pr-4 py-2.5 border ${errors.payment_time ? "border-coral-red" : "border-slate-gray/20"
+                } rounded-lg bg-light-sky/30 text-deep-ocean placeholder-slate-gray/50 focus:outline-none focus:ring-2 focus:ring-electric-blue/30 focus:border-transparent transition-all duration-200`}
               required
             />
           </div>
-          {errors.billing_period && <p className="text-coral-red text-xs mt-1">{errors.billing_period}</p>}
+          {errors.payment_time && <p className="text-coral-red text-xs mt-1">{errors.payment_time}</p>}
         </div>
+      </div>
+
+      <div className="space-y-2">
+        <label htmlFor="billing_period" className="block text-sm font-medium text-deep-ocean">
+          Billing Period *
+        </label>
+        <div className="relative">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <Calendar className="h-5 w-5 text-slate-gray/60" />
+          </div>
+          <input
+            type="month"
+            id="billing_period"
+            name="billing_period"
+            value={formData.billing_period || ""}
+            onChange={handleInputChange}
+            className={`w-full pl-10 pr-4 py-2.5 border ${errors.billing_period ? "border-coral-red" : "border-slate-gray/20"
+              } rounded-lg bg-light-sky/30 text-deep-ocean placeholder-slate-gray/50 focus:outline-none focus:ring-2 focus:ring-electric-blue/30 focus:border-transparent transition-all duration-200`}
+            required
+          />
+        </div>
+        {errors.billing_period && <p className="text-coral-red text-xs mt-1">{errors.billing_period}</p>}
       </div>
 
       {/* Description and Reference */}

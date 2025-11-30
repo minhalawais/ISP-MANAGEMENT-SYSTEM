@@ -57,7 +57,7 @@ const PublicInvoicePage: React.FC = () => {
   const [error, setError] = useState<string | null>(null)
   const printRef = useRef<HTMLDivElement>(null)
 
-   useEffect(() => {
+  useEffect(() => {
     document.title = "MBA NET - Invoice"
     fetchInvoiceData()
     fetchBankAccounts()
@@ -88,6 +88,30 @@ const PublicInvoicePage: React.FC = () => {
     const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
     return `${months[date.getMonth()]}/${date.getDate()}/${date.getFullYear()}`
   }
+
+  const getServiceDescription = (invoiceData: InvoiceData) => {
+    const type = invoiceData.invoice_type?.toLowerCase()
+    switch (type) {
+      case "subscription":
+        return `${invoiceData.service_plan_name} - Monthly Subscription`
+      case "installation":
+        return "Internet Installation Service"
+      case "equipment":
+        return "Network Equipment Purchase"
+      case "add_on":
+        return "Additional Service/Feature"
+      case "refund":
+        return "Payment Refund"
+      case "deposit":
+        return "Security Deposit"
+      case "maintenance":
+        return "Maintenance Service"
+      default:
+        return invoiceData.service_plan_name || invoiceData.invoice_type
+    }
+  }
+
+  const isSubscription = (invoiceData?.invoice_type || "").toLowerCase() === "subscription"
 
   const handleDownloadPDF = async () => {
     if (!printRef.current) return
@@ -197,9 +221,8 @@ const PublicInvoicePage: React.FC = () => {
           <button
             onClick={handleDownloadPDF}
             disabled={isDownloading}
-            className={`flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg shadow-md hover:bg-blue-700 hover:shadow-lg transition-all duration-300 ${
-              isDownloading ? "opacity-50 cursor-not-allowed" : ""
-            }`}
+            className={`flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg shadow-md hover:bg-blue-700 hover:shadow-lg transition-all duration-300 ${isDownloading ? "opacity-50 cursor-not-allowed" : ""
+              }`}
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
@@ -270,13 +293,16 @@ const PublicInvoicePage: React.FC = () => {
                       </div>
                     </div>
                   </div>
-                  <div>
-                    <h2 className="text-xs font-semibold text-gray-700 uppercase mb-1">Billing Period</h2>
-                    <div className="text-gray-600 text-sm">
-                      {invoiceData?.billing_start_date && formatDate(invoiceData.billing_start_date)} -{" "}
-                      {invoiceData?.billing_end_date && formatDate(invoiceData.billing_end_date)}
+
+                  {isSubscription && (
+                    <div>
+                      <h2 className="text-xs font-semibold text-gray-700 uppercase mb-1">Billing Period</h2>
+                      <div className="text-gray-600 text-sm">
+                        {invoiceData?.billing_start_date && formatDate(invoiceData.billing_start_date)} -{" "}
+                        {invoiceData?.billing_end_date && formatDate(invoiceData.billing_end_date)}
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -297,19 +323,19 @@ const PublicInvoicePage: React.FC = () => {
                     <tr className="border-b border-gray-200">
                       <td className="py-3 px-3">
                         <div className="text-gray-800 font-semibold mb-1">
-                          {invoiceData?.service_plan_name || invoiceData?.invoice_type}
+                          {invoiceData && getServiceDescription(invoiceData)}
                         </div>
                         <div className="text-gray-600 text-xs">
-                          Service Period:{" "}
-                          {invoiceData?.billing_start_date && formatDate(invoiceData.billing_start_date)} -{" "}
-                          {invoiceData?.billing_end_date && formatDate(invoiceData.billing_end_date)}
+                          {isSubscription
+                            ? `Service Period: ${formatDate(invoiceData!.billing_start_date)} - ${formatDate(invoiceData!.billing_end_date)}`
+                            : `Invoice Date: ${formatDate(invoiceData?.billing_start_date || invoiceData?.due_date || "")}`}
                         </div>
                       </td>
                       <td className="py-3 px-3 text-right text-gray-800 font-semibold">
                         PKR {invoiceData?.subtotal.toFixed(2)}
                       </td>
                     </tr>
-                    {invoiceData?.discount_percentage > 0 && (
+                    {isSubscription && invoiceData?.discount_percentage > 0 && (
                       <tr className="border-b border-gray-200">
                         <td className="py-2 px-3 text-gray-700 text-sm">
                           Discount ({invoiceData.discount_percentage}%)
@@ -438,7 +464,7 @@ const PublicInvoicePage: React.FC = () => {
                   Pending Payment
                 </h2>
                 <p className="text-yellow-700 text-sm">
-                  Outstanding balance of <strong>PKR {invoiceData?.remaining_amount.toFixed(2)}</strong> is due. 
+                  Outstanding balance of <strong>PKR {invoiceData?.remaining_amount.toFixed(2)}</strong> is due.
                   Please make payment to avoid service interruption.
                 </p>
               </div>

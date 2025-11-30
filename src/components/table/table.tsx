@@ -48,6 +48,7 @@ const fuzzyFilter: FilterFn<any> = (row, columnId, value, addMeta) => {
   
   return searchableText.includes(searchValue);
 }
+
 interface TableProps<T> {
   data: T[]
   columns: ColumnDef<T>[]
@@ -57,7 +58,7 @@ interface TableProps<T> {
   isLoading?: boolean
 }
 
-export function Table<T>({
+export function Table<T extends { id: string }>({
   data,
   columns,
   selectedRows: externalSelectedRows,
@@ -97,6 +98,9 @@ export function Table<T>({
         pageSize: 20,
       },
     },
+    // Enable row selection
+    enableRowSelection: true,
+    getRowId: (originalRow) => originalRow.id,
   })
 
   // Debounced search handlers with reduced delay
@@ -164,15 +168,19 @@ export function Table<T>({
     setDistinctValues(newDistinctValues)
   }, [data, columns])
 
-  // Update external selected rows when row selection changes
+  // Update external selected rows when row selection changes - FIXED VERSION
   useEffect(() => {
     if (setExternalSelectedRows) {
-      const selectedIds = Object.keys(rowSelection).map(
-        (index) => (table.getRowModel().rows[Number.parseInt(index)].original as any).id,
-      )
-      setExternalSelectedRows(selectedIds)
+      const selectedRowIds = Object.keys(rowSelection)
+        .map(rowIndex => {
+          const row = table.getRowModel().rows[parseInt(rowIndex)];
+          return row?.original?.id;
+        })
+        .filter((id): id is string => id !== undefined);
+      
+      setExternalSelectedRows(selectedRowIds);
     }
-  }, [rowSelection, table, setExternalSelectedRows])
+  }, [rowSelection, table, setExternalSelectedRows]);
 
   const tableContainerRef = React.useRef<HTMLDivElement>(null)
 
@@ -187,7 +195,12 @@ export function Table<T>({
   const paddingBottom = virtualRows.length > 0 ? totalSize - (virtualRows?.[virtualRows.length - 1]?.end || 0) : 0
 
   const selectedRowsData = useMemo(() => {
-    return Object.keys(rowSelection).map((key) => rows[Number.parseInt(key)].original)
+    return Object.keys(rowSelection)
+      .map((key) => {
+        const row = rows[parseInt(key)];
+        return row?.original;
+      })
+      .filter((row): row is T => row !== undefined);
   }, [rowSelection, rows])
 
   // Get current column filter value (use local state for immediate feedback)
@@ -286,7 +299,6 @@ export function Table<T>({
                     <input
                       type="checkbox"
                       checked={table.getIsAllRowsSelected()}
-                      indeterminate={table.getIsSomeRowsSelected()}
                       onChange={table.getToggleAllRowsSelectedHandler()}
                       className="rounded border-slate-gray/30 text-electric-blue focus:ring-electric-blue/50"
                     />
