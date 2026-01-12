@@ -1,0 +1,29 @@
+ALTER TABLE customers
+ADD COLUMN gps_coordinates VARCHAR(50);
+
+ALTER TABLE customers
+ADD COLUMN agreement_document VARCHAR(255);
+
+ALTER TABLE complaints
+DROP COLUMN title,
+DROP COLUMN category,
+DROP COLUMN priority;
+
+ALTER TABLE complaints
+ADD COLUMN ticket_number VARCHAR(8);
+
+UPDATE complaints
+SET ticket_number = CONCAT(
+    SUBSTRING(MD5(RANDOM()::TEXT) FROM 1 FOR 2),
+    LPAD(FLOOR(RANDOM() * 1000000)::TEXT, 6, '0')
+)
+WHERE ticket_number IS NULL;
+ALTER TABLE complaints
+ALTER COLUMN ticket_number TYPE VARCHAR(50),
+ALTER COLUMN ticket_number SET NOT NULL,
+ADD CONSTRAINT complaints_ticket_number_unique UNIQUE (ticket_number);
+
+ALTER TABLE complaints ADD COLUMN remarks TEXT;
+-- 1. Drop unique constraint on email
+ALTER TABLE customers DROP CONSTRAINT IF EXISTS customers_email_unique;
+

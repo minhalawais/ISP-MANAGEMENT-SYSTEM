@@ -1,0 +1,70 @@
+rm -rf ISP-MANAGEMENT-SYSTEM
+MBA-NET-BACKED
+cd /var/www/html/ISP-MANAGEMENT-SYSTEM
+git clone https://github.com/minhalawais/ISP-MANAGEMENT-SYSTEM.git
+git clone https://github.com/minhalawais/MBA-NET-BACKED.git
+npm install --legacy-peer-deps
+npm install typescript --legacy-peer-deps --save-dev
+npm install @babel/plugin-proposal-private-property-in-object --save-dev --legacy-peer-deps
+npm run build
+pm2 serve build 3000 --name "react-app"
+cd ..
+mkdir backend
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+pip install asgiref
+pm2 start "flask run --host=0.0.0.0 --port=5000" --name "flask-app"
+sudo systemctl restart nginx
+sudo nano /etc/nginx/sites-available/default
+
+
+
+sudo -u postgres psql -h localhost -U root -d isp_management
+
+SQLALCHEMY_DATABASE_URI = 'postgresql://root:M.m03007493358@localhost:5432/isp_management'
+
+-- 1. Drop unique constraint on email
+ALTER TABLE customers DROP CONSTRAINT IF EXISTS customers_email_key;
+
+CREATE TABLE bank_accounts (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    company_id UUID NOT NULL,
+    bank_name VARCHAR(100) NOT NULL,
+    account_title VARCHAR(100) NOT NULL,
+    account_number VARCHAR(50) NOT NULL,
+    iban VARCHAR(34),
+    branch_code VARCHAR(20),
+    branch_address TEXT,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    
+    CONSTRAINT fk_bank_accounts_company
+        FOREIGN KEY (company_id) 
+        REFERENCES companies(id)
+        ON DELETE CASCADE
+);
+
+-- Create index for better performance
+CREATE INDEX idx_bank_accounts_company_id ON bank_accounts(company_id);
+CREATE INDEX idx_bank_accounts_is_active ON bank_accounts(is_active);
+
+-- Add the new column
+ALTER TABLE payments 
+ADD COLUMN bank_account_id UUID;
+
+-- Add foreign key constraint
+ALTER TABLE payments
+ADD CONSTRAINT fk_payments_bank_account
+    FOREIGN KEY (bank_account_id)
+    REFERENCES bank_accounts(id)
+    ON DELETE SET NULL;
+
+-- Create index for better performance
+CREATE INDEX idx_payments_bank_account_id ON payments(bank_account_id);
+
+PGPASSWORD='M.m03007493358' pg_dump -h localhost -U root -d isp_management > isp_management_backup.sql
+scp root@147.93.53.119:/root/isp_management_backup.sql .
+chmod 700 /root/code_backup.sh
+nano /root/auto_backup.sh
