@@ -37,11 +37,11 @@ interface BankAccount {
 // Helper functions for Pakistani timezone (PKT = UTC+5)
 // Helper functions for Pakistani timezone (PKT = UTC+5)
 const getPakistaniDate = () => {
-    return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Karachi' });
+  return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Karachi' });
 }
 
 const getPakistaniTime = () => {
-    return new Date().toLocaleTimeString('en-GB', { timeZone: 'Asia/Karachi', hour: '2-digit', minute: '2-digit', hour12: false });
+  return new Date().toLocaleTimeString('en-GB', { timeZone: 'Asia/Karachi', hour: '2-digit', minute: '2-digit', hour12: false });
 }
 
 export function PaymentForm({ formData, handleInputChange, isEditing }: PaymentFormProps) {
@@ -195,7 +195,7 @@ export function PaymentForm({ formData, handleInputChange, isEditing }: PaymentF
 
     handleInputChange(e)
 
-    // Only auto-fill amount when adding new payment, not when editing
+    // Auto-fill amount when adding new payment, not when editing
     if (selectedInvoice && !isEditing) {
       handleInputChange({
         target: {

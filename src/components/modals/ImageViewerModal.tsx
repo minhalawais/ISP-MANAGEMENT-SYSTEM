@@ -120,7 +120,10 @@ export function ImageViewerModal({ isOpen, onClose, imageUrl, title, isLoading =
         </div>
 
         {/* Content */}
-        <div className="flex-1 bg-slate-900/95 rounded-b-2xl overflow-auto p-6 min-h-[400px] max-h-[calc(90vh-80px)] flex items-center justify-center">
+        <div
+          className="flex-1 bg-slate-900/95 rounded-b-2xl p-6 min-h-[400px] max-h-[calc(90vh-80px)] flex items-center justify-center"
+          style={{ overflow: zoom > 1 ? 'auto' : 'hidden' }}
+        >
           {isLoading ? (
             <div className="flex flex-col items-center gap-4">
               <div className="p-4 bg-slate-800 rounded-full">
@@ -129,12 +132,18 @@ export function ImageViewerModal({ isOpen, onClose, imageUrl, title, isLoading =
               <p className="text-slate-400 text-sm">Loading...</p>
             </div>
           ) : imageUrl ? (
-            <div className="relative overflow-auto max-w-full max-h-full">
+            <div
+              className="relative flex items-center justify-center w-full h-full"
+              style={{ overflow: zoom > 1 ? 'auto' : 'visible' }}
+            >
               <img
                 src={imageUrl}
                 alt={title}
-                className="max-w-none transition-transform duration-300 ease-out rounded-lg shadow-2xl"
+                className="transition-transform duration-300 ease-out rounded-lg shadow-2xl"
                 style={{
+                  maxWidth: zoom === 1 ? '100%' : 'none',
+                  maxHeight: zoom === 1 ? 'calc(90vh - 160px)' : 'none',
+                  objectFit: 'contain',
                   transform: `scale(${zoom}) rotate(${rotation}deg)`,
                   transformOrigin: "center center",
                 }}

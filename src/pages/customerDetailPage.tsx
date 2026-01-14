@@ -238,7 +238,7 @@ const CustomerDetail: React.FC = () => {
   const [complaints, setComplaints] = useState<Complaint[]>([])
   const [tasks, setTasks] = useState<Task[]>([])
   const [inventory, setInventory] = useState<InventoryItem[]>([])
-  
+
   const [activeTab, setActiveTab] = useState("overview")
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [cnicImageUrls, setCnicImageUrls] = useState<{ front: string | null; back: string | null }>({
@@ -252,6 +252,7 @@ const CustomerDetail: React.FC = () => {
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null)
   const [selectedComplaint, setSelectedComplaint] = useState<Complaint | null>(null)
   const [selectedTask, setSelectedTask] = useState<Task | null>(null)
+  const [selectedImage, setSelectedImage] = useState<{ url: string; title: string } | null>(null)
 
   const toggleSidebar = () => {
     setIsSidebarOpen((prev) => !prev)
@@ -505,9 +506,21 @@ const CustomerDetail: React.FC = () => {
   // ENHANCED FINANCIAL TAB
   // ============================================
   const renderFinancialTab = () => {
+    // Only count paid payments (not pending/failed/refunded)
+    const paidPayments = payments.filter(pay => pay.status === 'paid')
+    const totalPaid = paidPayments.reduce((sum, pay) => sum + pay.amount, 0)
+
+    // Calculate outstanding from invoices that aren't fully paid
+    const outstanding = invoices
+      .filter(inv => inv.status !== 'paid')
+      .reduce((sum, inv) => {
+        // Get payments for this invoice
+        const invoicePayments = paidPayments.filter(p => p.invoice_id === inv.id)
+        const paidForInvoice = invoicePayments.reduce((s, p) => s + p.amount, 0)
+        return sum + (inv.total_amount - paidForInvoice)
+      }, 0)
+
     const totalInvoiced = invoices.reduce((sum, inv) => sum + inv.total_amount, 0)
-    const totalPaid = payments.reduce((sum, pay) => sum + pay.amount, 0)
-    const outstanding = totalInvoiced - totalPaid
 
     return (
       <div className="space-y-6">
@@ -567,11 +580,11 @@ const CustomerDetail: React.FC = () => {
             <table className="w-full">
               <thead className="bg-slate-50 border-b border-slate-100">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap" style={{width: "120px", maxWidth: "120px"}}>Invoice #</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap" style={{width: "120px", maxWidth: "120px"}}>Date</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap" style={{width: "120px", maxWidth: "120px"}}>Amount</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap" style={{width: "120px", maxWidth: "120px"}}>Status</th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap" style={{width: "120px", maxWidth: "120px"}}>Action</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap" style={{ width: "120px", maxWidth: "120px" }}>Invoice #</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap" style={{ width: "120px", maxWidth: "120px" }}>Date</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap" style={{ width: "120px", maxWidth: "120px" }}>Amount</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap" style={{ width: "120px", maxWidth: "120px" }}>Status</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap" style={{ width: "120px", maxWidth: "120px" }}>Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -590,7 +603,7 @@ const CustomerDetail: React.FC = () => {
                       <StatusBadge status={invoice.status} />
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap text-right">
-                      <button 
+                      <button
                         onClick={(e) => { e.stopPropagation(); setSelectedInvoice(invoice); }}
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#2A5C8A] hover:bg-[#1e4568] text-white text-xs font-medium rounded-lg transition-colors"
                       >
@@ -617,11 +630,11 @@ const CustomerDetail: React.FC = () => {
             <table className="w-full">
               <thead className="bg-slate-50 border-b border-slate-100">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap" style={{width: "120px", maxWidth: "120px"}}>Date</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap" style={{width: "120px", maxWidth: "120px"}}>Amount</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap" style={{width: "120px", maxWidth: "120px"}}>Method</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap" style={{width: "120px", maxWidth: "120px"}}>Status</th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap" style={{width: "120px", maxWidth: "120px"}}>Receipt</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap" style={{ width: "120px", maxWidth: "120px" }}>Date</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap" style={{ width: "120px", maxWidth: "120px" }}>Amount</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap" style={{ width: "120px", maxWidth: "120px" }}>Method</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap" style={{ width: "120px", maxWidth: "120px" }}>Status</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap" style={{ width: "120px", maxWidth: "120px" }}>Receipt</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -640,7 +653,7 @@ const CustomerDetail: React.FC = () => {
                       <StatusBadge status={payment.status} />
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap text-right">
-                      <button 
+                      <button
                         onClick={(e) => { e.stopPropagation(); setSelectedPayment(payment); }}
                         className="inline-flex items-center gap-1.5 text-[#2A5C8A] hover:text-[#1e4568] text-sm font-medium transition-colors"
                       >
@@ -708,8 +721,8 @@ const CustomerDetail: React.FC = () => {
           </div>
           <div className="divide-y divide-slate-100 max-h-96 overflow-y-auto">
             {complaints.length > 0 ? complaints.map((complaint) => (
-              <div 
-                key={complaint.id} 
+              <div
+                key={complaint.id}
                 className="p-4 hover:bg-slate-50 transition-colors cursor-pointer"
                 onClick={() => setSelectedComplaint(complaint)}
               >
@@ -739,19 +752,18 @@ const CustomerDetail: React.FC = () => {
           </div>
           <div className="divide-y divide-slate-100 max-h-96 overflow-y-auto">
             {tasks.length > 0 ? tasks.map((task) => (
-              <div 
-                key={task.id} 
+              <div
+                key={task.id}
                 className="p-4 hover:bg-slate-50 transition-colors cursor-pointer"
                 onClick={() => setSelectedTask(task)}
               >
                 <div className="flex justify-between items-start mb-2">
                   <span className="font-medium text-slate-800 capitalize">{task.task_type.replace('_', ' ')}</span>
                   <div className="flex gap-2">
-                    <span className={`text-xs px-2 py-1 rounded-full capitalize ${
-                      task.priority === 'high' ? 'bg-red-100 text-red-700' : 
+                    <span className={`text-xs px-2 py-1 rounded-full capitalize ${task.priority === 'high' ? 'bg-red-100 text-red-700' :
                       task.priority === 'critical' ? 'bg-red-200 text-red-800' :
-                      'bg-blue-100 text-blue-700'
-                    }`}>{task.priority}</span>
+                        'bg-blue-100 text-blue-700'
+                      }`}>{task.priority}</span>
                     <StatusBadge status={task.status} />
                   </div>
                 </div>
@@ -906,7 +918,7 @@ const CustomerDetail: React.FC = () => {
                     alt="CNIC Front"
                     className="w-full h-48 object-cover rounded-xl border border-slate-200 shadow-sm"
                   />
-                  <div className="absolute inset-0 bg-black/40 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                  <div className="absolute inset-0 bg-black/40 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer" onClick={() => setSelectedImage({ url: cnicImageUrls.front!, title: 'CNIC Front' })}>
                     <button className="px-4 py-2 bg-white text-slate-800 rounded-lg font-medium text-sm">View Full</button>
                   </div>
                 </div>
@@ -926,7 +938,7 @@ const CustomerDetail: React.FC = () => {
                     alt="CNIC Back"
                     className="w-full h-48 object-cover rounded-xl border border-slate-200 shadow-sm"
                   />
-                  <div className="absolute inset-0 bg-black/40 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                  <div className="absolute inset-0 bg-black/40 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer" onClick={() => setSelectedImage({ url: cnicImageUrls.back!, title: 'CNIC Back' })}>
                     <button className="px-4 py-2 bg-white text-slate-800 rounded-lg font-medium text-sm">View Full</button>
                   </div>
                 </div>
@@ -962,13 +974,13 @@ const CustomerDetail: React.FC = () => {
                 </div>
               </div>
               <div className="flex gap-3">
-                <button 
+                <button
                   onClick={() => window.open(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/${customer.agreement_document}`, '_blank')}
                   className="inline-flex items-center gap-2 px-4 py-2.5 border border-slate-200 hover:border-[#89A8B2] text-slate-700 hover:text-[#2A5C8A] rounded-xl font-medium transition-colors"
                 >
                   <Eye className="w-4 h-4" /> View
                 </button>
-                <a 
+                <a
                   href={`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/${customer.agreement_document}`}
                   download
                   className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#2A5C8A] hover:bg-[#1e4568] text-white rounded-xl font-medium transition-colors"
@@ -1030,11 +1042,10 @@ const CustomerDetail: React.FC = () => {
                       <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/20 backdrop-blur-sm text-white text-sm font-medium rounded-full">
                         <MapPin className="w-3.5 h-3.5" /> {customer.area}
                       </span>
-                      <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-semibold ${
-                        customer.is_active 
-                          ? 'bg-emerald-400/30 text-emerald-100 border border-emerald-400/50' 
-                          : 'bg-red-400/30 text-red-100 border border-red-400/50'
-                      }`}>
+                      <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-semibold ${customer.is_active
+                        ? 'bg-emerald-400/30 text-emerald-100 border border-emerald-400/50'
+                        : 'bg-red-400/30 text-red-100 border border-red-400/50'
+                        }`}>
                         <span className={`w-2 h-2 rounded-full ${customer.is_active ? 'bg-emerald-400' : 'bg-red-400'}`}></span>
                         {customer.is_active ? 'Active' : 'Inactive'}
                       </div>
@@ -1059,11 +1070,10 @@ const CustomerDetail: React.FC = () => {
                     <button
                       key={section.id}
                       onClick={() => setActiveTab(section.id)}
-                      className={`flex items-center gap-2 px-5 py-4 text-sm font-medium border-b-2 transition-all duration-200 whitespace-nowrap ${
-                        isActive
-                          ? "border-[#89A8B2] text-[#2A5C8A] bg-[#F1F0E8]"
-                          : "border-transparent text-[#5a7a84] hover:text-[#2A5C8A] hover:border-[#B3C8CF]"
-                      }`}
+                      className={`flex items-center gap-2 px-5 py-4 text-sm font-medium border-b-2 transition-all duration-200 whitespace-nowrap ${isActive
+                        ? "border-[#89A8B2] text-[#2A5C8A] bg-[#F1F0E8]"
+                        : "border-transparent text-[#5a7a84] hover:text-[#2A5C8A] hover:border-[#B3C8CF]"
+                        }`}
                     >
                       <Icon className="w-4 h-4" />
                       {section.name}
@@ -1092,6 +1102,30 @@ const CustomerDetail: React.FC = () => {
         )}
         {selectedTask && (
           <TaskDetailModal task={selectedTask} onClose={() => setSelectedTask(null)} />
+        )}
+
+        {/* Image Preview Modal */}
+        {selectedImage && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
+            onClick={() => setSelectedImage(null)}
+          >
+            <div className="relative max-w-4xl max-h-[90vh] w-full mx-4">
+              <button
+                onClick={() => setSelectedImage(null)}
+                className="absolute -top-12 right-0 text-white hover:text-gray-300 transition-colors"
+              >
+                <span className="text-lg font-medium">Close ✕</span>
+              </button>
+              <h3 className="absolute -top-12 left-0 text-white text-lg font-semibold">{selectedImage.title}</h3>
+              <img
+                src={selectedImage.url}
+                alt={selectedImage.title}
+                className="w-full h-auto max-h-[85vh] object-contain rounded-xl shadow-2xl"
+                onClick={(e) => e.stopPropagation()}
+              />
+            </div>
+          </div>
         )}
       </div>
     </div>
