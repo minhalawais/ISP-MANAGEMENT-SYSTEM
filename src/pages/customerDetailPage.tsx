@@ -975,13 +975,13 @@ const CustomerDetail: React.FC = () => {
               </div>
               <div className="flex gap-3">
                 <button
-                  onClick={() => window.open(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/${customer.agreement_document}`, '_blank')}
+                  onClick={() => window.open(`${process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000'}/${customer.agreement_document}`, '_blank')}
                   className="inline-flex items-center gap-2 px-4 py-2.5 border border-slate-200 hover:border-[#89A8B2] text-slate-700 hover:text-[#2A5C8A] rounded-xl font-medium transition-colors"
                 >
                   <Eye className="w-4 h-4" /> View
                 </button>
                 <a
-                  href={`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/${customer.agreement_document}`}
+                  href={`${process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000'}/${customer.agreement_document}`}
                   download
                   className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#2A5C8A] hover:bg-[#1e4568] text-white rounded-xl font-medium transition-colors"
                 >

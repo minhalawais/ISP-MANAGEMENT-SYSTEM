@@ -5,7 +5,8 @@ import { ExtraIncomeForm } from '../../components/forms/ExtraIncomeForm.tsx'
 import { Modal } from '../../components/modal.tsx'
 import { getToken } from '../../utils/auth.ts'
 import axiosInstance from '../../utils/axiosConfig.ts'
-import { Plus, Trash2, Pencil, Save, X, FileImage } from 'lucide-react'
+import { ImageViewerModal, useImageViewer } from '../../components/modals/ImageViewerModal.tsx'
+import { Plus, Trash2, Pencil, Save, X, Eye } from 'lucide-react'
 
 interface ExtraIncome {
   id: string
@@ -35,6 +36,7 @@ const ExtraIncomeManagement: React.FC = () => {
   const [newIncomeType, setNewIncomeType] = useState({ name: '', description: '' })
   const [editingType, setEditingType] = useState<IncomeType | null>(null)
   const [editTypeData, setEditTypeData] = useState({ name: '', description: '' })
+  const imageViewer = useImageViewer()
 
   // Ref for the modal content container
   const modalContentRef = useRef<HTMLDivElement>(null)
@@ -167,15 +169,17 @@ const ExtraIncomeManagement: React.FC = () => {
         cell: info => {
           const proof = info.getValue<string>()
           return proof ? (
-            <a
-              href={`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/${proof}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1 text-electric-blue hover:text-blue-700"
+            <button
+              onClick={() => imageViewer.openViewer(
+                `${process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000'}/${proof}`,
+                `Income Proof - ${info.row.original.income_type_name || 'Income'}`,
+                axiosInstance
+              )}
+              className="px-3 py-1.5 bg-electric-blue text-white text-xs font-medium rounded-full flex items-center gap-1.5 hover:bg-btn-hover transition-colors"
             >
-              <FileImage className="h-4 w-4" />
-              <span className="text-xs">View</span>
-            </a>
+              <Eye className="h-3.5 w-3.5" />
+              View
+            </button>
           ) : (
             <span className="text-slate-gray/50 text-xs">-</span>
           )
@@ -326,6 +330,15 @@ const ExtraIncomeManagement: React.FC = () => {
           </div>
         </div>
       </Modal>
+
+      {/* Image Viewer Modal */}
+      <ImageViewerModal
+        isOpen={imageViewer.isOpen}
+        onClose={imageViewer.closeViewer}
+        imageUrl={imageViewer.imageUrl}
+        title={imageViewer.title}
+        isLoading={imageViewer.isLoading}
+      />
     </>
   )
 }

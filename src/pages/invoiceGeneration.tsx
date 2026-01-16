@@ -11,6 +11,7 @@ import axiosInstance from "../utils/axiosConfig.ts"
 import { Sidebar } from "../components/sideNavbar.tsx"
 import { Topbar } from "../components/topNavbar.tsx"
 import MBALogo from "../assets/mba_logo.tsx"
+import { PaidStamp } from "../components/PaidStamp.tsx"
 
 interface LineItem {
   id: string
@@ -175,8 +176,8 @@ const InvoiceGenerationPage: React.FC = () => {
     onBeforeGetContent: () => { setIsPrinting(true); return new Promise((resolve) => { setTimeout(resolve, 100) }) },
     onAfterPrint: () => setIsPrinting(false),
     removeAfterPrint: true,
-    onPrintError: (error) => { console.error("Print failed:", error); setError("Failed to print. Please try again."); setIsPrinting(false) },
-  })
+    onPrintError: (error: any) => { console.error("Print failed:", error); setError("Failed to print. Please try again."); setIsPrinting(false) },
+  } as any)
 
   const printInvoice = () => { try { handlePrint() } catch (error) { console.error("Error during print:", error); setError("An unexpected error occurred while printing. Please try again."); setIsPrinting(false) } }
 
@@ -286,9 +287,9 @@ const InvoiceGenerationPage: React.FC = () => {
             {/* Main Invoice Card */}
             <div className="bg-white rounded-2xl shadow-xl shadow-slate-200/50 overflow-hidden border border-slate-100">
               <div ref={printRef} className="p-6 sm:p-10">
-                
+
                 {/* Header Section */}
-                <div className="flex flex-col sm:flex-row justify-between items-start gap-6 pb-8 border-b border-slate-100">
+                <div className="relative flex flex-col sm:flex-row justify-between items-start gap-6 pb-8 border-b border-slate-100">
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-1">
                       <span className="text-3xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">INVOICE</span>
@@ -298,6 +299,15 @@ const InvoiceGenerationPage: React.FC = () => {
                       </span>
                     </div>
                     <p className="text-slate-500 font-mono text-sm">#{invoiceData?.invoice_number}</p>
+                    {invoiceData?.status === 'paid' && (
+                      <div className="absolute top-2 right-1/3 transform translate-x-12 opacity-90 z-10 pointer-events-none">
+                        <PaidStamp
+                          date={invoiceData.payments?.[invoiceData.payments.length - 1]?.payment_date}
+                          method={invoiceData.payments?.[invoiceData.payments.length - 1]?.payment_method}
+                          className="w-32 h-32 text-emerald-600 border-emerald-600"
+                        />
+                      </div>
+                    )}
                   </div>
                   <div className="text-right">
                     <div className="h-12 w-28 mb-3"><MBALogo variant="landscape" /></div>
@@ -403,6 +413,18 @@ const InvoiceGenerationPage: React.FC = () => {
                           <td className="py-4 px-5 text-right font-bold text-white uppercase tracking-wide" colSpan={invoiceData?.invoice_type === 'equipment' ? 3 : 1}>Total Amount</td>
                           <td className="py-4 px-5 text-right"><span className="text-2xl font-bold text-white">PKR {invoiceData?.total_amount.toLocaleString()}</span></td>
                         </tr>
+                        {(invoiceData?.total_paid ?? 0) > 0 && (
+                          <>
+                            <tr className="bg-emerald-50/50">
+                              <td className="py-3 px-5 text-right font-bold text-emerald-700 uppercase tracking-wide" colSpan={invoiceData?.invoice_type === 'equipment' ? 3 : 1}>Amount Paid</td>
+                              <td className="py-3 px-5 text-right"><span className="text-lg font-bold text-emerald-700">PKR {(invoiceData?.total_paid ?? 0).toLocaleString()}</span></td>
+                            </tr>
+                            <tr className={`${(invoiceData?.remaining_amount ?? 0) > 0 ? 'bg-red-50/50' : 'bg-slate-50/50'}`}>
+                              <td className={`py-3 px-5 text-right font-bold uppercase tracking-wide ${(invoiceData?.remaining_amount ?? 0) > 0 ? 'text-red-700' : 'text-slate-700'}`} colSpan={invoiceData?.invoice_type === 'equipment' ? 3 : 1}>Balance Due</td>
+                              <td className="py-3 px-5 text-right"><span className={`text-lg font-bold ${(invoiceData?.remaining_amount ?? 0) > 0 ? 'text-red-700' : 'text-slate-700'}`}>PKR {(invoiceData?.remaining_amount ?? 0).toLocaleString()}</span></td>
+                            </tr>
+                          </>
+                        )}
                       </tfoot>
                     </table>
                   </div>
