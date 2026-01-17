@@ -144,7 +144,10 @@ const InvoiceGenerationPage: React.FC = () => {
       case "refund": return "Payment Refund"
       case "deposit": return "Security Deposit"
       case "maintenance": return "Maintenance Service"
-      default: return invoiceData.service_plan_name || invoiceData.invoice_type
+      case "late_fee": return "Late Payment Fee"
+      case "upgrade": return "Service Upgrade"
+      case "reconnection": return "Service Reconnection"
+      default: return invoiceData.invoice_type ? invoiceData.invoice_type.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ') : "Invoice"
     }
   }
 
@@ -297,6 +300,11 @@ const InvoiceGenerationPage: React.FC = () => {
                         <span>{statusConfig.icon}</span>
                         {statusConfig.label}
                       </span>
+                      {invoiceData?.invoice_type && (
+                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold border bg-slate-100 text-slate-600 border-slate-200 uppercase tracking-wide">
+                          {invoiceData.invoice_type.split('_').join(' ')}
+                        </span>
+                      )}
                     </div>
                     <p className="text-slate-500 font-mono text-sm">#{invoiceData?.invoice_number}</p>
                     {invoiceData?.status === 'paid' && (
@@ -354,30 +362,30 @@ const InvoiceGenerationPage: React.FC = () => {
                 {/* Line Items Table */}
                 <div className="py-8 border-b border-slate-100">
                   <div className="rounded-xl overflow-hidden border border-slate-200">
-                    <table className="w-full">
+                    <table className="w-full table-fixed">
                       <thead>
                         <tr className="bg-gradient-to-r from-slate-800 to-slate-700">
-                          <th className="text-left text-xs font-bold text-white/90 uppercase tracking-wider py-4 px-5 w-3/4">{invoiceData?.invoice_type === 'equipment' ? 'Item Description' : 'Service Description'}</th>
+                          <th className="text-left text-xs font-bold text-white/90 uppercase tracking-wider py-4 px-5 w-[70%]">{invoiceData?.invoice_type === 'equipment' ? 'Item Description' : 'Service Description'}</th>
                           {invoiceData?.invoice_type === 'equipment' && (
                             <>
-                              <th className="text-center text-xs font-bold text-white/90 uppercase tracking-wider py-4 px-3 whitespace-nowrap">Qty</th>
-                              <th className="text-right text-xs font-bold text-white/90 uppercase tracking-wider py-4 px-5 whitespace-nowrap">Unit Price</th>
+                              <th className="text-center text-xs font-bold text-white/90 uppercase tracking-wider py-4 px-3 whitespace-nowrap w-[10%]">Qty</th>
+                              <th className="text-right text-xs font-bold text-white/90 uppercase tracking-wider py-4 px-5 whitespace-nowrap w-[20%]">Unit Price</th>
                             </>
                           )}
-                          <th className="text-right text-xs font-bold text-white/90 uppercase tracking-wider py-4 px-5 whitespace-nowrap w-1/4">Amount</th>
+                          <th className="text-right text-xs font-bold text-white/90 uppercase tracking-wider py-4 px-5 whitespace-nowrap w-[30%]">Amount</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100">
                         {invoiceData?.line_items && invoiceData.line_items.length > 0 ? (
                           invoiceData.line_items.map((item, index) => (
                             <tr key={item.id || index} className="hover:bg-slate-50/50 transition-colors">
-                              <td className="py-4 px-5">
-                                <p className="font-semibold text-slate-800">{item.description}</p>
+                              <td className="py-4 px-5" style={{ width: "70%" }}>
+                                <p className="font-semibold text-slate-800 whitespace-nowrap">{item.description}</p>
                                 {index === 0 && isSubscription && (
                                   <p className="text-xs text-slate-500 mt-0.5 whitespace-nowrap">Period: {formatDate(invoiceData.billing_start_date)} — {formatDate(invoiceData.billing_end_date)}</p>
                                 )}
                                 {item.item_type === 'equipment' && item.inventory_item_type && (
-                                  <p className="text-xs text-slate-400 mt-0.5">Type: {item.inventory_item_type}</p>
+                                  <p className="text-xs text-slate-400 mt-0.5 whitespace-nowrap">Type: {item.inventory_item_type}</p>
                                 )}
                               </td>
                               {invoiceData?.invoice_type === 'equipment' && (
@@ -392,11 +400,11 @@ const InvoiceGenerationPage: React.FC = () => {
                         ) : (
                           <tr className="hover:bg-slate-50/50 transition-colors">
                             <td className="py-4 px-5" colSpan={invoiceData?.invoice_type === 'equipment' ? 3 : 1}>
-                              <p className="font-semibold text-slate-800">{invoiceData && getServiceDescription(invoiceData)}</p>
+                              <p className="font-semibold text-slate-800 whitespace-nowrap">{invoiceData && getServiceDescription(invoiceData)}</p>
                               <p className="text-xs text-slate-500 mt-0.5 whitespace-nowrap">
                                 {isSubscription ? `Period: ${formatDate(invoiceData!.billing_start_date)} — ${formatDate(invoiceData!.billing_end_date)}` : `Date: ${formatDate(invoiceDateToShow || "")}`}
                               </p>
-                              {invoiceData?.notes && <p className="text-xs text-slate-400 mt-1">Note: {invoiceData.notes}</p>}
+                              {invoiceData?.notes && <p className="text-xs text-slate-400 mt-1 whitespace-nowrap">Note: {invoiceData.notes}</p>}
                             </td>
                             <td className="py-4 px-5 text-right font-bold text-slate-800 whitespace-nowrap">PKR {invoiceData?.subtotal.toLocaleString()}</td>
                           </tr>

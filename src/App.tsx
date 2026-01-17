@@ -49,6 +49,20 @@ const PrivateRoute: React.FC<{ element: React.ReactElement }> = ({ element }) =>
 }
 
 const App: React.FC = () => {
+  const hostname = window.location.hostname
+  const isCustomerPortal = hostname.includes("customer.")
+
+  if (isCustomerPortal) {
+    return (
+      <Router>
+        <Routes>
+          <Route path="/public/invoice/:id" element={<PublicInvoicePage />} />
+          <Route path="*" element={<CustomerPortalPage />} />
+        </Routes>
+      </Router>
+    )
+  }
+
   return (
     <Router>
       <Routes>
@@ -78,7 +92,7 @@ const App: React.FC = () => {
         <Route path="/billing-invoices" element={<PrivateRoute element={<InvoiceManagement />} />} />
         <Route path="/invoices/:id" element={<PrivateRoute element={<InvoiceGeneration />} />} />
         <Route path="/customers/:id" element={<PrivateRoute element={<CustomerDetailPage />} />} />
-        
+
         {/* Reporting & Analytics Routes */}
         <Route path="/reporting/:section" element={<PrivateRoute element={<ReportingPage />} />} />
         <Route path="/reporting-analytics" element={<Navigate to="/reporting/executive" />} />
@@ -94,6 +108,7 @@ const App: React.FC = () => {
         <Route path="/public/invoice/:id" element={<PublicInvoicePage />} />
 
         {/* Customer Self-Service Portal (Public - No Auth) */}
+        {/* Kept here for backward compatibility or direct access via main domain if needed */}
         <Route path="/customer-portal" element={<CustomerPortalPage />} />
 
         {/* WhatsApp Messaging Routes */}
