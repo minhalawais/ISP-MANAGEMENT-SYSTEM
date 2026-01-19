@@ -7,8 +7,8 @@ import { removeToken, getToken, getRefreshToken } from "./auth.ts";
 const getBaseURL = () => {
   return process.env.REACT_APP_API_BASE_URL ||
     (process.env.NODE_ENV === "development"
-      ? "https://mbanet.com.pk/api"  // Development URL
-      : "https://mbanet.com.pk/api"                       // Production: Relative path
+      ? "https://nexus.mbanet.com.pk/api"  // Development URL
+      : "https://nexus.mbanet.com.pk/api"                       // Production: Relative path
     );
 };
 

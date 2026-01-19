@@ -107,14 +107,11 @@ We will replace your existing configuration to listen on the new subdomains.
     }
 
     # ----------------------------------------------------------------------
-    # 3. Legacy Redirect (Optional)
-    # Redirects old mbanet.com.pk -> nexus.mbanet.com.pk
+    # 3. separate website on (mbanet.com.pk)
     # ----------------------------------------------------------------------
-    server {
-        listen 80;
-        server_name mbanet.com.pk;
-        return 301 http://nexus.mbanet.com.pk$request_uri;
-    }
+    # You mentioned you will deploy a DIFFERENT website here.
+    # You will need to create a separate Nginx config file for it later.
+    # Do NOT include a server block for mbanet.com.pk in this file.
     ```
 
 3.  **Save and Exit**: Press `Ctrl+O`, `Enter`, then `Ctrl+X`.
