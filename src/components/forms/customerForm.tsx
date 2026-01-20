@@ -305,7 +305,7 @@ export function CustomerForm({
   const [areas, setAreas] = useState<Area[]>([])
   const [servicePlans, setServicePlans] = useState<ServicePlan[]>([])
   const [isps, setIsps] = useState<ISP[]>([])
-  const [employees, setEmployees] = useState<{id: string, first_name: string, last_name: string}[]>([])
+  const [employees, setEmployees] = useState<{ id: string, first_name: string, last_name: string }[]>([])
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([])
   const [subZones, setSubZones] = useState<SubZone[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -383,9 +383,43 @@ export function CustomerForm({
 
   // Initialize service_plan_ids from packages array when editing
   useEffect(() => {
-    if (isEditing && formData.packages && Array.isArray(formData.packages) && formData.packages.length > 0) {
-      // Extract service_plan_ids from packages array
-      const planIds = formData.packages.map((pkg: any) => pkg.service_plan_id);
+    if (isEditing) {
+      let planIds: string[] = [];
+
+      // Try to extract from packages array
+      if (formData.packages) {
+        let packagesData = formData.packages;
+
+        // Handle case where packages is a stringified array
+        if (typeof packagesData === 'string') {
+          try {
+            packagesData = JSON.parse(packagesData);
+          } catch {
+            // If it's '[object Object]' or invalid JSON, skip
+            packagesData = null;
+          }
+        }
+
+        if (Array.isArray(packagesData) && packagesData.length > 0) {
+          planIds = packagesData.map((pkg: any) => pkg.service_plan_id).filter(Boolean);
+        }
+      }
+
+      // Fallback: if no planIds extracted but we have existing service_plan_ids
+      if (planIds.length === 0 && formData.service_plan_ids) {
+        if (Array.isArray(formData.service_plan_ids)) {
+          planIds = formData.service_plan_ids;
+        } else if (typeof formData.service_plan_ids === 'string') {
+          planIds = [formData.service_plan_ids];
+        }
+      }
+
+      // Fallback: try legacy service_plan_id
+      if (planIds.length === 0 && formData.service_plan_id) {
+        planIds = [formData.service_plan_id as string];
+      }
+
+      // Update service_plan_ids if we found any
       if (planIds.length > 0 && (!formData.service_plan_ids || formData.service_plan_ids.length === 0)) {
         handleInputChange({
           target: { name: 'service_plan_ids', value: planIds }
