@@ -1,46 +1,128 @@
-# Getting Started with Create React App
+# 📡 ISP Management System – Next-Gen Network Administration
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+[![React](https://img.shields.io/badge/React-19.0-blue?style=for-the-badge&logo=react)](https://react.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org/)
+[![Flask](https://img.shields.io/badge/Flask-3.0-black?style=for-the-badge&logo=flask)](https://flask.palletsprojects.com/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16.0-blue?style=for-the-badge&logo=postgresql)](https://www.postgresql.org/)
+[![WhatsApp API](https://img.shields.io/badge/WhatsApp_API-Integration-25D366?style=for-the-badge&logo=whatsapp)](https://business.whatsapp.com/)
 
-## Available Scripts
+> **Powered By**: [Minhal Awais](https://minhalawais.me/) | [LinkedIn](https://linkedin.com/in/minhal-awais-601216227)
 
-In the project directory, you can run:
+---
 
-### `npm start`
+## 🚀 Experience the Solution
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+The **ISP Management System** is a comprehensive, enterprise-grade ERP designed specifically for Internet Service Providers. It unifies customer lifecycle management, automated billing, network hardware integration (MikroTik/Ubiquiti), and field force operations into a single, cohesive platform.
 
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
+Built to handle scale, it manages everything from complex recurring billing cycles to real-time inventory tracking and automated WhatsApp notifications.
 
-### `npm test`
+## 🌟 Key Components
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+### 1. Smart Billing & Recovery Engine
+A robust financial core that automates the revenue cycle.
+*   **Automated Invoicing**: Generates subscription, installation, and equipment invoices.
+*   **Recovery Task Force**: Automatically assigns overdue invoices to Recovery Agents with "Promise to Pay" tracking.
+*   **Dynamic Plans**: Supports bandwidth-based billing, flat rates, and custom corporate packages.
+*   **ISP Payment Tracking**: Manages upstream bandwidth costs and operational expenses.
 
-### `npm run build`
+### 2. Network & Hardware Integration
+Direct control over the physical infrastructure.
+*   **Vendor Agnostic**: Seamlessly integrates with **MikroTik** and **Ubiquiti** devices via custom adapters.
+*   **Inventory Management**: serialized tracking of Routers, ONUs, Patch Cords, and Splicing Boxes.
+*   **Geo-Tagged Infrastructure**: Maps customers to specific Areas and Sub-zones for outage tracking.
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+### 3. CRM & Customer 360° Profile
+A complete view of every subscriber.
+*   **Deep Technical Profiling**: Tracks fiber length, connection type, MAC addresses, and equipment ownership.
+*   **Document Vault**: Stores CNIC images, agreement forms, and installation proofs.
+*   **Geolocation**: Exact GPS coordinates for installation sites to aid technicians.
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+### 4. Automated Communication Hub
+Built-in WhatsApp marketing and notification system.
+*   **Message Queueing**: Intelligent priority queue for high-volume message delivery.
+*   **Template Engine**: Dynamic templates for invoices, deadline alerts, and promotions.
+*   **Quota Management**: Automatic handling of daily sending limits to prevent blocking.
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+### 5. Financial Ledger & HR
+Integrated accounting for staff and operations.
+*   **Employee Ledgers**: Tracks salaries, commissions per new connection, and recovery incentives.
+*   **Expense Management**: Dynamic expense categorization and bank account reconciliation.
+*   **Internal Transfers**: Manage funds between company bank accounts.
 
-### `npm run eject`
+---
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+## 🔐 User Roles & Governance
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+The platform features a granular **Role-Based Access Control (RBAC)** system.
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
+| Role | Access Level | Responsibilities |
+| :--- | :--- | :--- |
+| **Super Admin** | Full System Access | System configuration, financial auditing, critical deletions. |
+| **Company Owner** | Corporate Dashboard | Strategic oversight, P&L monitoring, staff management. |
+| **Manager** | Operational Control | Approvals, inventory restocking, team assignments. |
+| **Recovery Agent** | Recovery Portal | Viewing assigned overdue invoices, logging recovery attempts. |
+| **Technician** | Field App | Viewing installation orders, updating inventory usage, closing tickets. |
+| **Customer** | Self-Service Portal | Viewing invoices, downloading usage reports, submitting complaints. |
 
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
+---
 
-## Learn More
+## 🛠️ Technology Stack
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+Designed for reliability, performance, and maintainability.
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+### Frontend (Client Client)
+*   **Framework**: React 19 + TypeScript
+*   **UI System**: Ant Design (Data intensive views) + Material UI + Tailwind CSS
+*   **Visualization**: Recharts (Financial reporting) + Leaflet (Map integration)
+*   **State/Data**: React Query / SWR
+
+### Backend (API Server)
+*   **Framework**: Python Flask
+*   **ORM**: SQLAlchemy (Async capabilities)
+*   **Database**: PostgreSQL (Leveraging UUIDs & JSONB)
+*   **Task Queue**: Custom Scheduler for billing cycles & WhatsApp
+*   **Hardware Interface**: Python-API interactions for RouterOS & UniFi
+
+---
+
+## 💻 Local Development
+
+The project is split into two distinct parts: `src` (Frontend) and `api` (Backend).
+
+### Prerequisites
+*   Node.js (v18+)
+*   Python (v3.9+)
+*   PostgreSQL
+
+### 1. Backend Setup
+Navigate to the API directory and start the Flask server.
+
+```bash
+cd api
+python -m venv venv
+source venv/bin/activate  # or venv\Scripts\activate on Windows
+pip install -r requirements.txt
+flask run
+```
+
+### 2. Frontend Setup
+Navigate to the root directory to start the React application.
+
+```bash
+npm install
+npm start
+```
+
+### 3. Environment Configuration
+Ensure you create a `.env` file in the `api` folder with the following keys:
+```env
+DATABASE_URL=postgresql://user:password@localhost/isp_db
+SECRET_KEY=your_secret_key
+WHATSAPP_API_TOKEN=your_token
+```
+
+---
+
+<div align="center">
+  <p>Developed with ❤️ by <a href="https://minhalawais.me/">Minhal Awais</a></p>
+  </div>
