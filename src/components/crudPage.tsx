@@ -556,6 +556,7 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
           isVisible={showCredentialsModal}
           onClose={() => setShowCredentialsModal(false)}
           credentials={newEmployeeCredentials}
+          title={`${title} Credentials`}
         />
       )}
     </div>

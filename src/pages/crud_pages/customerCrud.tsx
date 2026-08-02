@@ -12,8 +12,9 @@ import { Eye, FileText } from "lucide-react"
 interface Customer {
   id: string
   internet_id: string
-  first_name: string
-  last_name: string
+  name?: string
+  first_name?: string
+  last_name?: string
   email: string
   phone_1: string
   phone_2: string | null
@@ -48,7 +49,7 @@ const CustomerManagement: React.FC = () => {
       },
       {
         header: "Name",
-        accessorFn: (row) => `${row.first_name} ${row.last_name}`,
+        accessorFn: (row) => row.name || `${row.first_name || ''} ${row.last_name || ''}`.trim(),
       },
       {
         header: "Phone 1",

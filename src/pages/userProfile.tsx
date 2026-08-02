@@ -2,14 +2,22 @@
 
 import type React from "react"
 import { useState, useEffect, useRef } from "react"
-import { User, Mail, Phone, Key, Edit2, Save, X, Camera, Lock, Eye, EyeOff, Upload, Shield } from "lucide-react"
+import {
+  User, Mail, Phone, Key, Edit2, Save, X, Camera, Lock, Eye, EyeOff,
+  Upload, Shield, Building2, Globe, FileText, DollarSign, Image as ImageIcon,
+  CheckCircle2, Info, RefreshCw
+} from "lucide-react"
 import axiosInstance from "../utils/axiosConfig.ts"
 import { toast } from "react-toastify"
-import { getToken } from "../utils/auth.ts"
+import { getToken, getAssetUrl } from "../utils/auth.ts"
 import { Sidebar } from "../components/sideNavbar.tsx"
 import { Topbar } from "../components/topNavbar.tsx"
+import { useCompany } from "../context/CompanyContext.tsx"
 
 const UserProfile: React.FC = () => {
+  const { company, refreshCompany, setPageTitle } = useCompany()
+
+  const [activeTab, setActiveTab] = useState<'personal' | 'company'>('personal')
   const [userData, setUserData] = useState<any>(null)
   const [isEditing, setIsEditing] = useState(false)
   const [formData, setFormData] = useState<any>({})
@@ -31,38 +39,79 @@ const UserProfile: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [isUploadingPicture, setIsUploadingPicture] = useState(false)
 
+  // Company Profile form state
+  const [companyForm, setCompanyForm] = useState({
+    name: '',
+    tagline: '',
+    contact_number: '',
+    email: '',
+    website: '',
+    tax_number: '',
+    currency_symbol: 'Rs.',
+    address: '',
+    invoice_footer_notes: '',
+  })
+  const [isSavingCompany, setIsSavingCompany] = useState(false)
+
+  // Logo & Favicon upload state
+  const logoInputRef = useRef<HTMLInputElement>(null)
+  const faviconInputRef = useRef<HTMLInputElement>(null)
+  const [logoFile, setLogoFile] = useState<File | null>(null)
+  const [faviconFile, setFaviconFile] = useState<File | null>(null)
+  const [logoPreview, setLogoPreview] = useState<string | null>(null)
+  const [faviconPreview, setFaviconPreview] = useState<string | null>(null)
+
   const toggleSidebar = () => {
     setIsSidebarOpen((prev) => !prev)
   }
 
   useEffect(() => {
-    document.title = "MBA NET - User Profile"
+    setPageTitle("User Profile")
     fetchUserData()
-  }, [])
+  }, [setPageTitle])
+
+  // Sync company context data into companyForm when company loads
+  useEffect(() => {
+    if (company) {
+      setCompanyForm({
+        name: company.name || '',
+        tagline: company.tagline || '',
+        contact_number: company.contact_number || '',
+        email: company.email || '',
+        website: company.website || '',
+        tax_number: company.tax_number || '',
+        currency_symbol: company.currency_symbol || 'Rs.',
+        address: company.address || '',
+        invoice_footer_notes: company.invoice_footer_notes || '',
+      })
+      if (company.logo_url) setLogoPreview(company.logo_url)
+      if (company.favicon_url) setFaviconPreview(company.favicon_url)
+    }
+  }, [company])
 
   const fetchUserData = async () => {
     try {
       setIsLoading(true)
       const token = getToken()
       const response = await axiosInstance.get("/user/profile", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       })
       setUserData(response.data)
       setFormData(response.data)
       setIsLoading(false)
     } catch (error) {
       console.error("Failed to fetch user data", error)
-      toast.error("Failed to load user profile", {
-        style: { background: "#FEE2E2", color: "#B91C1C" },
-      })
+      toast.error("Failed to load user profile")
       setIsLoading(false)
     }
   }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value })
+  }
+
+  const handleCompanyInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setCompanyForm({ ...companyForm, [e.target.name]: e.target.value })
   }
 
   const handlePasswordInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -75,39 +124,27 @@ const UserProfile: React.FC = () => {
       setIsLoading(true)
       const token = getToken()
       await axiosInstance.put("/user/profile", formData, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       })
       setUserData(formData)
       setIsEditing(false)
-      toast.success("Profile updated successfully", {
-        style: { background: "#D1FAE5", color: "#065F46" },
-      })
+      toast.success("Profile updated successfully")
       setIsLoading(false)
     } catch (error) {
       console.error("Failed to update profile", error)
-      toast.error("Failed to update profile", {
-        style: { background: "#FEE2E2", color: "#B91C1C" },
-      })
+      toast.error("Failed to update profile")
       setIsLoading(false)
     }
   }
 
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault()
-
     if (passwordData.new_password !== passwordData.confirm_password) {
-      toast.error("New password and confirm password do not match", {
-        style: { background: "#FEE2E2", color: "#B91C1C" },
-      })
+      toast.error("New password and confirm password do not match")
       return
     }
-
     if (passwordData.new_password.length < 6) {
-      toast.error("New password must be at least 6 characters", {
-        style: { background: "#FEE2E2", color: "#B91C1C" },
-      })
+      toast.error("New password must be at least 6 characters")
       return
     }
 
@@ -115,22 +152,14 @@ const UserProfile: React.FC = () => {
       setIsChangingPassword(true)
       const token = getToken()
       await axiosInstance.post("/user/change-password", passwordData, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       })
-      toast.success("Password changed successfully", {
-        style: { background: "#D1FAE5", color: "#065F46" },
-      })
+      toast.success("Password changed successfully")
       setPasswordData({ current_password: '', new_password: '', confirm_password: '' })
       setShowPasswordSection(false)
       setIsChangingPassword(false)
     } catch (error: any) {
-      console.error("Failed to change password", error)
-      const errorMessage = error.response?.data?.error || "Failed to change password"
-      toast.error(errorMessage, {
-        style: { background: "#FEE2E2", color: "#B91C1C" },
-      })
+      toast.error(error.response?.data?.error || "Failed to change password")
       setIsChangingPassword(false)
     }
   }
@@ -139,59 +168,98 @@ const UserProfile: React.FC = () => {
     const file = e.target.files?.[0]
     if (!file) return
 
-    // Validate file type
     const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp']
     if (!allowedTypes.includes(file.type)) {
-      toast.error("Please select a valid image file (PNG, JPG, GIF, or WEBP)", {
-        style: { background: "#FEE2E2", color: "#B91C1C" },
-      })
+      toast.error("Please select a valid image file (PNG, JPG, GIF, or WEBP)")
       return
     }
-
-    // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
-      toast.error("Image size should be less than 5MB", {
-        style: { background: "#FEE2E2", color: "#B91C1C" },
-      })
+      toast.error("Image size should be less than 5MB")
       return
     }
 
     try {
       setIsUploadingPicture(true)
-      const formData = new FormData()
-      formData.append('file', file)
-
       const token = getToken()
-      const response = await axiosInstance.post("/user/profile-picture", formData, {
+      const pictureFormData = new FormData()
+      pictureFormData.append('file', file)
+
+      const response = await axiosInstance.post("/user/profile-picture", pictureFormData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data',
+        },
+      })
+      setUserData({ ...userData, picture: response.data.picture })
+      toast.success("Profile picture updated successfully")
+      setIsUploadingPicture(false)
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || "Failed to upload profile picture")
+      setIsUploadingPicture(false)
+    }
+  }
+
+  // Handle Logo file selection
+  const handleLogoFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      setLogoFile(file)
+      setLogoPreview(URL.createObjectURL(file))
+    }
+  }
+
+  // Handle Favicon file selection
+  const handleFaviconFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      setFaviconFile(file)
+      setFaviconPreview(URL.createObjectURL(file))
+    }
+  }
+
+  // Submit Company Profile & Branding Updates
+  const handleCompanySubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    try {
+      setIsSavingCompany(true)
+      const token = getToken()
+
+      const submitData = new FormData()
+      Object.entries(companyForm).forEach(([key, val]) => {
+        submitData.append(key, val)
+      })
+
+      if (logoFile) {
+        submitData.append('logo', logoFile)
+      }
+      if (faviconFile) {
+        submitData.append('favicon', faviconFile)
+      }
+
+      await axiosInstance.put("/company/profile", submitData, {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'multipart/form-data',
         },
       })
 
-      setUserData({ ...userData, picture: response.data.picture })
-      toast.success("Profile picture updated successfully", {
-        style: { background: "#D1FAE5", color: "#065F46" },
-      })
-      setIsUploadingPicture(false)
+      setLogoFile(null)
+      setFaviconFile(null)
+      toast.success("Company profile & branding updated successfully")
+      await refreshCompany()
+      setIsSavingCompany(false)
     } catch (error: any) {
-      console.error("Failed to upload profile picture", error)
-      const errorMessage = error.response?.data?.error || "Failed to upload profile picture"
-      toast.error(errorMessage, {
-        style: { background: "#FEE2E2", color: "#B91C1C" },
-      })
-      setIsUploadingPicture(false)
+      console.error("Failed to update company profile", error)
+      toast.error(error.response?.data?.error || "Failed to update company settings")
+      setIsSavingCompany(false)
     }
   }
 
   const getProfilePictureUrl = () => {
-    if (userData?.picture) {
-      const apiUrl = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000'
-      const path = userData.picture.startsWith('/') ? userData.picture.slice(1) : userData.picture
-      return `${apiUrl}/${path}`
-    }
-    return null
+    return getAssetUrl(userData?.picture)
   }
+
+  const canManageCompany = userData?.role === 'company_owner' || userData?.role === 'super_admin'
 
   if (isLoading && !userData) {
     return (
@@ -213,7 +281,7 @@ const UserProfile: React.FC = () => {
         <div className="flex-1 overflow-y-auto">
           <div className="container mx-auto px-4 py-8 mt-16 max-w-4xl">
 
-            {/* Profile Header Card */}
+            {/* Header Card */}
             <div className="bg-white shadow-lg rounded-2xl overflow-hidden border border-[#E5E1DA] mb-6">
               <div className="px-8 py-8 bg-gradient-to-r from-[#2A5C8A] to-[#89A8B2] text-white">
                 <div className="flex flex-col sm:flex-row items-center gap-6">
@@ -251,278 +319,490 @@ const UserProfile: React.FC = () => {
                   </div>
 
                   {/* User Info */}
-                  <div className="text-center sm:text-left">
+                  <div className="text-center sm:text-left flex-1">
                     <h2 className="text-3xl font-bold">
                       {userData?.first_name} {userData?.last_name}
                     </h2>
                     <p className="text-white/80 text-lg mt-1">{userData?.username}</p>
-                    <span className="inline-flex items-center gap-2 mt-3 px-4 py-1.5 bg-white/20 rounded-full text-sm font-medium">
-                      <Shield size={14} />
-                      {userData?.role?.replace('_', ' ').toUpperCase()}
-                    </span>
+                    <div className="flex flex-wrap items-center gap-2 mt-3">
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/20 rounded-full text-xs font-medium">
+                        <Shield size={13} />
+                        {userData?.role?.replace('_', ' ').toUpperCase()}
+                      </span>
+                      {company?.name && (
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/20 rounded-full text-xs font-medium">
+                          <Building2 size={13} />
+                          {company.name}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
 
-            {/* Profile Information Card */}
-            <div className="bg-white shadow-lg rounded-2xl overflow-hidden border border-[#E5E1DA] mb-6">
-              <div className="px-6 py-4 border-b border-[#E5E1DA] bg-gradient-to-r from-slate-50 to-white flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-[#2A5C8A] flex items-center gap-2">
-                  <User size={20} className="text-[#89A8B2]" />
-                  Personal Information
-                </h3>
-                {!isEditing && (
+              {/* Navigation Tabs */}
+              <div className="flex border-b border-slate-100 bg-slate-50/50 px-6">
+                <button
+                  onClick={() => setActiveTab('personal')}
+                  className={`flex items-center gap-2 py-4 px-5 font-semibold text-sm transition-all border-b-2
+                    ${activeTab === 'personal'
+                      ? 'border-[#2A5C8A] text-[#2A5C8A] bg-white'
+                      : 'border-transparent text-slate-500 hover:text-slate-800'
+                    }`}
+                >
+                  <User size={16} />
+                  Personal Profile
+                </button>
+
+                {canManageCompany && (
                   <button
-                    onClick={() => setIsEditing(true)}
-                    className="flex items-center gap-2 px-4 py-2 rounded-lg text-white bg-[#2A5C8A] hover:bg-[#1e4568] transition-colors shadow-sm"
+                    onClick={() => setActiveTab('company')}
+                    className={`flex items-center gap-2 py-4 px-5 font-semibold text-sm transition-all border-b-2
+                      ${activeTab === 'company'
+                        ? 'border-[#2A5C8A] text-[#2A5C8A] bg-white'
+                        : 'border-transparent text-slate-500 hover:text-slate-800'
+                      }`}
                   >
-                    <Edit2 size={16} />
-                    Edit
+                    <Building2 size={16} />
+                    Company Settings & Branding
                   </button>
                 )}
               </div>
+            </div>
 
-              <div className="p-6">
-                {isEditing ? (
-                  <form onSubmit={handleSubmit} className="space-y-5">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                      <div>
-                        <label htmlFor="first_name" className="block text-sm font-medium text-slate-600 mb-2">
-                          First Name
-                        </label>
-                        <input
-                          type="text"
-                          id="first_name"
-                          name="first_name"
-                          value={formData.first_name || ''}
-                          onChange={handleInputChange}
-                          className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#89A8B2] focus:border-transparent transition-all"
-                          disabled={isLoading}
-                        />
-                      </div>
-                      <div>
-                        <label htmlFor="last_name" className="block text-sm font-medium text-slate-600 mb-2">
-                          Last Name
-                        </label>
-                        <input
-                          type="text"
-                          id="last_name"
-                          name="last_name"
-                          value={formData.last_name || ''}
-                          onChange={handleInputChange}
-                          className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#89A8B2] focus:border-transparent transition-all"
-                          disabled={isLoading}
-                        />
-                      </div>
+            {/* TAB 1: PERSONAL PROFILE */}
+            {activeTab === 'personal' && (
+              <div className="bg-white shadow-lg rounded-2xl p-8 border border-[#E5E1DA]">
+                <div className="flex justify-between items-center mb-6">
+                  <h3 className="text-xl font-bold text-slate-800">Account Details</h3>
+                  {!isEditing ? (
+                    <button
+                      onClick={() => setIsEditing(true)}
+                      className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-[#2A5C8A] bg-[#EBF5FF] hover:bg-[#D6E9FF] transition-all"
+                    >
+                      <Edit2 size={16} />
+                      Edit Profile
+                    </button>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => {
+                          setIsEditing(false)
+                          setFormData(userData)
+                        }}
+                        className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 transition-all"
+                      >
+                        <X size={16} />
+                        Cancel
+                      </button>
+                      <button
+                        onClick={handleSubmit}
+                        disabled={isLoading}
+                        className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-white bg-[#2A5C8A] hover:bg-[#1e4568] transition-all shadow-sm"
+                      >
+                        <Save size={16} />
+                        Save Changes
+                      </button>
                     </div>
-                    <div>
-                      <label htmlFor="email" className="block text-sm font-medium text-slate-600 mb-2">
-                        Email Address
-                      </label>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-600 mb-1">First Name</label>
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        name="first_name"
+                        value={formData.first_name || ''}
+                        onChange={handleInputChange}
+                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#2A5C8A]/20 focus:border-[#2A5C8A] transition-all"
+                      />
+                    ) : (
+                      <p className="text-slate-800 font-medium text-lg">{userData?.first_name || '-'}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-600 mb-1">Last Name</label>
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        name="last_name"
+                        value={formData.last_name || ''}
+                        onChange={handleInputChange}
+                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#2A5C8A]/20 focus:border-[#2A5C8A] transition-all"
+                      />
+                    ) : (
+                      <p className="text-slate-800 font-medium text-lg">{userData?.last_name || '-'}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-600 mb-1">Email Address</label>
+                    {isEditing ? (
                       <input
                         type="email"
-                        id="email"
                         name="email"
                         value={formData.email || ''}
                         onChange={handleInputChange}
-                        className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#89A8B2] focus:border-transparent transition-all"
-                        disabled={isLoading}
+                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#2A5C8A]/20 focus:border-[#2A5C8A] transition-all"
                       />
-                    </div>
-                    <div>
-                      <label htmlFor="contact_number" className="block text-sm font-medium text-slate-600 mb-2">
-                        Contact Number
-                      </label>
+                    ) : (
+                      <div className="flex items-center gap-2 text-slate-800 font-medium text-lg">
+                        <Mail size={18} className="text-[#89A8B2]" />
+                        {userData?.email || '-'}
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-600 mb-1">Contact Number</label>
+                    {isEditing ? (
                       <input
-                        type="tel"
-                        id="contact_number"
+                        type="text"
                         name="contact_number"
                         value={formData.contact_number || ''}
                         onChange={handleInputChange}
-                        className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#89A8B2] focus:border-transparent transition-all"
-                        disabled={isLoading}
+                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#2A5C8A]/20 focus:border-[#2A5C8A] transition-all"
                       />
-                    </div>
-                    <div className="flex justify-end gap-3 pt-4">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setFormData(userData)
-                          setIsEditing(false)
-                        }}
-                        className="flex items-center gap-2 px-5 py-2.5 border border-slate-200 rounded-xl text-slate-600 bg-white hover:bg-slate-50 transition-all"
-                        disabled={isLoading}
-                      >
-                        <X size={16} />
-                        Cancel
-                      </button>
-                      <button
-                        type="submit"
-                        className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white bg-[#2A5C8A] hover:bg-[#1e4568] transition-all shadow-sm"
-                        disabled={isLoading}
-                      >
-                        {isLoading ? (
-                          <>
-                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                            Saving...
-                          </>
-                        ) : (
-                          <>
-                            <Save size={16} />
-                            Save Changes
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  </form>
-                ) : (
-                  <div className="space-y-4">
-                    <div className="flex items-center p-4 rounded-xl bg-slate-50 border border-slate-100">
-                      <Mail className="text-[#89A8B2] w-5 h-5 mr-4" />
-                      <div>
-                        <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Email</p>
-                        <p className="text-slate-800 font-medium">{userData?.email || 'Not provided'}</p>
+                    ) : (
+                      <div className="flex items-center gap-2 text-slate-800 font-medium text-lg">
+                        <Phone size={18} className="text-[#89A8B2]" />
+                        {userData?.contact_number || '-'}
                       </div>
-                    </div>
-                    <div className="flex items-center p-4 rounded-xl bg-slate-50 border border-slate-100">
-                      <Phone className="text-[#89A8B2] w-5 h-5 mr-4" />
-                      <div>
-                        <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Contact Number</p>
-                        <p className="text-slate-800 font-medium">{userData?.contact_number || 'Not provided'}</p>
-                      </div>
-                    </div>
+                    )}
                   </div>
-                )}
-              </div>
-            </div>
+                </div>
 
-            {/* Password Change Card */}
-            <div className="bg-white shadow-lg rounded-2xl overflow-hidden border border-[#E5E1DA]">
-              <div className="px-6 py-4 border-b border-[#E5E1DA] bg-gradient-to-r from-slate-50 to-white flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-[#2A5C8A] flex items-center gap-2">
-                  <Lock size={20} className="text-[#89A8B2]" />
-                  Security
-                </h3>
-                {!showPasswordSection && (
-                  <button
-                    onClick={() => setShowPasswordSection(true)}
-                    className="flex items-center gap-2 px-4 py-2 rounded-lg text-[#2A5C8A] border border-[#2A5C8A] hover:bg-[#2A5C8A] hover:text-white transition-colors"
-                  >
-                    <Key size={16} />
-                    Change Password
-                  </button>
-                )}
-              </div>
-
-              <div className="p-6">
-                {showPasswordSection ? (
-                  <form onSubmit={handlePasswordChange} className="space-y-5 max-w-md">
+                {/* Password Section */}
+                <div className="mt-10 pt-8 border-t border-slate-100">
+                  <div className="flex justify-between items-center mb-6">
                     <div>
-                      <label htmlFor="current_password" className="block text-sm font-medium text-slate-600 mb-2">
-                        Current Password
-                      </label>
-                      <div className="relative">
+                      <h4 className="text-lg font-bold text-slate-800">Security & Password</h4>
+                      <p className="text-sm text-slate-500">Manage your account password</p>
+                    </div>
+                    {!showPasswordSection && (
+                      <button
+                        onClick={() => setShowPasswordSection(true)}
+                        className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-[#2A5C8A] bg-[#EBF5FF] hover:bg-[#D6E9FF] transition-all"
+                      >
+                        <Lock size={16} />
+                        Change Password
+                      </button>
+                    )}
+                  </div>
+
+                  {showPasswordSection && (
+                    <form onSubmit={handlePasswordChange} className="space-y-4 max-w-md bg-slate-50/50 p-6 rounded-2xl border border-slate-100">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Current Password</label>
+                        <div className="relative">
+                          <input
+                            type={showCurrentPassword ? "text" : "password"}
+                            name="current_password"
+                            value={passwordData.current_password}
+                            onChange={handlePasswordInputChange}
+                            required
+                            className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#2A5C8A]/20 focus:border-[#2A5C8A]"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                            className="absolute right-3 top-3 text-slate-400 hover:text-slate-600"
+                          >
+                            {showCurrentPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                          </button>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">New Password</label>
+                        <div className="relative">
+                          <input
+                            type={showNewPassword ? "text" : "password"}
+                            name="new_password"
+                            value={passwordData.new_password}
+                            onChange={handlePasswordInputChange}
+                            required
+                            className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#2A5C8A]/20 focus:border-[#2A5C8A]"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowNewPassword(!showNewPassword)}
+                            className="absolute right-3 top-3 text-slate-400 hover:text-slate-600"
+                          >
+                            {showNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                          </button>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Confirm New Password</label>
                         <input
-                          type={showCurrentPassword ? "text" : "password"}
-                          id="current_password"
-                          name="current_password"
-                          value={passwordData.current_password}
+                          type="password"
+                          name="confirm_password"
+                          value={passwordData.confirm_password}
                           onChange={handlePasswordInputChange}
-                          className="w-full px-4 py-3 pr-12 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#89A8B2] focus:border-transparent transition-all"
                           required
+                          className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#2A5C8A]/20 focus:border-[#2A5C8A]"
                         />
+                      </div>
+
+                      <div className="flex gap-3 pt-2">
                         <button
                           type="button"
-                          onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                          className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                          onClick={() => {
+                            setShowPasswordSection(false)
+                            setPasswordData({ current_password: '', new_password: '', confirm_password: '' })
+                          }}
+                          className="flex-1 py-2.5 border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-100 text-sm font-medium"
                         >
-                          {showCurrentPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                          Cancel
                         </button>
-                      </div>
-                    </div>
-                    <div>
-                      <label htmlFor="new_password" className="block text-sm font-medium text-slate-600 mb-2">
-                        New Password
-                      </label>
-                      <div className="relative">
-                        <input
-                          type={showNewPassword ? "text" : "password"}
-                          id="new_password"
-                          name="new_password"
-                          value={passwordData.new_password}
-                          onChange={handlePasswordInputChange}
-                          className="w-full px-4 py-3 pr-12 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#89A8B2] focus:border-transparent transition-all"
-                          required
-                          minLength={6}
-                        />
                         <button
-                          type="button"
-                          onClick={() => setShowNewPassword(!showNewPassword)}
-                          className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                          type="submit"
+                          disabled={isChangingPassword}
+                          className="flex-1 py-2.5 bg-[#2A5C8A] hover:bg-[#1e4568] text-white rounded-xl text-sm font-medium flex items-center justify-center gap-2"
                         >
-                          {showNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                          {isChangingPassword ? 'Updating...' : 'Update Password'}
                         </button>
                       </div>
-                      <p className="text-xs text-slate-500 mt-1">Minimum 6 characters</p>
-                    </div>
+                    </form>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* TAB 2: COMPANY SETTINGS & BRANDING */}
+            {activeTab === 'company' && canManageCompany && (
+              <form onSubmit={handleCompanySubmit} className="space-y-8">
+                {/* Information Banner */}
+                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-2xl p-6 flex gap-4">
+                  <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center flex-shrink-0">
+                    <Info className="w-5 h-5 text-blue-600" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-slate-800 text-base">Dynamic Company Branding</h4>
+                    <p className="text-slate-600 text-sm mt-1 leading-relaxed">
+                      All details, logos, and terms saved here will automatically reflect across your topbar, printed & public invoices, customer portal, and browser favicons in real time.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Company Details Card */}
+                <div className="bg-white shadow-lg rounded-2xl p-8 border border-[#E5E1DA]">
+                  <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100">
+                    <Building2 className="w-6 h-6 text-[#2A5C8A]" />
+                    <h3 className="text-xl font-bold text-slate-800">Company Information</h3>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                      <label htmlFor="confirm_password" className="block text-sm font-medium text-slate-600 mb-2">
-                        Confirm New Password
-                      </label>
+                      <label className="block text-sm font-semibold text-slate-700 mb-1.5">Company Name *</label>
                       <input
-                        type="password"
-                        id="confirm_password"
-                        name="confirm_password"
-                        value={passwordData.confirm_password}
-                        onChange={handlePasswordInputChange}
-                        className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#89A8B2] focus:border-transparent transition-all"
+                        type="text"
+                        name="name"
+                        value={companyForm.name}
+                        onChange={handleCompanyInputChange}
                         required
+                        placeholder="e.g. MBA Communications"
+                        className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#2A5C8A]/20 focus:border-[#2A5C8A]"
                       />
                     </div>
-                    <div className="flex justify-end gap-3 pt-4">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setShowPasswordSection(false)
-                          setPasswordData({ current_password: '', new_password: '', confirm_password: '' })
-                        }}
-                        className="flex items-center gap-2 px-5 py-2.5 border border-slate-200 rounded-xl text-slate-600 bg-white hover:bg-slate-50 transition-all"
-                        disabled={isChangingPassword}
-                      >
-                        <X size={16} />
-                        Cancel
-                      </button>
-                      <button
-                        type="submit"
-                        className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white bg-[#2A5C8A] hover:bg-[#1e4568] transition-all shadow-sm"
-                        disabled={isChangingPassword}
-                      >
-                        {isChangingPassword ? (
-                          <>
-                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                            Changing...
-                          </>
-                        ) : (
-                          <>
-                            <Key size={16} />
-                            Update Password
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  </form>
-                ) : (
-                  <div className="flex items-center p-4 rounded-xl bg-slate-50 border border-slate-100">
-                    <Key className="text-[#89A8B2] w-5 h-5 mr-4" />
+
                     <div>
-                      <p className="text-slate-800 font-medium">Password</p>
-                      <p className="text-sm text-slate-500">••••••••••••</p>
+                      <label className="block text-sm font-semibold text-slate-700 mb-1.5">Tagline / Slogan</label>
+                      <input
+                        type="text"
+                        name="tagline"
+                        value={companyForm.tagline}
+                        onChange={handleCompanyInputChange}
+                        placeholder="e.g. High-Speed Fiber Internet Provider"
+                        className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#2A5C8A]/20 focus:border-[#2A5C8A]"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-1.5">Contact Number</label>
+                      <input
+                        type="text"
+                        name="contact_number"
+                        value={companyForm.contact_number}
+                        onChange={handleCompanyInputChange}
+                        placeholder="e.g. 0300-1234567"
+                        className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#2A5C8A]/20 focus:border-[#2A5C8A]"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-1.5">Support Email</label>
+                      <input
+                        type="email"
+                        name="email"
+                        value={companyForm.email}
+                        onChange={handleCompanyInputChange}
+                        placeholder="e.g. support@mbacomm.com"
+                        className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#2A5C8A]/20 focus:border-[#2A5C8A]"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-1.5">Website URL</label>
+                      <input
+                        type="url"
+                        name="website"
+                        value={companyForm.website}
+                        onChange={handleCompanyInputChange}
+                        placeholder="https://mbacomm.com"
+                        className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#2A5C8A]/20 focus:border-[#2A5C8A]"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-1.5">Tax / NTN Registration Number</label>
+                      <input
+                        type="text"
+                        name="tax_number"
+                        value={companyForm.tax_number}
+                        onChange={handleCompanyInputChange}
+                        placeholder="e.g. NTN-1234567-8"
+                        className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#2A5C8A]/20 focus:border-[#2A5C8A]"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-1.5">Currency Symbol</label>
+                      <input
+                        type="text"
+                        name="currency_symbol"
+                        value={companyForm.currency_symbol}
+                        onChange={handleCompanyInputChange}
+                        placeholder="e.g. Rs. or $"
+                        className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#2A5C8A]/20 focus:border-[#2A5C8A]"
+                      />
+                    </div>
+
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-semibold text-slate-700 mb-1.5">Office Physical Address</label>
+                      <textarea
+                        name="address"
+                        rows={2}
+                        value={companyForm.address}
+                        onChange={handleCompanyInputChange}
+                        placeholder="Full office street address..."
+                        className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#2A5C8A]/20 focus:border-[#2A5C8A]"
+                      />
+                    </div>
+
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-semibold text-slate-700 mb-1.5">Invoice Custom Terms / Notes</label>
+                      <textarea
+                        name="invoice_footer_notes"
+                        rows={3}
+                        value={companyForm.invoice_footer_notes}
+                        onChange={handleCompanyInputChange}
+                        placeholder="Custom payment instructions or disclaimers printed at the bottom of customer invoices..."
+                        className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#2A5C8A]/20 focus:border-[#2A5C8A]"
+                      />
                     </div>
                   </div>
-                )}
-              </div>
-            </div>
+                </div>
+
+                {/* Branding Assets Upload Card */}
+                <div className="bg-white shadow-lg rounded-2xl p-8 border border-[#E5E1DA]">
+                  <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100">
+                    <ImageIcon className="w-6 h-6 text-[#2A5C8A]" />
+                    <h3 className="text-xl font-bold text-slate-800">Branding Assets (Logo & Favicon)</h3>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    {/* Logo Upload Box */}
+                    <div className="border-2 border-dashed border-slate-200 rounded-2xl p-6 hover:border-[#2A5C8A] transition-colors bg-slate-50/50 text-center">
+                      <p className="font-bold text-slate-800 text-base mb-1">Company Logo</p>
+                      <p className="text-slate-400 text-xs mb-4">Recommended: PNG or SVG, transparent background (300x80px)</p>
+
+                      <div className="h-28 rounded-xl bg-white border border-slate-200 flex items-center justify-center p-3 mb-4 overflow-hidden shadow-inner">
+                        {logoPreview ? (
+                          <img src={logoPreview} alt="Company Logo" className="max-h-full max-w-full object-contain" />
+                        ) : (
+                          <span className="text-slate-300 text-sm font-medium">No Logo Uploaded</span>
+                        )}
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => logoInputRef.current?.click()}
+                        className="px-4 py-2 rounded-xl text-sm font-semibold text-[#2A5C8A] bg-blue-50 hover:bg-blue-100 transition-colors inline-flex items-center gap-2"
+                      >
+                        <Upload size={16} />
+                        Choose Logo Image
+                      </button>
+                      <input
+                        ref={logoInputRef}
+                        type="file"
+                        accept="image/png,image/jpeg,image/jpg,image/svg+xml,image/webp"
+                        onChange={handleLogoFileChange}
+                        className="hidden"
+                      />
+                    </div>
+
+                    {/* Favicon Upload Box */}
+                    <div className="border-2 border-dashed border-slate-200 rounded-2xl p-6 hover:border-[#2A5C8A] transition-colors bg-slate-50/50 text-center">
+                      <p className="font-bold text-slate-800 text-base mb-1">Browser Favicon</p>
+                      <p className="text-slate-400 text-xs mb-4">Recommended: Square PNG or ICO icon (64x64px)</p>
+
+                      <div className="h-28 rounded-xl bg-white border border-slate-200 flex items-center justify-center p-3 mb-4 shadow-inner">
+                        {faviconPreview ? (
+                          <img src={faviconPreview} alt="Favicon" className="w-10 h-10 object-contain rounded-md shadow-sm" />
+                        ) : (
+                          <span className="text-slate-300 text-sm font-medium">Default Favicon</span>
+                        )}
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => faviconInputRef.current?.click()}
+                        className="px-4 py-2 rounded-xl text-sm font-semibold text-[#2A5C8A] bg-blue-50 hover:bg-blue-100 transition-colors inline-flex items-center gap-2"
+                      >
+                        <Upload size={16} />
+                        Choose Favicon Icon
+                      </button>
+                      <input
+                        ref={faviconInputRef}
+                        type="file"
+                        accept="image/png,image/x-icon,image/vnd.microsoft.icon,image/svg+xml"
+                        onChange={handleFaviconFileChange}
+                        className="hidden"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Submit Floating Action Button */}
+                <div className="flex justify-end pt-4">
+                  <button
+                    type="submit"
+                    disabled={isSavingCompany}
+                    className="flex items-center gap-3 px-8 py-4 rounded-2xl font-bold text-white text-base
+                      bg-gradient-to-r from-[#2A5C8A] to-[#89A8B2] hover:opacity-95 shadow-xl transition-all
+                      disabled:opacity-50"
+                  >
+                    {isSavingCompany ? (
+                      <>
+                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        Saving Company Settings...
+                      </>
+                    ) : (
+                      <>
+                        <Save size={20} />
+                        Save Company Profile & Branding
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            )}
 
           </div>
         </div>

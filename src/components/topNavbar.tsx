@@ -3,16 +3,19 @@
 import type React from "react"
 import { useState, useEffect } from "react"
 import { Menu, Bell, User, ChevronDown, Settings, LogOut } from "lucide-react"
-import { getToken, removeToken } from "../utils/auth.ts"
+import { getToken, removeToken, getAssetUrl } from "../utils/auth.ts"
 import { useNavigate } from "react-router-dom"
 import axiosInstance from "../utils/axiosConfig.ts"
 import MBALogo from "../assets/mba_logo.tsx"
+
+import { useCompany } from "../context/CompanyContext.tsx"
 
 interface TopbarProps {
   toggleSidebar: () => void
 }
 
 export const Topbar: React.FC<TopbarProps> = ({ toggleSidebar }) => {
+  const { company } = useCompany()
   const [isProfileOpen, setIsProfileOpen] = useState(false)
   const [userData, setUserData] = useState<any>(null)
   const navigate = useNavigate()
@@ -61,9 +64,21 @@ export const Topbar: React.FC<TopbarProps> = ({ toggleSidebar }) => {
               <Menu className="h-5 w-5" />
             </button>
 
-            <div className="h-10 w-32 -mt-1 flex items-center" style={{ width: "193px", height: "56px" }}>
-              {/* Assuming MBALogo can handle color variants */}
-              <MBALogo variant="landscape" />
+            <div className="h-10 flex items-center gap-3">
+              {company?.logo_url ? (
+                <img
+                  src={company.logo_url}
+                  alt={company.name}
+                  className="h-9 max-w-[160px] object-contain"
+                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                />
+              ) : company?.name ? (
+                <span className="font-bold text-base text-[#2A5C8A] tracking-tight">{company.name}</span>
+              ) : null}
+              <div className="h-5 w-px bg-slate-200" />
+              <div className="h-10 w-32 flex items-center">
+                <MBALogo variant="landscape" />
+              </div>
             </div>
           </div>
 
@@ -78,8 +93,17 @@ export const Topbar: React.FC<TopbarProps> = ({ toggleSidebar }) => {
                 className="flex items-center space-x-3 text-[#4A5568] hover:bg-[#EBF5FF] p-2 rounded-lg transition-colors duration-200"
                 onClick={() => setIsProfileOpen(!isProfileOpen)}
               >
-                <div className="w-8 h-8 bg-[#3A86FF]/10 rounded-full flex items-center justify-center">
-                  <User className="h-5 w-5 text-[#3A86FF]" />
+                <div className="w-8 h-8 rounded-full overflow-hidden bg-[#3A86FF]/10 flex items-center justify-center flex-shrink-0 border border-slate-200">
+                  {userData?.picture ? (
+                    <img
+                      src={getAssetUrl(userData.picture)!}
+                      alt="Profile Avatar"
+                      className="w-full h-full object-cover"
+                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                    />
+                  ) : (
+                    <User className="h-5 w-5 text-[#3A86FF]" />
+                  )}
                 </div>
                 <div className="hidden md:block text-left">
                   <p className="text-sm font-medium text-[#2A5C8A]">

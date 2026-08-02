@@ -1,5 +1,6 @@
 import type React from "react"
 import { BrowserRouter as Router, Route, Routes, Navigate } from "react-router-dom"
+import { CompanyProvider } from "./context/CompanyContext.tsx"
 import ForgotPasswordPage from "./pages/forgotPassowrdPage.tsx"
 import ResetPasswordPage from "./pages/resetPasswordPage.tsx"
 import EmployeeManagement from "./pages/crud_pages/employeeCrud.tsx"
@@ -12,6 +13,7 @@ import SupplierManagement from "./pages/crud_pages/supplierCrud.tsx"
 import AreaZoneManagement from "./pages/crud_pages/areaZoneCrud.tsx"
 import SubZoneManagement from "./pages/crud_pages/subZoneCrud.tsx"
 import VendorManagement from "./pages/crud_pages/vendorCrud.tsx"
+import VendorDashboardPage from "./pages/VendorDashboardPage.tsx"
 import RecoveryTaskManagement from "./pages/crud_pages/recoveryTaskCrud.tsx"
 import TaskManagement from "./pages/crud_pages/taskCrud.tsx"
 import PaymentManagement from "./pages/crud_pages/paymentCrud.tsx"
@@ -54,17 +56,20 @@ const App: React.FC = () => {
 
   if (isCustomerPortal) {
     return (
-      <Router>
-        <Routes>
-          <Route path="/public/invoice/:id" element={<PublicInvoicePage />} />
-          <Route path="*" element={<CustomerPortalPage />} />
-        </Routes>
-      </Router>
+      <CompanyProvider>
+        <Router>
+          <Routes>
+            <Route path="/public/invoice/:id" element={<PublicInvoicePage />} />
+            <Route path="*" element={<CustomerPortalPage />} />
+          </Routes>
+        </Router>
+      </CompanyProvider>
     )
   }
 
   return (
-    <Router>
+    <CompanyProvider>
+      <Router>
       <Routes>
         <Route path="/" element={<Navigate to="/login" />} />
         <Route path="/login" element={<Login />} />
@@ -102,6 +107,7 @@ const App: React.FC = () => {
 
         <Route path="/isp-management" element={<PrivateRoute element={<ISPManagement />} />} />
         <Route path="/vendor-management" element={<PrivateRoute element={<VendorManagement />} />} />
+        <Route path="/vendors/:vendorId/dashboard" element={<PrivateRoute element={<VendorDashboardPage />} />} />
         <Route path="/expense-management" element={<PrivateRoute element={<ExpenseManagement />} />} />
         <Route path="/extra-income-management" element={<PrivateRoute element={<ExtraIncomeManagement />} />} />
 
@@ -123,6 +129,7 @@ const App: React.FC = () => {
 
       </Routes>
     </Router>
+    </CompanyProvider>
   )
 }
 

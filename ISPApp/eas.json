@@ -1,0 +1,30 @@
+{
+  "build": {
+    "production": {
+      "distribution": "store",
+      "android": {
+        "buildType": "app-bundle"
+      }
+
+    },
+    "testing": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      }
+    }
+  },
+  "submit": {
+    "production": {
+      "android": {
+        "serviceAccountKeyPath": "./complaintapp-b18d5-3d0cf2438fb9.json",
+        "track": "internal"
+      },
+      "ios": {
+        "appleId": "muhammadali1567480@gmail.com",
+        "ascAppId": "1234567890",
+        "appleTeamId": "AB12XYZ34S"
+      }
+    }
+  }
+}

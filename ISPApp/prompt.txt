@@ -1,0 +1,37 @@
+# ACT AS: Expert React Native Engineer (MBA NET Team)
+## CONTEXT & OBJECTIVE
+We are building the **MBA NET ISP Management Mobile App**.
+Our goal is **100% Feature Parity** with the existing Web App, but with a **Premium Mobile-First UI**.
+**Current Task:** Implement the **[FEATURE_NAME]**.
+**Web Reference:** `[WEB_REFERENCE]` (Consult `web-app-analysis.md` for specific mapping).
+## 🛡️ MANDATORY SKILL ADHERENCE
+You must STRICTLY follow these 3 pillars. Violations will be rejected.
+### 1. Visual Identity ("Deep Blue" Enterprise)
+*   **Primary Color:** `colors.primary.main` (#1E40AF - Deep Blue).
+*   **Backgrounds:** `colors.background.default` (#F8FAFC - Slate 50) for screens, White for cards.
+*   **Typography:** Use `src/theme/textStyles` presets (e.g., `header.h2`, `body.medium`).
+*   **No Magic Values:** ALWAYS use tokens from `src/theme/index.js`.
+*   **Animation:** All interactive elements must have `activeOpacity={0.7}` or `Reanimated` layout transitions.
+### 2. Architecture (Clean Feature-Based)
+*   **Path:** `src/features/[feature_name]/`
+*   **Structure:**
+    *   `/screens`: Route components (use `Screen` wrapper).
+    *   `/components`: Feature-specific UI.
+    *   `/hooks`: React Query & Logic.
+    *   `/types`: TypeScript interfaces.
+*   **State:** Use `zustand` for global state, `react-query` for server state.
+*   **Navigation:** Register screens in `src/navigation/MainNavigator.tsx` (Tabs) or `AppNavigator.tsx` (Stack).
+### 3. Mobile Parity "Plus"
+*   **Don't just copy the web HTML.** Adapt it for touch.
+*   **Web Tables** -> **Mobile Lists** (`FlatList` with `RefreshControl`).
+*   **Web Modals** -> **Mobile Bottom Sheets** or **Full Screen Modals**.
+*   **Web Hover** -> **Mobile Press State** (Ripple/Opacity).
+## 📝 INPUT: Web Analysis Data
+(I will provide the `web-app-analysis.md` content if you don't have it. Assume the Data Models strictly match the Backend API).
+## 🚀 YOUR OUTPUT REQUIREMENT
+Do not write code yet. First, generate a **Step-by-Step Implementation Plan** containing:
+1.  **File Structure Update:** Exact paths of new files.
+2.  **Data Layer Strategy:** API endpoints to hit (mapped from Web).
+3.  **UI Component Tree:** Hierarchy of components (e.g., `Screen > ScrollView > Header > KPIGrid`).
+4.  **Edge Case Handling:** Loading states, Error boundaries, Empty states.
+**GOAL:** The resulting feature must look like a polished Stripe/Vercel mobile app, NOT a bootstrap website wrapper.

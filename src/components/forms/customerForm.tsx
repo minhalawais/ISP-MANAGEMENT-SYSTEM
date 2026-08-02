@@ -42,8 +42,9 @@ interface CustomerFormProps {
 }
 
 interface Customer {
-  first_name: string
-  last_name: string
+  name?: string
+  first_name?: string
+  last_name?: string
   email: string
   internet_id: string
   phone_1: string
@@ -670,22 +671,15 @@ export function CustomerForm({
       />
 
       <InputField
-        label="First Name"
-        name="first_name"
-        value={formData.first_name || ""}
+        label="Full Name"
+        name="name"
+        value={
+          formData.name !== undefined
+            ? formData.name
+            : `${formData.first_name || ""} ${formData.last_name || ""}`.trim()
+        }
         onChange={memoizedHandleInputChange}
-        placeholder="Enter first name"
-        required
-        icon={<User className="h-5 w-5 text-slate-gray/70" />}
-        {...inputFieldProps}
-      />
-
-      <InputField
-        label="Last Name"
-        name="last_name"
-        value={formData.last_name || ""}
-        onChange={memoizedHandleInputChange}
-        placeholder="Enter last name"
+        placeholder="Enter full name"
         required
         icon={<User className="h-5 w-5 text-slate-gray/70" />}
         {...inputFieldProps}

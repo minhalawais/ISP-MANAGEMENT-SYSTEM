@@ -6,6 +6,7 @@ import { useParams } from "react-router-dom"
 import jsPDF from "jspdf"
 import html2canvas from "html2canvas"
 import axiosInstance from "../utils/axiosConfig.ts"
+import { getAssetUrl } from "../utils/auth.ts"
 import MBALogo from "../assets/mba_logo.tsx"
 import { PaidStamp } from "../components/PaidStamp.tsx"
 
@@ -341,12 +342,31 @@ const PublicInvoicePage: React.FC = () => {
                   </div>
                 )}
               </div>
-              <div className="text-right">
-                <div className="h-12 w-28 mb-3">
-                  <MBALogo variant="landscape" />
+              <div className="text-right flex flex-col items-end">
+                <div className="h-12 mb-3 inline-flex items-center justify-end gap-3">
+                  {invoiceData?.company?.logo_url && (
+                    <img
+                      src={getAssetUrl(invoiceData.company.logo_url)!}
+                      alt={invoiceData.company.name}
+                      className="max-h-12 max-w-[140px] object-contain"
+                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                    />
+                  )}
+                  <div className="h-6 w-px bg-slate-300" />
+                  <div className="h-10 w-28 flex items-center">
+                    <MBALogo variant="landscape" />
+                  </div>
                 </div>
-                <p className="text-slate-800 font-semibold text-sm">MBA Communications</p>
-                <p className="text-slate-500 text-xs leading-relaxed">Kharak Stop Overhead Bridge<br />City, Lahore 54000</p>
+                <p className="font-bold text-[#2A5C8A] text-base">{invoiceData?.company?.name || ""}</p>
+                <p className="text-slate-500 text-xs leading-relaxed whitespace-pre-line">
+                  {invoiceData?.company?.address || "Kharak Stop Overhead Bridge\nCity, Lahore 54000"}
+                </p>
+                {invoiceData?.company?.contact_number && (
+                  <p className="text-slate-500 text-xs">{invoiceData.company.contact_number}</p>
+                )}
+                {invoiceData?.company?.tax_number && (
+                  <p className="text-slate-500 text-xs font-mono">Tax Reg: {invoiceData.company.tax_number}</p>
+                )}
               </div>
             </div>
 
@@ -700,8 +720,22 @@ const PublicInvoicePage: React.FC = () => {
 
             {/* Footer */}
             <div className="text-center pt-8 mt-8 border-t border-slate-100">
-              <p className="text-lg font-bold text-slate-800 mb-1">Thank you for your business!</p>
-              <p className="text-sm text-slate-500 mb-2">Questions? <a href="mailto:support@Mba.net92@gmail.com" className="text-blue-600 hover:underline">support@Mba.net92@gmail.com</a> • 0323 4689090</p>
+              <p className="text-lg font-bold text-slate-800 mb-1">
+                {invoiceData?.company?.tagline || "Thank you for your business!"}
+              </p>
+              {invoiceData?.company?.invoice_footer_notes && (
+                <p className="text-xs text-slate-600 my-2 max-w-xl mx-auto whitespace-pre-line bg-slate-50 p-3 rounded-lg border border-slate-100">
+                  {invoiceData.company.invoice_footer_notes}
+                </p>
+              )}
+              <p className="text-sm text-slate-500 mb-2">
+                Questions? {invoiceData?.company?.email ? (
+                  <a href={`mailto:${invoiceData.company.email}`} className="text-blue-600 hover:underline">{invoiceData.company.email}</a>
+                ) : (
+                  <a href="mailto:support@Mba.net92@gmail.com" className="text-blue-600 hover:underline">support@Mba.net92@gmail.com</a>
+                )}
+                {invoiceData?.company?.contact_number ? ` • ${invoiceData.company.contact_number}` : ' • 0323 4689090'}
+              </p>
               <p className="text-xs text-slate-400">Invoice generated on {formatDate(new Date().toISOString())}</p>
             </div>
           </div>

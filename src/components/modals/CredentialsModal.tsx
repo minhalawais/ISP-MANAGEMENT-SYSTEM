@@ -4,6 +4,7 @@ import { Copy } from "lucide-react"
 interface CredentialsModalProps {
   isVisible: boolean
   onClose: () => void
+  title?: string
   credentials: {
     username: string
     password: string
@@ -11,7 +12,7 @@ interface CredentialsModalProps {
   }
 }
 
-export function CredentialsModal({ isVisible, onClose, credentials }: CredentialsModalProps) {
+export function CredentialsModal({ isVisible, onClose, credentials, title }: CredentialsModalProps) {
   if (!isVisible) return null
 
   const copyToClipboard = (text: string) => {
@@ -22,7 +23,7 @@ export function CredentialsModal({ isVisible, onClose, credentials }: Credential
     <div className="fixed z-50 inset-0 overflow-y-auto backdrop-blur-sm bg-[#4A5568]/20">
       <div className="flex items-center justify-center min-h-screen p-4">
         <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md border border-[#EBF5FF]">
-          <h2 className="text-2xl font-bold mb-4 text-[#2A5C8A]">Employee Credentials</h2>
+          <h2 className="text-2xl font-bold mb-4 text-[#2A5C8A]">{title || "Account Credentials"}</h2>
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-[#4A5568]">Username</label>

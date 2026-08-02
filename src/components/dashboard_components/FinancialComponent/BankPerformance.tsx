@@ -14,7 +14,7 @@ interface BankPerfItem {
   net_flow: number
   utilization_rate: number
   initial_balance?: number
-  adjusted_balance?: number
+  current_balance?: number // NEW: Real-time balance from backend
 }
 
 interface BankPerformanceProps {
@@ -42,7 +42,7 @@ export const BankPerformance: React.FC<BankPerformanceProps> = ({ data, cashPaym
       acc.expenses += row.expenses || 0
       acc.net_flow += row.net_flow || 0
       acc.initial_balance += row.initial_balance || 0
-      acc.adjusted_balance += (row.net_flow || 0) + (row.initial_balance || 0)
+      acc.current_balance += row.current_balance || 0 // Use backend-provided current balance
       return acc
     },
     {
@@ -53,7 +53,7 @@ export const BankPerformance: React.FC<BankPerformanceProps> = ({ data, cashPaym
       expenses: 0,
       net_flow: 0,
       initial_balance: 0,
-      adjusted_balance: 0,
+      current_balance: 0,
     },
   )
 
@@ -65,7 +65,7 @@ export const BankPerformance: React.FC<BankPerformanceProps> = ({ data, cashPaym
     expenses: (bankTotals?.expenses || 0) + (cashPayments?.expenses || 0),
     net_flow: (bankTotals?.net_flow || 0) + (cashPayments?.net_flow || 0),
     initial_balance: bankTotals?.initial_balance || 0,
-    adjusted_balance: (bankTotals?.adjusted_balance || 0) + (cashPayments?.net_flow || 0),
+    current_balance: (bankTotals?.current_balance || 0), // Cash likely doesn't have a stored "current balance" in this context, or add if needed
   }
 
   const containerVariants = {
@@ -110,7 +110,7 @@ export const BankPerformance: React.FC<BankPerformanceProps> = ({ data, cashPaym
           { label: "Total Extra Income", value: overallTotals.extra_income, color: "emerald", positive: true },
           { label: "Total Payments", value: overallTotals.payments, color: "orange", positive: false },
           { label: "Net Cash Flow", value: overallTotals.net_flow, color: overallTotals.net_flow >= 0 ? "emerald" : "red", positive: overallTotals.net_flow >= 0 },
-          { label: "Adjusted Balance", value: overallTotals.adjusted_balance, color: overallTotals.adjusted_balance >= 0 ? "indigo" : "red", positive: overallTotals.adjusted_balance >= 0 },
+          { label: "Current Balance (Banks)", value: overallTotals.current_balance, color: "indigo", positive: true },
         ].map((card, index) => (
           <motion.div
             key={card.label}
@@ -138,7 +138,7 @@ export const BankPerformance: React.FC<BankPerformanceProps> = ({ data, cashPaym
                 <th className="py-3 px-4 text-right font-semibold text-gray-700">Expenses</th>
                 <th className="py-3 px-4 text-right font-semibold text-gray-700">Net Flow</th>
                 <th className="py-3 px-4 text-right font-semibold text-gray-700">Initial Balance</th>
-                <th className="py-3 px-4 text-right font-semibold text-gray-700">Adjusted</th>
+                <th className="py-3 px-4 text-right font-semibold text-gray-700">Current Balance</th>
                 <th className="py-3 px-4 text-right font-semibold text-gray-700 rounded-r-xl">Util.</th>
               </tr>
             </thead>
@@ -167,25 +167,18 @@ export const BankPerformance: React.FC<BankPerformanceProps> = ({ data, cashPaym
                   <td className="py-3 px-4 text-right font-semibold text-amber-800">
                     {formatCurrency(cashPayments.expenses || 0)}
                   </td>
-                  <td className={`py-3 px-4 text-right font-semibold ${
-                    cashPayments.net_flow >= 0 ? "text-emerald-700" : "text-red-700"
-                  }`}>
+                  <td className={`py-3 px-4 text-right font-semibold ${cashPayments.net_flow >= 0 ? "text-emerald-700" : "text-red-700"
+                    }`}>
                     {formatCurrency(cashPayments.net_flow || 0)}
                   </td>
                   <td className="py-3 px-4 text-right text-gray-400 font-medium">N/A</td>
-                  <td className={`py-3 px-4 text-right font-semibold ${
-                    cashPayments.net_flow >= 0 ? "text-emerald-700" : "text-red-700"
-                  }`}>
-                    {formatCurrency(cashPayments.net_flow || 0)}
-                  </td>
+                  <td className="py-3 px-4 text-right text-gray-400 font-medium">N/A</td>
                   <td className="py-3 px-4 text-right text-gray-400 rounded-r-xl">N/A</td>
                 </motion.tr>
               )}
 
               {data?.map((row, idx) => {
                 const netPositive = (row.net_flow ?? 0) >= 0
-                const adjustedBalance = (row.net_flow || 0) + (row.initial_balance || 0)
-                const adjustedPositive = adjustedBalance >= 0
                 return (
                   <motion.tr
                     key={`${row.bank_name}-${row.account_number}-${idx}`}
@@ -212,27 +205,23 @@ export const BankPerformance: React.FC<BankPerformanceProps> = ({ data, cashPaym
                     <td className="py-3 px-4 text-right font-medium text-red-700 group-hover:bg-white/50">
                       {formatCurrency(row.expenses || 0)}
                     </td>
-                    <td className={`py-3 px-4 text-right font-semibold group-hover:bg-white/50 ${
-                      netPositive ? "text-emerald-700" : "text-red-700"
-                    }`}>
+                    <td className={`py-3 px-4 text-right font-semibold group-hover:bg-white/50 ${netPositive ? "text-emerald-700" : "text-red-700"
+                      }`}>
                       {formatCurrency(row.net_flow || 0)}
                     </td>
                     <td className="py-3 px-4 text-right font-semibold text-purple-700 group-hover:bg-white/50">
                       {formatCurrency(row.initial_balance || 0)}
                     </td>
-                    <td className={`py-3 px-4 text-right font-semibold group-hover:bg-white/50 ${
-                      adjustedPositive ? "text-indigo-700" : "text-red-700"
-                    }`}>
-                      {formatCurrency(adjustedBalance)}
+                    <td className="py-3 px-4 text-right font-bold text-indigo-700 group-hover:bg-white/50">
+                      {formatCurrency(row.current_balance || 0)}
                     </td>
                     <td className="py-3 px-4 text-right rounded-r-xl group-hover:bg-white/50">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        row.utilization_rate >= 80
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${row.utilization_rate >= 80
                           ? "bg-green-100 text-green-800"
                           : row.utilization_rate >= 50
                             ? "bg-yellow-100 text-yellow-800"
                             : "bg-red-100 text-red-800"
-                      }`}>
+                        }`}>
                         {formatPercent(row.utilization_rate || 0)}
                       </span>
                     </td>
@@ -251,16 +240,13 @@ export const BankPerformance: React.FC<BankPerformanceProps> = ({ data, cashPaym
                   <td className="py-3 px-4 text-right text-emerald-800">{formatCurrency(bankTotals?.extra_income || 0)}</td>
                   <td className="py-3 px-4 text-right text-orange-800">{formatCurrency(bankTotals?.isp_payments || 0)}</td>
                   <td className="py-3 px-4 text-right text-red-800">{formatCurrency(bankTotals?.expenses || 0)}</td>
-                  <td className={`py-3 px-4 text-right ${
-                    (bankTotals?.net_flow || 0) >= 0 ? "text-emerald-800" : "text-red-800"
-                  }`}>
+                  <td className={`py-3 px-4 text-right ${(bankTotals?.net_flow || 0) >= 0 ? "text-emerald-800" : "text-red-800"
+                    }`}>
                     {formatCurrency(bankTotals?.net_flow || 0)}
                   </td>
                   <td className="py-3 px-4 text-right text-purple-800">{formatCurrency(bankTotals?.initial_balance || 0)}</td>
-                  <td className={`py-3 px-4 text-right ${
-                    (bankTotals?.adjusted_balance || 0) >= 0 ? "text-indigo-800" : "text-red-800"
-                  }`}>
-                    {formatCurrency(bankTotals?.adjusted_balance || 0)}
+                  <td className="py-3 px-4 text-right text-indigo-800">
+                    {formatCurrency(bankTotals?.current_balance || 0)}
                   </td>
                   <td className="py-3 px-4 text-right text-gray-900 rounded-r-xl">
                     {formatPercent(

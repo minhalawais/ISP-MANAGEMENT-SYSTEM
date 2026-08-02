@@ -30,6 +30,11 @@ const Login = () => {
       localStorage.setItem("role", data.role)
       localStorage.setItem("company_id", data.company_id)
       localStorage.setItem("id", data.id)
+
+      // Notify CompanyContext to fetch current company profile for this user's company
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('companyAuthChange'))
+      }
   
       if (data.role === "company_owner" || data.role === "super_admin" || data.role === "auditor") {
         navigate("/reporting-analytics")

@@ -1,39 +1,56 @@
 import React from 'react';
+import { useCompany } from '../context/CompanyContext.tsx';
 
-const MBALogo = ({ variant = 'landscape' }) => {
+interface MBALogoProps {
+  variant?: 'landscape' | 'square';
+  companyName?: string;
+}
+
+const MBALogo: React.FC<MBALogoProps> = ({ variant = 'landscape', companyName }) => {
   const isSquare = variant === 'square';
-  
+  const { company } = useCompany();
+  const contextName = company?.name || '';
+
+  const rawName = (companyName || contextName || 'MBA COMMUNICATIONS').trim();
+  const upperName = rawName.toUpperCase();
+  const words = upperName.split(' ');
+
+  let line1 = '';
+  let line2 = '';
+
+  if (words.length === 1) {
+    line1 = words[0];
+  } else if (words.length === 2) {
+    line1 = words[0];
+    line2 = words[1];
+  } else {
+    const mid = Math.ceil(words.length / 2);
+    line1 = words.slice(0, mid).join(' ');
+    line2 = words.slice(mid).join(' ');
+  }
+
+  // Adjust font size dynamically if the company name string is long
+  const longestLine = line1.length > line2.length ? line1 : line2;
+  let fontSize = '48px';
+  if (longestLine.length > 20) {
+    fontSize = '28px';
+  } else if (longestLine.length > 15) {
+    fontSize = '34px';
+  } else if (longestLine.length > 10) {
+    fontSize = '40px';
+  }
+
   return (
     <div
       className={`w-full mx-auto ${isSquare ? 'max-w-xs' : 'max-w-md'} cursor-pointer`}
       onClick={() => window.location.href = '/customer-management'}
-    >      
-    <svg
-        viewBox={isSquare ? "0 0 200 200" : "0 0 700 200"}
+    >
+      <svg
+        viewBox={isSquare ? "0 0 200 200" : "0 0 500 200"}
         className="w-full h-full object-contain"
         xmlns="http://www.w3.org/2000/svg"
       >
-        <defs>
-          <linearGradient id="hexGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#2D2D2D" />
-            <stop offset="35%" stopColor="#404040" />
-            <stop offset="70%" stopColor="#333333" />
-            <stop offset="100%" stopColor="#1A1A1A" />
-          </linearGradient>
-          
-          <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-            <feGaussianBlur in="SourceAlpha" stdDeviation="2"/>
-            <feOffset dx="2" dy="2" result="offsetblur"/>
-            <feComponentTransfer>
-              <feFuncA type="linear" slope="0.3"/>
-            </feComponentTransfer>
-            <feMerge>
-              <feMergeNode/>
-              <feMergeNode in="SourceGraphic"/>
-            </feMerge>
-          </filter>
-        </defs>
-        
+
         {isSquare ? (
           // Square variant for login page
           <g transform="translate(20, 20)">
@@ -52,7 +69,7 @@ const MBALogo = ({ variant = 'landscape' }) => {
               fill="url(#hexGradient)"
               filter="url(#shadow)"
             />
-            
+
             <path
               d="M 35,45 C 35,45 80,25 125,45"
               stroke="#FFFFFF"
@@ -60,7 +77,7 @@ const MBALogo = ({ variant = 'landscape' }) => {
               fill="none"
               strokeLinecap="round"
             />
-            
+
             <path
               d="M 35,115 C 35,115 80,135 125,115"
               stroke="#FFFFFF"
@@ -68,118 +85,87 @@ const MBALogo = ({ variant = 'landscape' }) => {
               fill="none"
               strokeLinecap="round"
             />
-            
+
             <text
               x="80"
               y="95"
               textAnchor="middle"
               fill="white"
-              style={{ 
-                fontSize: '38px',
+              style={{
+                fontSize: words[0].length > 6 ? '24px' : '38px',
                 fontFamily: 'Arial, sans-serif',
                 fontWeight: 'bold',
                 letterSpacing: '1px'
               }}
             >
-              MBA
+              {words[0]}
             </text>
           </g>
         ) : (
-          // Landscape variant
+          // Landscape variant with dynamic company name (no left margin padding)
           <>
-            <g transform="translate(10, 40)">
-              <path
-                d="
-                  M 80,5
-                  C 45,5 25,5 15,15
-                  C 5,25 5,45 5,80
-                  C 5,115 5,135 15,145
-                  C 25,155 45,155 80,155
-                  C 115,155 135,155 145,145
-                  C 155,135 155,115 155,80
-                  C 155,45 155,25 145,15
-                  C 135,5 115,5 80,5
-                  Z"
-                fill="url(#hexGradient)"
-                filter="url(#shadow)"
-              />
-              
-              <path
-                d="M 35,45 C 35,45 80,25 125,45"
-                stroke="#FFFFFF"
-                strokeWidth="3"
-                fill="none"
-                strokeLinecap="round"
-              />
-              
-              <path
-                d="M 35,115 C 35,115 80,135 125,115"
-                stroke="#FFFFFF"
-                strokeWidth="3"
-                fill="none"
-                strokeLinecap="round"
-              />
-              
+            {line2 ? (
+              <>
+                <text
+                  x="10"
+                  y="90"
+                  fill="#1A1A1A"
+                  style={{
+                    fontSize,
+                    fontFamily: 'Montserrat, sans-serif',
+                    fontWeight: 'bold',
+                    letterSpacing: '1px'
+                  }}
+                >
+                  {line1}
+                </text>
+                <text
+                  x="10"
+                  y="140"
+                  fill="#1A1A1A"
+                  style={{
+                    fontSize,
+                    fontFamily: 'Montserrat, sans-serif',
+                    fontWeight: 'bold',
+                    letterSpacing: '1px'
+                  }}
+                >
+                  {line2}
+                </text>
+              </>
+            ) : (
               <text
-                x="80"
-                y="95"
-                textAnchor="middle"
-                fill="white"
-                style={{ 
-                  fontSize: '38px',
-                  fontFamily: 'Arial, sans-serif',
+                x="10"
+                y="115"
+                fill="#1A1A1A"
+                style={{
+                  fontSize,
+                  fontFamily: 'Montserrat, sans-serif',
                   fontWeight: 'bold',
                   letterSpacing: '1px'
                 }}
               >
-                MBA
+                {line1}
               </text>
-            </g>
-            
+            )}
+
             <text
-              x="200"
-              y="90"
-              fill="#1A1A1A"
-              style={{ 
-                fontSize: '48px',
-                fontFamily: 'Montserrat, sans-serif',
-                fontWeight: 'bold',
-                letterSpacing: '1px'
-              }}
-            >
-              MBA
-            </text>
-            <text
-              x="200"
-              y="140"
-              fill="#1A1A1A"
-              style={{ 
-                fontSize: '48px',
-                fontFamily: 'Montserrat, sans-serif',
-                fontWeight: 'bold',
-                letterSpacing: '1px'
-              }}
-            >
-              COMMUNICATIONS
-            </text>
-            
-            <text
-              x="570"
+              x="380"
               y="130"
               fill="#404040"
-              style={{ 
+              style={{
                 fontSize: '12px',
                 fontFamily: 'Montserrat, sans-serif'
               }}
             >
               ®
             </text>
-            
+
             <text
-              x="200"
+              x="10"
               y="170"
               fill="#404040"
-              style={{ 
+              style={{
                 fontSize: '18px',
                 fontFamily: 'Montserrat, sans-serif',
                 letterSpacing: '3px'

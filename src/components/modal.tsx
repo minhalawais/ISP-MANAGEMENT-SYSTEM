@@ -53,7 +53,7 @@ export function Modal({ isVisible, onClose, title, children, isLoading, size = "
             </button>
           </div>
 
-          <div className="px-6 sm:px-8 py-6 sm:py-8 max-h-[calc(100vh-200px)] overflow-y-auto custom-scrollbar bg-[#F1F0E8]">
+          <div className="px-6 sm:px-8 py-6 sm:py-8 max-h-[calc(100vh-200px)] overflow-y-auto custom-scrollbar bg-white">
             {React.Children.map(children, (child) => {
               if (React.isValidElement(child) && child.type === "form") {
                 return React.cloneElement(child, { isLoading })
