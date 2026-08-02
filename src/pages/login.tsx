@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react"
 import { useNavigate, Link } from "react-router-dom"
 import { Eye, EyeOff, Lock, User, LogIn } from "lucide-react"
-import MBALogo from "../assets/mba_logo.tsx"
+import LoginLogo from "../assets/LoginLogo.tsx"
 import axiosInstance from "../utils/axiosConfig.ts"
 const Login = () => {
   const [username, setUsername] = useState("")
@@ -57,7 +57,7 @@ const Login = () => {
           {/* Logo Section */}
           <div className="text-center mb-8">
             <div className="mx-auto mb-4">
-              <MBALogo variant="landscape" />
+              <LoginLogo variant="landscape" />
             </div>
             <h2 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
               Welcome Back
