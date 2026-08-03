@@ -11,4 +11,4 @@ export const getCurrentLoginBrand = (): LoginBrand => {
   return getLoginBrandForHostname(window.location.hostname)
 }
 
-export const getConnectxLogoSrc = () => `${process.env.PUBLIC_URL || ""}/connectx_logo.jpeg`
+export const getConnectxLogoSrc = () => `${process.env.PUBLIC_URL || ""}/connectx_logo.png`
