@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react"
 import { useNavigate, Link } from "react-router-dom"
 import { Eye, EyeOff, Lock, User, LogIn } from "lucide-react"
-import LoginLogo from "../assets/LoginLogo.tsx"
 import axiosInstance from "../utils/axiosConfig.ts"
+import { DomainLoginLogo } from "../components/DomainLoginLogo.tsx"
+
 const Login = () => {
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
@@ -10,6 +11,7 @@ const Login = () => {
   const [isPasswordVisible, setIsPasswordVisible] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const navigate = useNavigate()
+
   useEffect(() => {
     document.title = "MBA NET - Login"
   }, [])
@@ -57,7 +59,7 @@ const Login = () => {
           {/* Logo Section */}
           <div className="text-center mb-8">
             <div className="mx-auto mb-4">
-              <LoginLogo variant="landscape" />
+              <DomainLoginLogo />
             </div>
             <h2 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
               Welcome Back
@@ -166,4 +168,3 @@ const Login = () => {
 }
 
 export default Login
-

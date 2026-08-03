@@ -11,6 +11,8 @@ import { Eye, Key, X, RefreshCw, Copy, Check } from "lucide-react"
 import { getToken } from "../../utils/auth.ts"
 import axiosInstance from "../../utils/axiosConfig.ts"
 import { toast } from "react-toastify"
+import { validateEmployeeFiles } from "../../utils/employeeValidation.ts"
+import { getCnicValidationMessage, getPakistaniMobileValidationMessage } from "../../utils/contactValidation.ts"
 
 interface Employee {
   id: string
@@ -213,16 +215,27 @@ const EmployeeManagement: React.FC = () => {
         columns={columns}
         FormComponent={EmployeeForm}
         useFormData={true}
+        validateFiles={validateEmployeeFiles}
+        requireAsyncValidation={true}
         validateBeforeSubmit={(formData) => {
           if (!formData.username) return "Username is required"
+          if (!formData.email) return "Email is required"
           if (!formData.first_name || !formData.last_name) return "Name is required"
           if (!formData.contact_number) return "Contact number is required"
+          const contactError = getPakistaniMobileValidationMessage(formData.contact_number, "Contact number")
+          if (contactError) return contactError
           if (!formData.emergency_contact) return "Emergency contact is required"
+          const emergencyContactError = getPakistaniMobileValidationMessage(formData.emergency_contact, "Emergency contact")
+          if (emergencyContactError) return emergencyContactError
           if (!formData.cnic) return "CNIC is required"
+          const cnicError = getCnicValidationMessage(formData.cnic)
+          if (cnicError) return cnicError
           if (!formData.house_address) return "House address is required"
-          if (!formData.salary) return "Salary is required"
+          if (formData.salary === undefined || formData.salary === null || formData.salary === "") return "Salary is required"
           if (!formData.reference_name) return "Reference name is required"
           if (!formData.reference_contact) return "Reference contact is required"
+          const referenceContactError = getPakistaniMobileValidationMessage(formData.reference_contact, "Reference contact")
+          if (referenceContactError) return referenceContactError
           if (!formData.role) return "Role is required"
           return null
         }}

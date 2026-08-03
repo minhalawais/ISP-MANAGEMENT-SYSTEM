@@ -22,8 +22,7 @@ import { Modal } from "./customerModal.tsx"
 import { Topbar } from "./topNavbar.tsx"
 import { Sidebar } from "./sideNavbar.tsx"
 import { getToken } from "../utils/auth.ts"
-import { toast, ToastContainer } from "react-toastify"
-import "react-toastify/dist/ReactToastify.css"
+import { toast } from "react-toastify"
 import axiosInstance from "../utils/axiosConfig.ts"
 import { EnhancedBulkAddModal } from "./modals/EnhancedBulkAddModal.tsx"
 
@@ -620,18 +619,6 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
         endpoint={endpoint}
         entityName={title}
         onSuccess={fetchData}
-      />
-      <ToastContainer
-        position="top-right"
-        autoClose={5000}
-        hideProgressBar={false}
-        newestOnTop={false}
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        theme="light"
       />
     </div>
   )

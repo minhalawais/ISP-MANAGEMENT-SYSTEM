@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo, useRef } from "react"
 import type { ColumnDef } from "@tanstack/react-table"
 import {
   Plus,
@@ -23,6 +23,7 @@ import { getToken } from "../utils/auth.ts"
 import { toast } from "react-toastify"
 import axiosInstance from "../utils/axiosConfig.ts"
 import { CredentialsModal } from "./modals/CredentialsModal.tsx"
+import { createFormDataRequestConfig, getOperationErrorMessage } from "../utils/crudSubmit.ts"
 
 interface CRUDPageProps<T> {
   title: string
@@ -34,10 +35,20 @@ interface CRUDPageProps<T> {
     handleFileChange?: (name: string, file: File | null) => void
     isEditing: boolean
     validateBeforeSubmit?: (formData: Partial<T>) => string | null
+    onValidationStateChange?: (state: AsyncValidationState) => void
   }>
   onDataChange?: () => void
   validateBeforeSubmit?: (formData: Partial<T>) => string | null
+  validateFiles?: (files: Record<string, File>) => string | null
+  requireAsyncValidation?: boolean
   useFormData?: boolean  // Enable multipart/form-data for file uploads
+}
+
+type AsyncValidationStatus = "idle" | "loading" | "valid" | "invalid"
+type AsyncValidationState = {
+  username: AsyncValidationStatus
+  email: AsyncValidationStatus
+  cnic?: AsyncValidationStatus
 }
 
 export function CRUDPage<T extends { id: string; is_active?: boolean }>({
@@ -47,6 +58,8 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
   FormComponent,
   onDataChange,
   validateBeforeSubmit,
+  validateFiles,
+  requireAsyncValidation = false,
   useFormData = false,
 }: CRUDPageProps<T>) {
   const [data, setData] = useState<T[]>([])
@@ -68,6 +81,8 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
     inactive: 0,
   })
   const [fileData, setFileData] = useState<Record<string, File>>({})  // File storage for uploads
+  const [asyncValidation, setAsyncValidation] = useState<AsyncValidationState>({ username: "idle", email: "idle" })
+  const submitLockRef = useRef(false)
 
   const fetchData = async () => {
     setIsLoading(true)
@@ -169,33 +184,66 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
     setEditingItem(null)
     setFormData({})
     setFileData({})  // Clear file data
+    setAsyncValidation({ username: "idle", email: "idle" })
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
-    console.log("Form: ", formData);
-    console.log("FileData: ", fileData);  // Debug: show files
     e.preventDefault()
 
-    if (validateBeforeSubmit) {
-      const validationError = validateBeforeSubmit(formData)
-      if (validationError) {
-        toast.error(validationError, {
-          style: { background: "#FEE2E2", color: "#EF4444" },
-        })
-        return
-      }
-    }
-
-    setIsLoading(true)
+    if (submitLockRef.current || isLoading) return
+    submitLockRef.current = true
 
     try {
+      if (validateBeforeSubmit) {
+        const validationError = validateBeforeSubmit(formData)
+        if (validationError) {
+          toast.error(validationError, {
+            style: { background: "#FEE2E2", color: "#EF4444" },
+          })
+          return
+        }
+      }
+
+      if (validateFiles) {
+        const fileValidationError = validateFiles(fileData)
+        if (fileValidationError) {
+          toast.error(fileValidationError, {
+            style: { background: "#FEE2E2", color: "#EF4444" },
+          })
+          return
+        }
+      }
+
+      if (requireAsyncValidation && !editingItem) {
+        if (asyncValidation.username !== "valid") {
+          toast.error("Please wait for username availability to be confirmed.", {
+            style: { background: "#FEE2E2", color: "#EF4444" },
+          })
+          return
+        }
+        if (asyncValidation.email !== "valid") {
+          toast.error("Please wait for email availability to be confirmed.", {
+            style: { background: "#FEE2E2", color: "#EF4444" },
+          })
+          return
+        }
+        if (asyncValidation.cnic && asyncValidation.cnic !== "valid") {
+          const message = asyncValidation.cnic === "invalid"
+            ? "CNIC is already in use."
+            : "Please wait for CNIC availability to be confirmed."
+          toast.error(message, {
+            style: { background: "#FEE2E2", color: "#EF4444" },
+          })
+          return
+        }
+      }
+
+      setIsLoading(true)
       const token = getToken()
       let response
 
       // Prepare data - use FormData if files are present or useFormData is true
       const hasFiles = Object.keys(fileData).length > 0
-      console.log("useFormData:", useFormData, "hasFiles:", hasFiles);  // Debug
-
       let submitData: any = formData
       let headers: Record<string, string> = { Authorization: `Bearer ${token}` }
       let requestConfig: any = { headers }
@@ -231,14 +279,8 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
           formDataObj.append(key, file)
         })
         submitData = formDataObj
-        // IMPORTANT: Don't set Content-Type - let axios/browser set it with boundary
-        // Also need to override the default transformRequest to prevent JSON serialization
-        requestConfig = {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'multipart/form-data',
-          }
-        }
+        // Do not set Content-Type here. The browser must add the multipart boundary.
+        requestConfig = createFormDataRequestConfig(token)
       } else {
         headers['Content-Type'] = 'application/json'
       }
@@ -262,13 +304,14 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
       handleCancel()
     } catch (error: any) {
       console.error("Operation failed", error)
-      const errorMsg = error.response?.data?.error || error.response?.data?.message || "Operation failed"
+      const errorMsg = getOperationErrorMessage(error, title)
       toast.error(errorMsg, {
         style: { background: "#FEE2E2", color: "#EF4444" },
         hideProgressBar: false,
       })
     } finally {
       setIsLoading(false)
+      submitLockRef.current = false
     }
   }
 
@@ -298,11 +341,9 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
-    console.log('Updated Form data: ', formData);
   }
 
   const handleFileChange = (name: string, file: File | null) => {
-    console.log("handleFileChange called:", name, file);  // Debug
     if (file) {
       setFileData((prev) => ({ ...prev, [name]: file }))
     } else {
@@ -498,7 +539,13 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
         isLoading={isLoading}
       >
         <form onSubmit={handleSubmit} className="bg-white">
-          <FormComponent formData={formData} handleInputChange={handleInputChange} handleFileChange={handleFileChange} isEditing={!!editingItem} />
+          <FormComponent
+            formData={formData}
+            handleInputChange={handleInputChange}
+            handleFileChange={handleFileChange}
+            isEditing={!!editingItem}
+            onValidationStateChange={setAsyncValidation}
+          />
           <div className="mt-6 flex justify-end gap-3">
             <button
               type="button"

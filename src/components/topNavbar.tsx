@@ -76,8 +76,8 @@ export const Topbar: React.FC<TopbarProps> = ({ toggleSidebar }) => {
                 <span className="font-bold text-base text-[#2A5C8A] tracking-tight">{company.name}</span>
               ) : null}
               <div className="h-5 w-px bg-slate-200" />
-              <div className="h-10 w-32 flex items-center">
-                <MBALogo variant="landscape" />
+              <div className="h-10 flex items-center">
+                <MBALogo variant="navbar" />
               </div>
             </div>
           </div>

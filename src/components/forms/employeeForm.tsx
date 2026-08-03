@@ -27,18 +27,31 @@ import {
 import { debounce } from "lodash"
 import axiosInstance from "../../utils/axiosConfig.ts"
 import { getToken } from "../../utils/auth.ts"
+import {
+  formatCnicInput,
+  formatPakistaniMobile,
+  getCnicValidationMessage,
+  getPakistaniMobileValidationMessage,
+} from "../../utils/contactValidation.ts"
 
 interface EmployeeFormProps {
   formData: any
   handleInputChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => void
   handleFileChange?: (name: string, file: File | null) => void
   isEditing: boolean
+  onValidationStateChange?: (state: {
+    username: "idle" | "loading" | "valid" | "invalid"
+    email: "idle" | "loading" | "valid" | "invalid"
+    cnic?: "idle" | "loading" | "valid" | "invalid"
+  }) => void
 }
 
-export function EmployeeForm({ formData, handleInputChange, handleFileChange, isEditing }: EmployeeFormProps) {
+export function EmployeeForm({ formData, handleInputChange, handleFileChange, isEditing, onValidationStateChange }: EmployeeFormProps) {
   const [showPassword, setShowPassword] = useState(false)
   const [usernameStatus, setUsernameStatus] = useState<"idle" | "loading" | "valid" | "invalid">("idle")
   const [emailStatus, setEmailStatus] = useState<"idle" | "loading" | "valid" | "invalid">("idle")
+  const [cnicStatus, setCnicStatus] = useState<"idle" | "loading" | "valid" | "invalid">("idle")
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [passwordStrength, setPasswordStrength] = useState<"weak" | "medium" | "strong" | "none">("none")
 
   // File preview states
@@ -124,6 +137,27 @@ export function EmployeeForm({ formData, handleInputChange, handleFileChange, is
     [],
   )
 
+  const verifyCnic = useCallback(
+    debounce(async (cnic: string) => {
+      const cnicError = getCnicValidationMessage(cnic)
+      if (cnicError) {
+        setCnicStatus(cnic ? "invalid" : "idle")
+        return
+      }
+      setCnicStatus("loading")
+      try {
+        const token = getToken()
+        const response = await axiosInstance.get(`/employees/check-cnic/${cnic}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        setCnicStatus(response.data.available ? "valid" : "invalid")
+      } catch (error) {
+        setCnicStatus("invalid")
+      }
+    }, 300),
+    [],
+  )
+
   const checkPasswordStrength = (password: string) => {
     if (!password) {
       setPasswordStrength("none")
@@ -143,22 +177,73 @@ export function EmployeeForm({ formData, handleInputChange, handleFileChange, is
 
   useEffect(() => {
     if (!isEditing) {
+      setUsernameStatus(formData.username ? "loading" : "idle")
+      setEmailStatus(formData.email ? "loading" : "idle")
       verifyUsername(formData.username)
       verifyEmail(formData.email)
+      if (formData.cnic) {
+        setCnicStatus(getCnicValidationMessage(formData.cnic) ? "invalid" : "loading")
+        verifyCnic(formData.cnic)
+      } else {
+        setCnicStatus("idle")
+      }
     }
     if (formData.password) {
       checkPasswordStrength(formData.password)
     }
-  }, [formData.username, formData.email, formData.password, isEditing, verifyUsername, verifyEmail])
+  }, [formData.username, formData.email, formData.cnic, formData.password, isEditing, verifyUsername, verifyEmail, verifyCnic])
+
+  useEffect(() => {
+    onValidationStateChange?.({ username: usernameStatus, email: emailStatus, cnic: cnicStatus })
+  }, [usernameStatus, emailStatus, cnicStatus, onValidationStateChange])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    handleInputChange(e)
-    if (e.target.name === "username" && !isEditing) {
-      verifyUsername(e.target.value)
-    } else if (e.target.name === "email" && !isEditing) {
-      verifyEmail(e.target.value)
-    } else if (e.target.name === "password") {
-      checkPasswordStrength(e.target.value)
+    const { name, value } = e.target
+    let formattedValue = value
+
+    if (name === "cnic") {
+      formattedValue = formatCnicInput(value)
+    } else if (["contact_number", "emergency_contact", "reference_contact"].includes(name)) {
+      formattedValue = formatPakistaniMobile(value)
+    }
+
+    handleInputChange({
+      target: { name, value: formattedValue },
+    } as React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>)
+
+    setFieldErrors((prev) => {
+      const next = { ...prev }
+
+      if (name === "cnic") {
+        const error = formattedValue ? getCnicValidationMessage(formattedValue) : null
+        if (error) next.cnic = error
+        else delete next.cnic
+      } else if (["contact_number", "emergency_contact", "reference_contact"].includes(name)) {
+        const labels: Record<string, string> = {
+          contact_number: "Contact number",
+          emergency_contact: "Emergency contact",
+          reference_contact: "Reference contact",
+        }
+        const error = formattedValue ? getPakistaniMobileValidationMessage(formattedValue, labels[name]) : null
+        if (error) next[name] = error
+        else delete next[name]
+      }
+
+      return next
+    })
+
+    if (name === "username" && !isEditing) {
+      setUsernameStatus(formattedValue ? "loading" : "idle")
+      verifyUsername(formattedValue)
+    } else if (name === "email" && !isEditing) {
+      setEmailStatus(formattedValue ? "loading" : "idle")
+      verifyEmail(formattedValue)
+    } else if (name === "cnic" && !isEditing) {
+      const cnicError = getCnicValidationMessage(formattedValue)
+      setCnicStatus(formattedValue && !cnicError ? "loading" : formattedValue ? "invalid" : "idle")
+      verifyCnic(formattedValue)
+    } else if (name === "password") {
+      checkPasswordStrength(formattedValue)
     }
   }
 
@@ -240,8 +325,9 @@ export function EmployeeForm({ formData, handleInputChange, handleFileChange, is
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <Phone className="h-5 w-5 text-slate-gray/60" />
               </div>
-              <input type="text" id="contact_number" name="contact_number" value={formData.contact_number || ""} onChange={handleChange} placeholder="03XX-XXXXXXX" className={inputClass} required />
+              <input type="tel" id="contact_number" name="contact_number" value={formData.contact_number || ""} onChange={handleChange} placeholder="+92 (3XX)-XXXXXXX" className={`${inputClass} ${fieldErrors.contact_number ? "border-coral-red" : ""}`} required />
             </div>
+            {fieldErrors.contact_number && <p className="text-coral-red text-xs">{fieldErrors.contact_number}</p>}
           </div>
 
           {/* Emergency Contact */}
@@ -251,8 +337,9 @@ export function EmployeeForm({ formData, handleInputChange, handleFileChange, is
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <Phone className="h-5 w-5 text-slate-gray/60" />
               </div>
-              <input type="text" id="emergency_contact" name="emergency_contact" value={formData.emergency_contact || ""} onChange={handleChange} placeholder="Emergency contact number" className={inputClass} required />
+              <input type="tel" id="emergency_contact" name="emergency_contact" value={formData.emergency_contact || ""} onChange={handleChange} placeholder="+92 (3XX)-XXXXXXX" className={`${inputClass} ${fieldErrors.emergency_contact ? "border-coral-red" : ""}`} required />
             </div>
+            {fieldErrors.emergency_contact && <p className="text-coral-red text-xs">{fieldErrors.emergency_contact}</p>}
           </div>
 
           {/* CNIC */}
@@ -262,8 +349,14 @@ export function EmployeeForm({ formData, handleInputChange, handleFileChange, is
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <CreditCard className="h-5 w-5 text-slate-gray/60" />
               </div>
-              <input type="text" id="cnic" name="cnic" value={formData.cnic || ""} onChange={handleChange} placeholder="XXXXX-XXXXXXX-X" className={inputClass} required />
+              <input type="text" id="cnic" name="cnic" value={formData.cnic || ""} onChange={handleChange} placeholder="13 digit CNIC" className={`${inputClass} pr-10 ${fieldErrors.cnic || cnicStatus === "invalid" ? "border-coral-red" : cnicStatus === "valid" ? "border-emerald-green" : ""}`} required />
+              <div className="absolute inset-y-0 right-0 pr-3 flex items-center">{renderStatusIcon(cnicStatus)}</div>
             </div>
+            {fieldErrors.cnic ? (
+              <p className="text-coral-red text-xs">{fieldErrors.cnic}</p>
+            ) : cnicStatus === "invalid" && (
+              <p className="text-coral-red text-xs">CNIC is already in use</p>
+            )}
           </div>
 
           {/* Joining Date */}
@@ -423,8 +516,9 @@ export function EmployeeForm({ formData, handleInputChange, handleFileChange, is
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <Phone className="h-5 w-5 text-slate-gray/60" />
               </div>
-              <input type="text" id="reference_contact" name="reference_contact" value={formData.reference_contact || ""} onChange={handleChange} placeholder="Reference contact number" className={inputClass} required />
+              <input type="tel" id="reference_contact" name="reference_contact" value={formData.reference_contact || ""} onChange={handleChange} placeholder="+92 (3XX)-XXXXXXX" className={`${inputClass} ${fieldErrors.reference_contact ? "border-coral-red" : ""}`} required />
             </div>
+            {fieldErrors.reference_contact && <p className="text-coral-red text-xs">{fieldErrors.reference_contact}</p>}
           </div>
         </div>
       </div>

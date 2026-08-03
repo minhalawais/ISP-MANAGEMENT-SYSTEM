@@ -3,8 +3,7 @@
 import type React from "react"
 import { useState } from "react"
 import axiosInstance from "../utils/axiosConfig.ts"
-import MBALogo from "../assets/mba_logo.tsx"
-import { useCompany } from "../context/CompanyContext.tsx"
+import { DomainLoginLogo } from "../components/DomainLoginLogo.tsx"
 import {
   User,
   CreditCard,
@@ -115,7 +114,6 @@ const statusConfig: Record<string, { bg: string; text: string; icon: React.Eleme
 }
 
 export default function CustomerPortalPage() {
-  const { company } = useCompany()
   const [cnic, setCnic] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -238,8 +236,8 @@ export default function CustomerPortalPage() {
 
           {/* Footer */}
           <div className="text-center mt-6">
-            <div className="inline-block scale-75 opacity-60">
-              <MBALogo variant="landscape" />
+            <div className="mx-auto max-w-xs opacity-70">
+              <DomainLoginLogo connectxClassName="mx-auto max-h-16 w-auto max-w-full object-contain" />
             </div>
           </div>
         </div>
@@ -262,19 +260,11 @@ export default function CustomerPortalPage() {
       <nav className="bg-white shadow-sm border-b border-gray-100">
         <div className="max-w-6xl mx-auto px-4 py-2 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            {company?.logo_url ? (
-              <img
-                src={company.logo_url}
-                alt={company.name}
-                className="h-8 max-w-[140px] object-contain"
-                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+            <div className="h-10 w-40 flex items-center">
+              <DomainLoginLogo
+                className="w-full"
+                connectxClassName="h-8 w-auto max-w-full object-contain"
               />
-            ) : company?.name ? (
-              <span className="font-bold text-[#2A5C8A] text-sm">{company.name}</span>
-            ) : null}
-            <div className="h-4 w-px bg-slate-200" />
-            <div className="h-8 w-28 flex items-center">
-              <MBALogo variant="landscape" />
             </div>
           </div>
           <div className="flex items-center gap-2 text-xs text-gray-500">

@@ -577,18 +577,6 @@ const UserProfile: React.FC = () => {
             {/* TAB 2: COMPANY SETTINGS & BRANDING */}
             {activeTab === 'company' && canManageCompany && (
               <form onSubmit={handleCompanySubmit} className="space-y-8">
-                {/* Information Banner */}
-                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-2xl p-6 flex gap-4">
-                  <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center flex-shrink-0">
-                    <Info className="w-5 h-5 text-blue-600" />
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-slate-800 text-base">Dynamic Company Branding</h4>
-                    <p className="text-slate-600 text-sm mt-1 leading-relaxed">
-                      All details, logos, and terms saved here will automatically reflect across your topbar, printed & public invoices, customer portal, and browser favicons in real time.
-                    </p>
-                  </div>
-                </div>
 
                 {/* Company Details Card */}
                 <div className="bg-white shadow-lg rounded-2xl p-8 border border-[#E5E1DA]">

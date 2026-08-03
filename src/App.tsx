@@ -1,5 +1,7 @@
 import type React from "react"
 import { BrowserRouter as Router, Route, Routes, Navigate } from "react-router-dom"
+import { ToastContainer } from "react-toastify"
+import "react-toastify/dist/ReactToastify.css"
 import { CompanyProvider } from "./context/CompanyContext.tsx"
 import ForgotPasswordPage from "./pages/forgotPassowrdPage.tsx"
 import ResetPasswordPage from "./pages/resetPasswordPage.tsx"
@@ -62,6 +64,18 @@ const App: React.FC = () => {
             <Route path="/public/invoice/:id" element={<PublicInvoicePage />} />
             <Route path="*" element={<CustomerPortalPage />} />
           </Routes>
+          <ToastContainer
+            position="top-right"
+            autoClose={5000}
+            hideProgressBar={false}
+            newestOnTop={false}
+            closeOnClick
+            rtl={false}
+            pauseOnFocusLoss
+            draggable
+            pauseOnHover
+            theme="light"
+          />
         </Router>
       </CompanyProvider>
     )
@@ -70,7 +84,7 @@ const App: React.FC = () => {
   return (
     <CompanyProvider>
       <Router>
-      <Routes>
+        <Routes>
         <Route path="/" element={<Navigate to="/login" />} />
         <Route path="/login" element={<Login />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
@@ -127,11 +141,22 @@ const App: React.FC = () => {
 
 
 
-      </Routes>
-    </Router>
+        </Routes>
+        <ToastContainer
+          position="top-right"
+          autoClose={5000}
+          hideProgressBar={false}
+          newestOnTop={false}
+          closeOnClick
+          rtl={false}
+          pauseOnFocusLoss
+          draggable
+          pauseOnHover
+          theme="light"
+        />
+      </Router>
     </CompanyProvider>
   )
 }
 
 export default App
-

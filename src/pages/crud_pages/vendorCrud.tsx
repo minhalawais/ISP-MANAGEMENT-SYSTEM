@@ -288,7 +288,7 @@ const VendorManagement: React.FC = () => {
           const count = stats.pending_invoices || 0;
           return (
             <div className="flex items-center gap-1.5">
-              <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold
+              <span className={`inline-flex min-w-[88px] items-center justify-center gap-1 whitespace-nowrap px-2.5 py-1 rounded-full text-xs font-semibold
                 ${count > 0 ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-500'}`}>
                 <FileText className="w-3 h-3" />
                 {count} invoices

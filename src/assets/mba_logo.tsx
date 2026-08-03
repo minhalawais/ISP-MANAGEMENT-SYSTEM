@@ -2,12 +2,13 @@ import React from 'react';
 import { useCompany } from '../context/CompanyContext.tsx';
 
 interface MBALogoProps {
-  variant?: 'landscape' | 'square';
+  variant?: 'landscape' | 'square' | 'navbar';
   companyName?: string;
 }
 
 const MBALogo: React.FC<MBALogoProps> = ({ variant = 'landscape', companyName }) => {
   const isSquare = variant === 'square';
+  const isNavbar = variant === 'navbar';
   const { company } = useCompany();
   const contextName = company?.name || '';
 
@@ -38,6 +39,26 @@ const MBALogo: React.FC<MBALogoProps> = ({ variant = 'landscape', companyName })
     fontSize = '34px';
   } else if (longestLine.length > 10) {
     fontSize = '40px';
+  }
+
+  if (isNavbar) {
+    return (
+      <button
+        type="button"
+        className="flex h-10 items-center rounded-md text-left transition-opacity hover:opacity-90"
+        onClick={() => window.location.href = '/customer-management'}
+        aria-label={`${rawName} home`}
+      >
+        <span className="flex min-w-0 flex-col justify-center leading-none">
+          <span className="whitespace-nowrap text-[13px] font-bold uppercase tracking-[0.04em] text-[#1E3A5F]">
+            MBA NET
+          </span>
+          <span className="mt-1 whitespace-nowrap text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-500">
+            Communications
+          </span>
+        </span>
+      </button>
+    );
   }
 
   return (

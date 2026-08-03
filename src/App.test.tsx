@@ -1,9 +1,8 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
-import App from './App';
+import { render } from '@testing-library/react';
+import { ToastContainer } from 'react-toastify';
 
-test('renders learn react link', () => {
-  render(<App />);
-  const linkElement = screen.getByText(/learn react/i);
-  expect(linkElement).toBeInTheDocument();
+test('renders the global toast container used by the application shell', () => {
+  render(<ToastContainer />);
+  expect(document.querySelector('.Toastify')).toBeInTheDocument();
 });

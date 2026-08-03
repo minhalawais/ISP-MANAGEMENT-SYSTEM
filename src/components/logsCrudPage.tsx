@@ -20,8 +20,7 @@ import { Modal } from "./modal.tsx"
 import { Topbar } from "./topNavbar.tsx"
 import { Sidebar } from "./sideNavbar.tsx"
 import { getToken } from "../utils/auth.ts"
-import { toast, ToastContainer } from "react-toastify"
-import "react-toastify/dist/ReactToastify.css"
+import { toast } from "react-toastify"
 import axiosInstance from "../utils/axiosConfig.ts"
 
 interface CRUDPageProps<T> {
@@ -430,18 +429,6 @@ export function LogsCRUDPage<T extends { id: string }>({
           </div>
         </form>
       </Modal>
-      <ToastContainer
-        position="top-right"
-        autoClose={5000}
-        hideProgressBar={false}
-        newestOnTop={false}
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        theme="light"
-      />
     </div>
   )
 }

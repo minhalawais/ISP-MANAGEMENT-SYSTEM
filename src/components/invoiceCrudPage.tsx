@@ -25,6 +25,7 @@ import { UnifiedPaymentModal } from "./modals/UnifiedPaymentModal.tsx"
 import { getToken } from "../utils/auth.ts"
 import { toast } from "react-toastify"
 import axiosInstance from "../utils/axiosConfig.ts"
+import { getOperationErrorMessage } from "../utils/crudSubmit.ts"
 
 interface CRUDPageProps<T> {
   title: string
@@ -206,9 +207,10 @@ export function CRUDPage<T extends { id: string }>({
       })
       await fetchData()
       await fetchStats()
-    } catch (error) {
+    } catch (error: any) {
       console.error("Delete operation failed", error)
-      toast.error("Delete operation failed", {
+      const errorMessage = getOperationErrorMessage(error, title, "delete")
+      toast.error(errorMessage || `Failed to delete ${title.toLowerCase()}`, {
         style: { background: "#FEE2E2", color: "#EF4444" },
       })
     } finally {
