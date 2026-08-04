@@ -51,11 +51,13 @@ const MBALogo: React.FC<MBALogoProps> = ({ variant = 'landscape', companyName })
       >
         <span className="flex min-w-0 flex-col justify-center leading-none">
           <span className="whitespace-nowrap text-[13px] font-bold uppercase tracking-[0.04em] text-[#1E3A5F]">
-            MBA NET
+            {line1}
           </span>
-          <span className="mt-1 whitespace-nowrap text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-500">
-            Communications
-          </span>
+          {line2 && (
+            <span className="mt-1 whitespace-nowrap text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-500">
+              {line2}
+            </span>
+          )}
         </span>
       </button>
     );

@@ -52,6 +52,17 @@ const BankAccountManagement: React.FC = () => {
         cell: info => info.getValue() || 'N/A',
       },
       {
+        header: 'Status',
+        accessorKey: 'is_active',
+        cell: info => (
+          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+            info.getValue() ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'
+          }`}>
+            {info.getValue() ? 'Active' : 'Inactive'}
+          </span>
+        ),
+      },
+      {
         header: 'Created At',
         accessorKey: 'created_at',
         cell: info => {
