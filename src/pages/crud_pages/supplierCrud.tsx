@@ -13,10 +13,14 @@ interface Supplier {
   is_active: boolean;
 }
 
+import { useCompany } from "../../context/CompanyContext.tsx";
+
 const SupplierManagement: React.FC = () => {
+  const { setPageTitle } = useCompany();
+
   useEffect(() => {
-    document.title = "MBA NET - Supplier Management";
-  }, []);
+    setPageTitle("Supplier Management");
+  }, [setPageTitle]);
   const columns = useMemo<ColumnDef<Supplier>[]>(
     () => [
       {

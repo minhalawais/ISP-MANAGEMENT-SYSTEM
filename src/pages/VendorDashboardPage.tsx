@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getToken, getAssetUrl } from '../utils/auth.ts';
 import axiosInstance from '../utils/axiosConfig.ts';
+import { useCompany } from '../context/CompanyContext.tsx';
 import { Sidebar } from '../components/sideNavbar.tsx';
 import { Topbar } from '../components/topNavbar.tsx';
 import {
@@ -171,7 +172,9 @@ const VendorDashboardPage: React.FC = () => {
   const [imgError, setImgError] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-  useEffect(() => { document.title = 'MBA NET - Vendor Dashboard'; }, []);
+  const { setPageTitle } = useCompany();
+
+  useEffect(() => { setPageTitle('Vendor Dashboard'); }, [setPageTitle]);
 
   const loadAll = useCallback(async () => {
     if (!vendorId) return;

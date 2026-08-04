@@ -18,10 +18,14 @@ interface RecoveryTask {
   updated_at: string;
 }
 
+import { useCompany } from "../../context/CompanyContext.tsx";
+
 const RecoveryTaskManagement: React.FC = () => {
+  const { setPageTitle } = useCompany();
+
   useEffect(() => {
-    document.title = "MBA NET - Recovery Task Management";
-  }, []);
+    setPageTitle("Recovery Task Management");
+  }, [setPageTitle]);
 
   const getStatusColor = (status: string) => {
     switch (status) {

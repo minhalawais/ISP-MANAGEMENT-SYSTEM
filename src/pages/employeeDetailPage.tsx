@@ -5,6 +5,7 @@ import { useState, useEffect } from "react"
 import { useParams, useNavigate } from "react-router-dom"
 import { getToken } from "../utils/auth.ts"
 import axiosInstance from "../utils/axiosConfig.ts"
+import { useCompany } from "../context/CompanyContext.tsx"
 import { Sidebar } from "../components/sideNavbar.tsx"
 import { Topbar } from "../components/topNavbar.tsx"
 import {
@@ -318,10 +319,12 @@ const EmployeeDetailPage: React.FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [loading, setLoading] = useState(true)
 
+  const { setPageTitle } = useCompany()
+
   useEffect(() => {
-    document.title = "MBA NET - Employee Profile"
+    setPageTitle("Employee Profile")
     fetchEmployeeData()
-  }, [id])
+  }, [id, setPageTitle])
 
   const fetchEmployeeData = async () => {
     try {

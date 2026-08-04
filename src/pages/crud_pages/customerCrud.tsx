@@ -34,12 +34,15 @@ interface Customer {
   agreement_document: string | null
 }
 
+import { useCompany } from "../../context/CompanyContext.tsx"
+
 const CustomerManagement: React.FC = () => {
   const imageViewer = useImageViewer()
+  const { setPageTitle } = useCompany()
 
   useEffect(() => {
-    document.title = "MBA NET - Customer Management"
-  }, [])
+    setPageTitle("Customer Management")
+  }, [setPageTitle])
 
   const columns = useMemo<ColumnDef<Customer>[]>(
     () => [

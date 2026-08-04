@@ -4,6 +4,7 @@ import type React from "react"
 import { useEffect, useState, useRef } from "react"
 import { useParams } from "react-router-dom"
 import { getToken, getAssetUrl } from "../utils/auth.ts"
+import { useCompany } from "../context/CompanyContext.tsx"
 import { useReactToPrint } from "react-to-print"
 import jsPDF from "jspdf"
 import html2canvas from "html2canvas"
@@ -97,11 +98,13 @@ const InvoiceGenerationPage: React.FC = () => {
   const printRef = useRef<HTMLDivElement>(null)
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
 
+  const { setPageTitle } = useCompany()
+
   useEffect(() => {
-    document.title = "MBA NET - Invoice Details"
+    setPageTitle("Invoice Details")
     fetchInvoiceData()
     fetchBankAccounts()
-  }, [id])
+  }, [id, setPageTitle])
 
   const toggleSidebar = () => setIsSidebarOpen((prev) => !prev)
 

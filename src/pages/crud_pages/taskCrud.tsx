@@ -26,10 +26,14 @@ interface Task {
   completed_at: string | null;
 }
 
+import { useCompany } from "../../context/CompanyContext.tsx";
+
 const TaskManagement: React.FC = () => {
+  const { setPageTitle } = useCompany();
+
   useEffect(() => {
-    document.title = "MBA NET - Task Management";
-  }, []);
+    setPageTitle("Task Management");
+  }, [setPageTitle]);
 
   const getTaskTypeColor = (type: string) => {
     switch (type) {

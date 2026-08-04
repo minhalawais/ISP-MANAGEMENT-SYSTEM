@@ -16,10 +16,14 @@ interface ServicePlan {
   isp_name: string | null;
 }
 
+import { useCompany } from "../../context/CompanyContext.tsx";
+
 const ServicePlanManagement: React.FC = () => {
+  const { setPageTitle } = useCompany();
+
   useEffect(() => {
-    document.title = "MBA NET - Service Plan Management";
-  }, []);
+    setPageTitle("Service Plan Management");
+  }, [setPageTitle]);
   const columns = useMemo<ColumnDef<ServicePlan>[]>(
     () => [
       {

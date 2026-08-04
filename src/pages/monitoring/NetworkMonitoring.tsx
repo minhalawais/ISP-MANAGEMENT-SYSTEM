@@ -10,17 +10,19 @@ import { toast } from "react-toastify"
 import APIConnectionList from "../../components/monitoring/APIConnectionList.tsx"
 import MetricsDashboard from "../../components/monitoring/MetricsDashboard.tsx"
 import NetworkAlerts from "../../components/monitoring/NetworkAlerts.tsx"
+import { useCompany } from "../../context/CompanyContext.tsx"
 
 export default function NetworkMonitoring() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [activeTab, setActiveTab] = useState<"connections" | "metrics" | "alerts">("connections")
   const [connections, setConnections] = useState([])
   const [isLoading, setIsLoading] = useState(false)
+  const { setPageTitle } = useCompany()
 
   useEffect(() => {
-    document.title = "MBA NET - Network Monitoring"
+    setPageTitle("Network Monitoring")
     fetchConnections()
-  }, [])
+  }, [setPageTitle])
 
   const fetchConnections = async () => {
     setIsLoading(true)

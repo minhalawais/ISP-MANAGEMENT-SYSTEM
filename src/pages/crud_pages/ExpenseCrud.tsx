@@ -7,6 +7,7 @@ import { ImageViewerModal, useImageViewer } from '../../components/modals/ImageV
 import { getToken } from '../../utils/auth.ts'
 import axiosInstance from '../../utils/axiosConfig.ts'
 import { Plus, Trash2, Pencil, Save, X, Eye } from 'lucide-react'
+import { useCompany } from '../../context/CompanyContext.tsx'
 
 interface Expense {
   id: string
@@ -38,14 +39,15 @@ const ExpenseManagement: React.FC = () => {
   const [editingType, setEditingType] = useState<ExpenseType | null>(null)
   const [editTypeData, setEditTypeData] = useState({ name: '', description: '', is_employee_payment: false })
   const imageViewer = useImageViewer()
+  const { setPageTitle } = useCompany()
 
   // Ref for the modal content container
   const modalContentRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    document.title = "MBA NET - Expense Management"
+    setPageTitle("Expense Management")
     fetchExpenseTypes()
-  }, [])
+  }, [setPageTitle])
 
   const fetchExpenseTypes = async () => {
     try {

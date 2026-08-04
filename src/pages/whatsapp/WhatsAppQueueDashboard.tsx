@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { RefreshCw, MessageSquare, CheckCircle2, XCircle, Clock, Send, TrendingUp, Filter } from 'lucide-react';
 import axiosInstance from '../../utils/axiosConfig.ts';
+import { useCompany } from '../../context/CompanyContext.tsx';
 import { Sidebar } from '../../components/sideNavbar.tsx';
 import { Topbar } from '../../components/topNavbar.tsx';
 
@@ -44,10 +45,10 @@ const WhatsAppQueueDashboard: React.FC = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [refreshing, setRefreshing] = useState(false);
-    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const { setPageTitle } = useCompany();
 
     useEffect(() => {
-        document.title = 'WhatsApp Queue - MBA NET';
+        setPageTitle('WhatsApp Queue');
         fetchData();
         const interval = setInterval(fetchData, 30000);
         return () => {

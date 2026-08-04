@@ -620,12 +620,15 @@ interface Complaint {
   attachment_path: string | null
 }
 
+import { useCompany } from "../context/CompanyContext.tsx"
+
 const ComplaintManagement: React.FC = () => {
   const navigate = useNavigate()
+  const { setPageTitle } = useCompany()
 
   useEffect(() => {
-    document.title = "MBA NET - Complaint Management"
-  }, [])
+    setPageTitle("Complaint Management")
+  }, [setPageTitle])
 
   const columns = useMemo<ColumnDef<Complaint>[]>(
     () => [

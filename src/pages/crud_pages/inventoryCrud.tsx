@@ -23,7 +23,10 @@ interface InventoryItem {
   updated_at?: string
 }
 
+import { useCompany } from "../../context/CompanyContext.tsx"
+
 const InventoryManagement: React.FC = () => {
+  const { setPageTitle } = useCompany()
   const [suppliers, setSuppliers] = useState<{ id: string; name: string }[]>([])
   const [showTransactionsModal, setShowTransactionsModal] = useState(false)
   const [showAssignmentsModal, setShowAssignmentsModal] = useState(false)
@@ -37,10 +40,11 @@ const InventoryManagement: React.FC = () => {
           headers: { Authorization: `Bearer ${token}` },
         })
         setSuppliers(response.data)
+        setPageTitle("Inventory Management")
       } catch (error) {
         console.error("Failed to fetch suppliers", error)
+        setPageTitle("Inventory Management")
       }
-      document.title = "MBA NET - Inventory Management"
     }
 
     fetchSuppliers()

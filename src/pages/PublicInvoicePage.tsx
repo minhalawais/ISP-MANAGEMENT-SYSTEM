@@ -110,10 +110,11 @@ const PublicInvoicePage: React.FC = () => {
   }, [invoiceData])
 
   useEffect(() => {
-    document.title = "MBA NET - Invoice"
+    const compName = companyData?.name || invoiceData?.company_name || 'MBA NET'
+    document.title = `${compName} - Invoice`
     fetchInvoiceData()
     fetchBankAccounts()
-  }, [id])
+  }, [id, companyData, invoiceData])
 
   const fetchInvoiceData = async () => {
     try {

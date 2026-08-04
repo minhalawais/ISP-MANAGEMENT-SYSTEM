@@ -4,6 +4,8 @@ import { Eye, EyeOff, Lock, User, LogIn } from "lucide-react"
 import axiosInstance from "../utils/axiosConfig.ts"
 import { DomainLoginLogo } from "../components/DomainLoginLogo.tsx"
 
+import { getCurrentLoginBrand, getConnectxLogoSrc } from "../utils/loginBranding.ts"
+
 const Login = () => {
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
@@ -13,7 +15,18 @@ const Login = () => {
   const navigate = useNavigate()
 
   useEffect(() => {
-    document.title = "MBA NET - Login"
+    const brand = getCurrentLoginBrand()
+    const brandTitle = brand === "connectx" ? "CONNECTX" : "MBA NET"
+    document.title = `${brandTitle} - Login`
+
+    const faviconUrl = brand === "connectx" ? getConnectxLogoSrc() : "/favicon.ico"
+    let link: HTMLLinkElement | null = document.querySelector("link[rel*='icon']")
+    if (!link) {
+      link = document.createElement("link")
+      link.rel = "shortcut icon"
+      document.getElementsByTagName("head")[0].appendChild(link)
+    }
+    link.href = faviconUrl
   }, [])
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

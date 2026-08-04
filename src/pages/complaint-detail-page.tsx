@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react"
 import { useParams, useNavigate } from "react-router-dom"
 import { getToken } from "../utils/auth.ts"
+import { useCompany } from "../context/CompanyContext.tsx"
 import axiosInstance from "../utils/axiosConfig.ts"
 import { Sidebar } from "../components/sideNavbar.tsx"
 import { Topbar } from "../components/topNavbar.tsx"
@@ -65,8 +66,10 @@ const ComplaintDetailPage = () => {
     setIsSidebarOpen((prev) => !prev)
   }
 
+  const { setPageTitle } = useCompany()
+
   useEffect(() => {
-    document.title = "Complaint Details"
+    setPageTitle("Complaint Details")
     const fetchComplaintData = async () => {
       try {
         setLoading(true)

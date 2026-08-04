@@ -14,10 +14,14 @@ interface Message {
   is_active: boolean;
 }
 
+import { useCompany } from "../../context/CompanyContext.tsx";
+
 const MessageManagement: React.FC = () => {
+  const { setPageTitle } = useCompany();
+
   useEffect(() => {
-    document.title = "MBA NET - Message Management";
-  }, []);
+    setPageTitle("Message Management");
+  }, [setPageTitle]);
   const columns = useMemo<ColumnDef<Message>[]>(
     () => [
       {

@@ -6,12 +6,15 @@ import { useParams, Link } from "react-router-dom"
 import { motion } from "framer-motion"
 import { FaTicketAlt, FaArrowLeft } from "react-icons/fa"
 
+import { useCompany } from "../context/CompanyContext.tsx"
+
 const TicketDisplayPage: React.FC = () => {
   const { ticketNumber } = useParams<{ ticketNumber: string }>()
+  const { setPageTitle } = useCompany()
 
   useEffect(() => {
-    document.title = `Ticket ${ticketNumber} - MBA NET`
-  }, [ticketNumber])
+    setPageTitle(`Ticket ${ticketNumber || ''}`)
+  }, [ticketNumber, setPageTitle])
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#EBF5FF] to-white flex items-center justify-center px-4">

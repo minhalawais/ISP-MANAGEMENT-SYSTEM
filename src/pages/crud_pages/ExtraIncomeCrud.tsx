@@ -7,6 +7,7 @@ import { getToken } from '../../utils/auth.ts'
 import axiosInstance from '../../utils/axiosConfig.ts'
 import { ImageViewerModal, useImageViewer } from '../../components/modals/ImageViewerModal.tsx'
 import { Plus, Trash2, Pencil, Save, X, Eye } from 'lucide-react'
+import { useCompany } from '../../context/CompanyContext.tsx'
 
 interface ExtraIncome {
   id: string
@@ -37,14 +38,15 @@ const ExtraIncomeManagement: React.FC = () => {
   const [editingType, setEditingType] = useState<IncomeType | null>(null)
   const [editTypeData, setEditTypeData] = useState({ name: '', description: '' })
   const imageViewer = useImageViewer()
+  const { setPageTitle } = useCompany()
 
   // Ref for the modal content container
   const modalContentRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    document.title = "MBA NET - Extra Income Management"
+    setPageTitle("Extra Income Management")
     fetchIncomeTypes()
-  }, [])
+  }, [setPageTitle])
 
   const fetchIncomeTypes = async () => {
     try {

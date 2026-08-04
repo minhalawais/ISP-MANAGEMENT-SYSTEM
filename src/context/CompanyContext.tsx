@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import axiosInstance from '../utils/axiosConfig.ts';
 import { getToken, getAssetUrl } from '../utils/auth.ts';
+import { getCurrentLoginBrand, getConnectxLogoSrc } from '../utils/loginBranding.ts';
 
 export interface CompanyProfile {
   id: string;
@@ -30,6 +31,22 @@ interface CompanyContextType {
   setPageTitle: (pageName: string) => void;
 }
 
+const updateDOMFavicon = (url: string) => {
+  if (typeof document === 'undefined') return;
+  let link: HTMLLinkElement | null = document.querySelector("link[rel*='icon']");
+  if (!link) {
+    link = document.createElement('link');
+    link.rel = 'shortcut icon';
+    document.getElementsByTagName('head')[0].appendChild(link);
+  }
+  link.href = url;
+};
+
+const getDefaultFavicon = () => {
+  const brand = getCurrentLoginBrand();
+  return brand === 'connectx' ? getConnectxLogoSrc() : '/favicon.ico';
+};
+
 const CompanyContext = createContext<CompanyContextType>({
   company: null,
   loading: true,
@@ -46,10 +63,7 @@ export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ child
     if (!token) {
       setCompany(null);
       setLoading(false);
-      let link: HTMLLinkElement | null = document.querySelector("link[rel*='icon']");
-      if (link) {
-        link.href = "/favicon.ico";
-      }
+      updateDOMFavicon(getDefaultFavicon());
       return;
     }
 
@@ -64,28 +78,16 @@ export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ child
       }
       setCompany(data);
       
-      // Update DOM Favicon if company has a custom favicon
+      // Update DOM Favicon if company has a custom favicon, else default domain favicon
       if (data?.favicon_url) {
-        let link: HTMLLinkElement | null = document.querySelector("link[rel*='icon']");
-        if (!link) {
-          link = document.createElement('link');
-          link.rel = 'shortcut icon';
-          document.getElementsByTagName('head')[0].appendChild(link);
-        }
-        link.href = data.favicon_url;
+        updateDOMFavicon(data.favicon_url);
       } else {
-        let link: HTMLLinkElement | null = document.querySelector("link[rel*='icon']");
-        if (link) {
-          link.href = "/favicon.ico";
-        }
+        updateDOMFavicon(getDefaultFavicon());
       }
     } catch {
       // If error or unauthenticated, keep null
       setCompany(null);
-      let link: HTMLLinkElement | null = document.querySelector("link[rel*='icon']");
-      if (link) {
-        link.href = "/favicon.ico";
-      }
+      updateDOMFavicon(getDefaultFavicon());
     } finally {
       setLoading(false);
     }
@@ -105,8 +107,10 @@ export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ child
   }, [fetchCompanyProfile]);
 
   const setPageTitle = useCallback((pageName: string) => {
-    const companyName = company?.name || 'MBA NET';
-    document.title = `${pageName} - ${companyName}`;
+    const brand = getCurrentLoginBrand();
+    const fallbackBrand = brand === 'connectx' ? 'CONNECTX' : 'MBA NET';
+    const companyName = company?.name || fallbackBrand;
+    document.title = `${companyName} - ${pageName}`;
   }, [company]);
 
   return (

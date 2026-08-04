@@ -77,10 +77,14 @@ const sections = [
     category: "Operations"
   },
 ]
+import { useCompany } from "../../context/CompanyContext.tsx"
+
 const Dashboard = () => {
+  const { company, setPageTitle } = useCompany()
+
   useEffect(() => {
-    document.title = "MBA NET - Business Intelligence"
-  }, [])
+    setPageTitle("Business Intelligence")
+  }, [setPageTitle])
 
   const [filters, setFilters] = useState({
     dateRange: { start: new Date(new Date().getFullYear(), 0, 1), end: new Date() },
@@ -213,7 +217,7 @@ const Dashboard = () => {
               <div className="max-w-[1800px] mx-auto">
                 <div className="flex justify-between items-center text-xs text-gray-500">
                   <div className="flex items-center gap-6">
-                    <span>© 2024 MBA NET</span>
+                    <span>© {new Date().getFullYear()} {company?.name || 'MBA NET'}</span>
                     <span>Business Intelligence Platform</span>
                     <span>Version 2.1.0</span>
                   </div>

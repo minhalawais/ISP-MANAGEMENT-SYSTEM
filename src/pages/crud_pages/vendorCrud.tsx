@@ -13,6 +13,7 @@ import { useNavigate } from 'react-router-dom';
 import axiosInstance from '../../utils/axiosConfig.ts';
 import { getToken } from '../../utils/auth.ts';
 import { toast } from 'react-toastify';
+import { useCompany } from '../../context/CompanyContext.tsx';
 
 interface Vendor {
   id: string;
@@ -125,14 +126,15 @@ const CredentialsModal: React.FC<{
 // ── Main Component ────────────────────────────────────────────────────────────
 const VendorManagement: React.FC = () => {
   const navigate = useNavigate();
+  const { setPageTitle } = useCompany();
   const [vendorStats, setVendorStats] = useState<Record<string, VendorStats>>({});
   const [credModal, setCredModal] = useState<CredentialModalData | null>(null);
   const [loadingActions, setLoadingActions] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    document.title = "MBA NET - Vendor Management";
+    setPageTitle("Vendor Management");
     fetchVendorSummary();
-  }, []);
+  }, [setPageTitle]);
 
   const fetchVendorSummary = useCallback(async () => {
     try {

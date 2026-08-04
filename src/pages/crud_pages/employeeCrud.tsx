@@ -13,6 +13,7 @@ import axiosInstance from "../../utils/axiosConfig.ts"
 import { toast } from "react-toastify"
 import { validateEmployeeFiles } from "../../utils/employeeValidation.ts"
 import { getCnicValidationMessage, getPakistaniMobileValidationMessage } from "../../utils/contactValidation.ts"
+import { useCompany } from "../../context/CompanyContext.tsx"
 
 interface Employee {
   id: string
@@ -58,10 +59,11 @@ const EmployeeManagement: React.FC = () => {
   const [newPassword, setNewPassword] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [copied, setCopied] = useState<string | null>(null)
+  const { setPageTitle } = useCompany()
   
   useEffect(() => {
-    document.title = "MBA NET - Employee Management"
-  }, [])
+    setPageTitle("Employee Management")
+  }, [setPageTitle])
 
   const openCredentialsModal = async (employeeId: string) => {
     setCredentialsModal({ isOpen: true, employeeId })

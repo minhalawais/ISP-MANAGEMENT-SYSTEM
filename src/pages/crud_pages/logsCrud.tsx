@@ -22,10 +22,14 @@ interface Log {
   created_at: string;
 }
 
+import { useCompany } from "../../context/CompanyContext.tsx";
+
 const LogManagement: React.FC = () => {
+  const { setPageTitle } = useCompany();
+
   useEffect(() => {
-    document.title = "MBA NET - Logs Management";
-  }, []);
+    setPageTitle("Logs Management");
+  }, [setPageTitle]);
 
   const [selectedRecord, setSelectedRecord] = useState<{tableName: string, recordId: string} | null>(null);
   const [recordDetails, setRecordDetails] = useState<any>(null);

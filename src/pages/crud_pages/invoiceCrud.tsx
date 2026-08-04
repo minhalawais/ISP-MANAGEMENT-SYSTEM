@@ -10,6 +10,7 @@ import { BulkInvoiceModal } from "../../components/modals/BulkInvoiceModal.tsx"
 import { Modal } from "../../components/modal.tsx"
 import { PaymentForm } from "../../components/forms/paymentForm.tsx"
 import { getToken } from "../../utils/auth.ts"
+import { useCompany } from "../../context/CompanyContext.tsx"
 import axiosInstance from "../../utils/axiosConfig.ts"
 import { toast } from "react-toastify"
 import {
@@ -35,15 +36,16 @@ interface Invoice {
   is_active: boolean
 }
 
-const InvoiceManagement = () => {
+const InvoiceManagement: React.FC = () => {
+  const { setPageTitle } = useCompany()
   const [showBulkModal, setShowBulkModal] = useState(false)
   const [refreshTrigger, setRefreshTrigger] = useState(0)
   const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [paymentFormData, setPaymentFormData] = useState<any>({})
   const [isPaymentLoading, setIsPaymentLoading] = useState(false)
   useEffect(() => {
-    document.title = "MBA NET - Invoice Management"
-  }, [])
+    setPageTitle("Invoice Management")
+  }, [setPageTitle])
   const handleBulkSuccess = () => {
     setRefreshTrigger(prev => prev + 1)
     setShowBulkModal(false)

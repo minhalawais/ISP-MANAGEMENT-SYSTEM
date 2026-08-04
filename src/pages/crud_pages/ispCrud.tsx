@@ -14,10 +14,14 @@ interface ISP {
   is_active: boolean
 }
 
+import { useCompany } from "../../context/CompanyContext.tsx"
+
 const ISPManagement: React.FC = () => {
+  const { setPageTitle } = useCompany()
+
   useEffect(() => {
-    document.title = "MBA NET - ISP Management"
-  }, [])
+    setPageTitle("ISP Management")
+  }, [setPageTitle])
 
   const columns: ColumnDef<ISP>[] = [
     {

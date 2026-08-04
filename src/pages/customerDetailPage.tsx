@@ -4,6 +4,7 @@ import type React from "react"
 import { useState, useEffect } from "react"
 import { useParams } from "react-router-dom"
 import { getToken } from "../utils/auth.ts"
+import { useCompany } from "../context/CompanyContext.tsx"
 import {
   User,
   AlertCircle,
@@ -258,8 +259,10 @@ const CustomerDetail: React.FC = () => {
     setIsSidebarOpen((prev) => !prev)
   }
 
+  const { setPageTitle } = useCompany()
+
   useEffect(() => {
-    document.title = "MBA NET - Customer Profile"
+    setPageTitle("Customer Profile")
     const fetchCustomerData = async () => {
       try {
         setLoading(true)

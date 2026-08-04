@@ -11,6 +11,7 @@ import { Sidebar } from '../../components/sideNavbar.tsx';
 import { getToken } from '../../utils/auth.ts';
 import { toast } from 'react-toastify';
 import axiosInstance from '../../utils/axiosConfig.ts';
+import { useCompany } from '../../context/CompanyContext.tsx';
 
 interface SubZone {
   id: string;
@@ -27,7 +28,8 @@ interface Area {
 }
 
 const SubZoneManagement: React.FC = () => {
-  const { areaId } = useParams<{ areaId: string }>();
+  const { setPageTitle } = useCompany();
+  const { areaId } = useParams<{ areaId?: string }>();
   const navigate = useNavigate();
   
   const [subZones, setSubZones] = useState<SubZone[]>([]);
@@ -40,9 +42,9 @@ const SubZoneManagement: React.FC = () => {
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
 
   useEffect(() => {
-    document.title = "MBA NET - Sub-Zone Management";
+    setPageTitle("Sub-Zone Management");
     fetchData();
-  }, [areaId]);
+  }, [areaId, setPageTitle]);
 
   const fetchData = async () => {
     setIsLoading(true);

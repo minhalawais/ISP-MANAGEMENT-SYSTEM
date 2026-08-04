@@ -17,10 +17,14 @@ interface BankAccount {
   updated_at?: string
 }
 
+import { useCompany } from '../../context/CompanyContext.tsx'
+
 const BankAccountManagement: React.FC = () => {
+  const { setPageTitle } = useCompany()
+
   useEffect(() => {
-    document.title = "MBA NET - Bank Account Management"
-  }, [])
+    setPageTitle("Bank Account Management")
+  }, [setPageTitle])
 
   const columns = React.useMemo<ColumnDef<BankAccount>[]>(
     () => [

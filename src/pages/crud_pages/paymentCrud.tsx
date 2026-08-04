@@ -6,6 +6,7 @@ import { ImageViewerModal, useImageViewer } from '../../components/modals/ImageV
 import { PaymentVerificationModal } from '../../components/modals/PaymentVerificationModal.tsx'; // Import new modal
 import axiosInstance from '../../utils/axiosConfig.ts';
 import { Eye } from 'lucide-react';
+import { useCompany } from "../../context/CompanyContext.tsx";
 
 interface Payment {
   id: string;
@@ -26,10 +27,11 @@ interface Payment {
 }
 
 const PaymentManagement: React.FC = () => {
-    const imageViewer = useImageViewer();
-    const [refreshTrigger, setRefreshTrigger] = useState(0);
+    const { setPageTitle } = useCompany();
     const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
     const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false);
+    const imageViewer = useImageViewer();
+    const [refreshTrigger, setRefreshTrigger] = useState(0);
 
     const handleVerificationComplete = () => {
         setRefreshTrigger(prev => prev + 1);
@@ -44,8 +46,8 @@ const PaymentManagement: React.FC = () => {
     };
 
   useEffect(() => {
-    document.title = "MBA NET - Payment Management";
-  }, []);
+    setPageTitle("Payment Management");
+  }, [setPageTitle]);
   
   const columns = React.useMemo<ColumnDef<Payment>[]>(
     () => [

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Settings, Save, TestTube, CheckCircle, XCircle, Clock, TrendingUp, Zap, Bell } from 'lucide-react';
 import axiosInstance from '../../utils/axiosConfig.ts';
+import { useCompany } from '../../context/CompanyContext.tsx';
 import { Sidebar } from '../../components/sideNavbar.tsx';
 import { Topbar } from '../../components/topNavbar.tsx';
 
@@ -36,12 +37,12 @@ const WhatsAppSettings: React.FC = () => {
     const [testing, setTesting] = useState(false);
     const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const { setPageTitle } = useCompany();
 
     useEffect(() => {
-        console.log('Page is loaded');
-        document.title = 'WhatsApp Settings - MBA NET';
+        setPageTitle('WhatsApp Settings');
         fetchConfig();
-    }, []);
+    }, [setPageTitle]);
 
     const toggleSidebar = () => {
         setIsSidebarOpen(!isSidebarOpen);

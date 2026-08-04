@@ -13,12 +13,15 @@ interface AreaZone {
   sub_zones_count?: number;
 }
 
+import { useCompany } from "../../context/CompanyContext.tsx";
+
 const AreaZoneManagement: React.FC = () => {
   const navigate = useNavigate();
+  const { setPageTitle } = useCompany();
 
   useEffect(() => {
-    document.title = "MBA NET - Area Management";
-  }, []);
+    setPageTitle("Area Management");
+  }, [setPageTitle]);
 
   const columns = useMemo<ColumnDef<AreaZone>[]>(
     () => [

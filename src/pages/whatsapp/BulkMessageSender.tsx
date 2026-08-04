@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Users, Send, MessageCircle, Search, Filter, CheckCircle2, Eye } from 'lucide-react';
 import axiosInstance from '../../utils/axiosConfig.ts';
+import { useCompany } from '../../context/CompanyContext.tsx';
 import { Sidebar } from '../../components/sideNavbar.tsx';
 import { Topbar } from '../../components/topNavbar.tsx';
 
@@ -30,11 +31,13 @@ const BulkMessageSender: React.FC = () => {
     const [showPreview, setShowPreview] = useState(false);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
+    const { setPageTitle } = useCompany();
+
     useEffect(() => {
-        document.title = 'Bulk Message Sender - MBA NET';
+        setPageTitle('Bulk Message Sender');
         fetchCustomers();
         fetchTemplates();
-    }, []);
+    }, [setPageTitle]);
 
     const toggleSidebar = () => {
         setIsSidebarOpen(!isSidebarOpen);

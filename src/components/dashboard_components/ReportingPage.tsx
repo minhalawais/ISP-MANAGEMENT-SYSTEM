@@ -1,6 +1,7 @@
 "use client"
 import { useParams } from "react-router-dom"
 import { useEffect, useState } from "react"
+import { useCompany } from "../../context/CompanyContext.tsx"
 import { ExecutiveDashboard } from "../dashboard_components/ExecutiveDashboard.tsx"
 import { CustomerAnalytics } from "../dashboard_components/CustomerAnalysis.tsx"
 import { ServiceSupport } from "../dashboard_components/ServiceSupport.tsx"
@@ -121,9 +122,11 @@ const ReportingPage = () => {
   const ActiveComponent = currentSection.component
   const Icon = currentSection.icon
 
+  const { company, setPageTitle } = useCompany()
+
   useEffect(() => {
-    document.title = `MBA NET - ${currentSection.name}`
-  }, [currentSection.name])
+    setPageTitle(currentSection.name)
+  }, [setPageTitle, currentSection.name])
 
   const toggleSidebar = () => {
     setIsSidebarOpen((prev) => !prev)
@@ -189,11 +192,11 @@ const ReportingPage = () => {
           <footer className="bg-white border-t border-[#E5E1DA] px-8 py-4 mt-4">
             <div className="max-w-[1800px] mx-auto">
               <div className="flex justify-between items-center text-xs text-gray-500">
-                <div className="flex items-center gap-6">
-                  <span>© 2024 MBA NET</span>
-                  <span>Business Intelligence Platform</span>
-                  <span>Version 2.1.0</span>
-                </div>
+                  <div className="flex items-center gap-6">
+                    <span>© {new Date().getFullYear()} {company?.name || 'MBA NET'}</span>
+                    <span>Business Intelligence Platform</span>
+                    <span>Version 2.1.0</span>
+                  </div>
                 <div className="flex items-center gap-4">
                   <span>Server Status: Active</span>
                   <span>Last Sync: {new Date().toLocaleTimeString()}</span>

@@ -30,12 +30,15 @@ interface ISPPayment {
   created_at: string;
 }
 
+import { useCompany } from "../../context/CompanyContext.tsx";
+
 const ISPPaymentManagement: React.FC = () => {
   const imageViewer = useImageViewer();
+  const { setPageTitle } = useCompany();
 
   useEffect(() => {
-    document.title = "MBA NET - ISP Payment Management";
-  }, []);
+    setPageTitle("ISP Payment Management");
+  }, [setPageTitle]);
 
   const columns = React.useMemo<ColumnDef<ISPPayment>[]>(
     () => [
