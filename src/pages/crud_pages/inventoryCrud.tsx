@@ -8,6 +8,7 @@ import { InventoryAssignmentsModal } from "../../components/modals/InventoryAssi
 import axiosInstance from "../../utils/axiosConfig.ts"
 import { getToken } from "../../utils/auth.ts"
 import { FaExchangeAlt, FaUsersCog } from "react-icons/fa"
+import { useCompany } from "../../context/CompanyContext.tsx"
 
 interface InventoryItem {
   id: string
@@ -22,8 +23,6 @@ interface InventoryItem {
   created_at?: string
   updated_at?: string
 }
-
-import { useCompany } from "../../context/CompanyContext.tsx"
 
 const InventoryManagement: React.FC = () => {
   const { setPageTitle } = useCompany()

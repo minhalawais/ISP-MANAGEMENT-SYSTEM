@@ -8,6 +8,7 @@ import { CustomerForm } from "../../components/forms/customerForm.tsx"
 import { ImageViewerModal, useImageViewer } from "../../components/modals/ImageViewerModal.tsx"
 import axiosInstance from "../../utils/axiosConfig.ts"
 import { Eye, FileText } from "lucide-react"
+import { useCompany } from "../../context/CompanyContext.tsx"
 
 interface Customer {
   id: string
@@ -33,8 +34,6 @@ interface Customer {
   gps_coordinates: string | null
   agreement_document: string | null
 }
-
-import { useCompany } from "../../context/CompanyContext.tsx"
 
 const CustomerManagement: React.FC = () => {
   const imageViewer = useImageViewer()

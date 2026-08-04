@@ -7,6 +7,7 @@ import { CRUDPage } from "../../components/complaintCrudPage.tsx"
 import { ComplaintForm } from "../../components/forms/complaintForm.tsx"
 import { useNavigate } from "react-router-dom"
 import axiosInstance from "../../utils/axiosConfig.ts"
+import { useCompany } from "../../context/CompanyContext.tsx"
 
 interface Complaint {
   id: string
@@ -20,8 +21,6 @@ interface Complaint {
   remarks: string
   attachment_path: string | null
 }
-
-import { useCompany } from "../../context/CompanyContext.tsx"
 
 const ComplaintManagement: React.FC = () => {
   const navigate = useNavigate()

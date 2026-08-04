@@ -4,6 +4,7 @@ import { CRUDPage } from '../../components/crudPage.tsx';
 import { AreaZoneForm } from '../../components/forms/areaZoneForm.tsx';
 import { useNavigate } from 'react-router-dom';
 import { MapPin } from 'lucide-react';
+import { useCompany } from "../../context/CompanyContext.tsx";
 
 interface AreaZone {
   id: string;
@@ -12,8 +13,6 @@ interface AreaZone {
   is_active: boolean;
   sub_zones_count?: number;
 }
-
-import { useCompany } from "../../context/CompanyContext.tsx";
 
 const AreaZoneManagement: React.FC = () => {
   const navigate = useNavigate();

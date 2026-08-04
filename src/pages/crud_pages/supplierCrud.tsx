@@ -2,6 +2,7 @@ import React, { useMemo,useEffect } from 'react';
 import { ColumnDef } from '@tanstack/react-table';
 import { CRUDPage } from '../../components/crudPage.tsx';
 import { SupplierForm } from '../../components/forms/supplierForm.tsx';
+import { useCompany } from "../../context/CompanyContext.tsx";
 
 interface Supplier {
   id: string;
@@ -12,8 +13,6 @@ interface Supplier {
   address: string;
   is_active: boolean;
 }
-
-import { useCompany } from "../../context/CompanyContext.tsx";
 
 const SupplierManagement: React.FC = () => {
   const { setPageTitle } = useCompany();

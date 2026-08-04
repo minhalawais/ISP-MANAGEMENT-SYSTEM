@@ -3,6 +3,7 @@ import { ColumnDef } from '@tanstack/react-table';
 import { CRUDPage } from '../../components/crudPage.tsx';
 import { ServicePlanForm } from '../../components/forms/servicePlanForm.tsx';
 import { Toggle } from '../../components/toggle.tsx';
+import { useCompany } from "../../context/CompanyContext.tsx";
 
 interface ServicePlan {
   id: string;
@@ -15,8 +16,6 @@ interface ServicePlan {
   isp_id: string | null;
   isp_name: string | null;
 }
-
-import { useCompany } from "../../context/CompanyContext.tsx";
 
 const ServicePlanManagement: React.FC = () => {
   const { setPageTitle } = useCompany();

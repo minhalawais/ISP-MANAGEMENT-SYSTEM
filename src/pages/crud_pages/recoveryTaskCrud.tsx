@@ -2,6 +2,7 @@ import React, { useEffect, useMemo } from 'react';
 import { ColumnDef } from '@tanstack/react-table';
 import { CRUDPage } from '../../components/crudPage.tsx';
 import { RecoveryTaskForm } from '../../components/forms/recoveryTaskForm.tsx';
+import { useCompany } from "../../context/CompanyContext.tsx";
 
 interface RecoveryTask {
   id: string;
@@ -17,8 +18,6 @@ interface RecoveryTask {
   created_at: string;
   updated_at: string;
 }
-
-import { useCompany } from "../../context/CompanyContext.tsx";
 
 const RecoveryTaskManagement: React.FC = () => {
   const { setPageTitle } = useCompany();

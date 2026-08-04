@@ -5,6 +5,7 @@ import { ISPPaymentForm } from '../../components/forms/ISPPaymentForm.tsx';
 import { ImageViewerModal, useImageViewer } from '../../components/modals/ImageViewerModal.tsx';
 import axiosInstance from '../../utils/axiosConfig.ts';
 import { Eye } from 'lucide-react';
+import { useCompany } from "../../context/CompanyContext.tsx";
 
 interface ISPPayment {
   id: string;
@@ -29,8 +30,6 @@ interface ISPPayment {
   is_active: boolean;
   created_at: string;
 }
-
-import { useCompany } from "../../context/CompanyContext.tsx";
 
 const ISPPaymentManagement: React.FC = () => {
   const imageViewer = useImageViewer();

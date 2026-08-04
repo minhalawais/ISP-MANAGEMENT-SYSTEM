@@ -2,6 +2,7 @@ import React, { useEffect } from 'react'
 import { ColumnDef } from '@tanstack/react-table'
 import { CRUDPage } from '../../components/crudPage.tsx'
 import { BankAccountForm } from '../../components/forms/BankAccountForm.tsx'
+import { useCompany } from '../../context/CompanyContext.tsx'
 
 interface BankAccount {
   id: string
@@ -16,8 +17,6 @@ interface BankAccount {
   created_at?: string
   updated_at?: string
 }
-
-import { useCompany } from '../../context/CompanyContext.tsx'
 
 const BankAccountManagement: React.FC = () => {
   const { setPageTitle } = useCompany()

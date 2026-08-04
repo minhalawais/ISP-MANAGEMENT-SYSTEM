@@ -2,6 +2,7 @@ import React, { useMemo,useEffect } from 'react';
 import { ColumnDef } from '@tanstack/react-table';
 import { CRUDPage } from '../../components/crudPage.tsx';
 import { MessageForm } from '../../components/forms/messageForm.tsx';
+import { useCompany } from "../../context/CompanyContext.tsx";
 
 interface Message {
   id: string;
@@ -13,8 +14,6 @@ interface Message {
   created_at: string;
   is_active: boolean;
 }
-
-import { useCompany } from "../../context/CompanyContext.tsx";
 
 const MessageManagement: React.FC = () => {
   const { setPageTitle } = useCompany();

@@ -3,6 +3,7 @@ import { ColumnDef } from '@tanstack/react-table';
 import { CRUDPage } from '../../components/crudPage.tsx';
 import { TaskForm } from '../../components/forms/taskForm.tsx';
 import { Users, Calendar, AlertCircle } from 'lucide-react';
+import { useCompany } from "../../context/CompanyContext.tsx";
 
 interface Assignee {
   id: string;
@@ -25,8 +26,6 @@ interface Task {
   updated_at: string;
   completed_at: string | null;
 }
-
-import { useCompany } from "../../context/CompanyContext.tsx";
 
 const TaskManagement: React.FC = () => {
   const { setPageTitle } = useCompany();

@@ -18,6 +18,7 @@ import {
   FileText,
 } from "lucide-react"
 import { Table } from "./table/table.tsx"
+import { useCompany } from "../context/CompanyContext.tsx"
 import { Modal } from "./modal.tsx"
 import { Topbar } from "./topNavbar.tsx"
 import { Sidebar } from "./sideNavbar.tsx"
@@ -619,8 +620,6 @@ interface Complaint {
   remarks: string
   attachment_path: string | null
 }
-
-import { useCompany } from "../context/CompanyContext.tsx"
 
 const ComplaintManagement: React.FC = () => {
   const navigate = useNavigate()

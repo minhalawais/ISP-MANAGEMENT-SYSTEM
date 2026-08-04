@@ -6,6 +6,7 @@ import { LogForm } from '../../components/forms/logForm.tsx';
 import { Eye, X } from 'lucide-react';
 import axiosInstance from '../../utils/axiosConfig.ts';
 import { getToken } from '../../utils/auth.ts';
+import { useCompany } from "../../context/CompanyContext.tsx";
 
 interface Log {
   id: string;
@@ -21,8 +22,6 @@ interface Log {
   timestamp: string;
   created_at: string;
 }
-
-import { useCompany } from "../../context/CompanyContext.tsx";
 
 const LogManagement: React.FC = () => {
   const { setPageTitle } = useCompany();
