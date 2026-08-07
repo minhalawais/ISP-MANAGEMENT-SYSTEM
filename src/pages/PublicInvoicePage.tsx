@@ -145,8 +145,9 @@ const PublicInvoicePage: React.FC = () => {
   }
 
   const fetchBankAccounts = async () => {
+    if (!id) return
     try {
-      const response = await axiosInstance.get("/public/bank-accounts/list")
+      const response = await axiosInstance.get(`/public/bank-accounts/list?invoice_id=${id}`)
       setBankAccounts(response.data)
     } catch (error) {
       console.error("Failed to fetch bank accounts", error)
