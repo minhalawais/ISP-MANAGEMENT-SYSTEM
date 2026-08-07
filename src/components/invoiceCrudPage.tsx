@@ -25,6 +25,7 @@ import { UnifiedPaymentModal } from "./modals/UnifiedPaymentModal.tsx"
 import { getToken } from "../utils/auth.ts"
 import { toast } from "react-toastify"
 import axiosInstance from "../utils/axiosConfig.ts"
+import { useCompany } from "../context/CompanyContext.tsx"
 import { getOperationErrorMessage } from "../utils/crudSubmit.ts"
 
 interface CRUDPageProps<T> {
@@ -48,6 +49,7 @@ export function CRUDPage<T extends { id: string }>({
   customHeaderButton,
   refreshTrigger,
 }: CRUDPageProps<T>) {
+  const { company } = useCompany()
   const [data, setData] = useState<T[]>([])
   const [isModalVisible, setIsModalVisible] = useState(false)
   const [editingItem, setEditingItem] = useState<T | null>(null)
@@ -326,7 +328,7 @@ export function CRUDPage<T extends { id: string }>({
         // Public invoice link
         const publicInvoiceUrl = `${window.location.origin}/public/invoice/${invoice.id}`
 
-        // Formatted English-only message
+        const compName = company?.name || 'our service'
         const message = `Hello ${invoice.customer_name},
   
 Your invoice #${invoice.invoice_number} is now available.
@@ -341,7 +343,7 @@ ${publicInvoiceUrl}
 
 Please review your invoice and make the payment if pending.
 
-Thank you for choosing MBA Communications!`
+Thank you for choosing ${compName}!`
 
         // WhatsApp URL
         const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`

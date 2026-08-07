@@ -103,7 +103,7 @@ export function ISPPaymentForm({ formData, handleInputChange, handleSubmit, isEd
   const fetchBankAccounts = async () => {
     try {
       const token = getToken()
-      const response = await axiosInstance.get("/bank-accounts/list", {
+      const response = await axiosInstance.get("/bank-accounts/list?active_only=true", {
         headers: { Authorization: `Bearer ${token}` },
       })
       setBankAccounts(response.data.filter((account: any) => account.is_active))

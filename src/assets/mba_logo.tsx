@@ -4,15 +4,51 @@ import { useCompany } from '../context/CompanyContext.tsx';
 interface MBALogoProps {
   variant?: 'landscape' | 'square' | 'navbar';
   companyName?: string;
+  isLoading?: boolean;
 }
 
-const MBALogo: React.FC<MBALogoProps> = ({ variant = 'landscape', companyName }) => {
+const MBALogo: React.FC<MBALogoProps> = ({ variant = 'landscape', companyName, isLoading }) => {
   const isSquare = variant === 'square';
   const isNavbar = variant === 'navbar';
-  const { company } = useCompany();
+  const { company, loading: contextLoading } = useCompany();
   const contextName = company?.name || '';
 
-  const rawName = (companyName || contextName || 'MBA COMMUNICATIONS').trim();
+  const rawName = (companyName || contextName || '').trim();
+  const hasLoadedName = rawName.length > 0;
+  const loading = isLoading ?? (!hasLoadedName && contextLoading);
+
+  // If company name is not loaded yet, show skeleton pulse loader instead of MBA text
+  if (loading || !hasLoadedName) {
+    if (isNavbar) {
+      return (
+        <div className="flex h-10 items-center">
+          <div className="flex flex-col justify-center space-y-1.5 animate-pulse">
+            <div className="h-3.5 w-28 rounded bg-slate-200" />
+            <div className="h-2.5 w-16 rounded bg-slate-200" />
+          </div>
+        </div>
+      );
+    }
+
+    if (isSquare) {
+      return (
+        <div className="w-full max-w-xs mx-auto flex justify-center py-2">
+          <div className="w-36 h-36 rounded-2xl bg-slate-200/80 animate-pulse flex items-center justify-center">
+            <div className="h-6 w-24 bg-slate-300/70 rounded" />
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="w-full max-w-md animate-pulse space-y-2 py-1">
+        <div className="h-7 w-48 rounded bg-slate-200" />
+        <div className="h-4 w-32 rounded bg-slate-200" />
+        <div className="h-3 w-40 rounded bg-slate-200/60 mt-2" />
+      </div>
+    );
+  }
+
   const upperName = rawName.toUpperCase();
   const words = upperName.split(' ');
 

@@ -41,6 +41,18 @@ interface PendingInvoicesData {
   invoices: PendingInvoice[]
 }
 
+interface CompanyInfo {
+  id: string
+  name: string
+  address?: string
+  contact_number?: string
+  email?: string
+  tagline?: string
+  tax_number?: string
+  invoice_footer_notes?: string
+  logo_url?: string | null
+}
+
 interface InvoiceData {
   id: string
   invoice_number: string
@@ -63,6 +75,7 @@ interface InvoiceData {
   remaining_amount: number
   line_items?: LineItem[]
   pending_invoices?: PendingInvoicesData
+  company?: CompanyInfo
 }
 
 interface PaymentDetails {
@@ -110,11 +123,15 @@ const PublicInvoicePage: React.FC = () => {
   }, [invoiceData])
 
   useEffect(() => {
-    const compName = companyData?.name || invoiceData?.company_name || 'MBA NET'
-    document.title = `${compName} - Invoice`
+    if (!id) return
     fetchInvoiceData()
     fetchBankAccounts()
-  }, [id, companyData, invoiceData])
+  }, [id])
+
+  useEffect(() => {
+    const compName = invoiceData?.company?.name || 'MBA NET'
+    document.title = `${compName} - Invoice`
+  }, [invoiceData?.company?.name])
 
   const fetchInvoiceData = async () => {
     try {
@@ -355,13 +372,15 @@ const PublicInvoicePage: React.FC = () => {
                   )}
                   <div className="h-6 w-px bg-slate-300" />
                   <div className="h-10 w-28 flex items-center">
-                    <MBALogo variant="landscape" />
+                    <MBALogo variant="landscape" companyName={invoiceData?.company?.name} />
                   </div>
                 </div>
                 <p className="font-bold text-[#2A5C8A] text-base">{invoiceData?.company?.name || ""}</p>
-                <p className="text-slate-500 text-xs leading-relaxed whitespace-pre-line">
-                  {invoiceData?.company?.address || "Kharak Stop Overhead Bridge\nCity, Lahore 54000"}
-                </p>
+                {invoiceData?.company?.address && (
+                  <p className="text-slate-500 text-xs leading-relaxed whitespace-pre-line">
+                    {invoiceData.company.address}
+                  </p>
+                )}
                 {invoiceData?.company?.contact_number && (
                   <p className="text-slate-500 text-xs">{invoiceData.company.contact_number}</p>
                 )}
@@ -729,14 +748,16 @@ const PublicInvoicePage: React.FC = () => {
                   {invoiceData.company.invoice_footer_notes}
                 </p>
               )}
-              <p className="text-sm text-slate-500 mb-2">
-                Questions? {invoiceData?.company?.email ? (
-                  <a href={`mailto:${invoiceData.company.email}`} className="text-blue-600 hover:underline">{invoiceData.company.email}</a>
-                ) : (
-                  <a href="mailto:support@Mba.net92@gmail.com" className="text-blue-600 hover:underline">support@Mba.net92@gmail.com</a>
-                )}
-                {invoiceData?.company?.contact_number ? ` • ${invoiceData.company.contact_number}` : ' • 0323 4689090'}
-              </p>
+              {(invoiceData?.company?.email || invoiceData?.company?.contact_number) && (
+                <p className="text-sm text-slate-500 mb-2">
+                  Questions? {invoiceData.company.email && (
+                    <a href={`mailto:${invoiceData.company.email}`} className="text-blue-600 hover:underline">{invoiceData.company.email}</a>
+                  )}
+                  {invoiceData.company.contact_number && (
+                    <span>{invoiceData.company.email ? ' • ' : ''}{invoiceData.company.contact_number}</span>
+                  )}
+                </p>
+              )}
               <p className="text-xs text-slate-400">Invoice generated on {formatDate(new Date().toISOString())}</p>
             </div>
           </div>

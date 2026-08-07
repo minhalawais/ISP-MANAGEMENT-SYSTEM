@@ -123,7 +123,7 @@ const InvoiceGenerationPage: React.FC = () => {
   const fetchBankAccounts = async () => {
     try {
       const token = getToken()
-      const response = await axiosInstance.get("/bank-accounts/list", { headers: { Authorization: `Bearer ${token}` } })
+      const response = await axiosInstance.get("/bank-accounts/list?active_only=true", { headers: { Authorization: `Bearer ${token}` } })
       setBankAccounts(response.data)
     } catch (error) {
       console.error("Failed to fetch bank accounts", error)
@@ -218,8 +218,8 @@ const InvoiceGenerationPage: React.FC = () => {
       else if (phoneNumber.startsWith("3") && phoneNumber.length === 10) { phoneNumber = "92" + phoneNumber }
       else if (phoneNumber.startsWith("0092") && phoneNumber.length === 14) { phoneNumber = phoneNumber.substring(2) }
       else if (phoneNumber.startsWith("+92") && phoneNumber.length === 13) { phoneNumber = phoneNumber.substring(1) }
-      const publicInvoiceUrl = `${window.location.origin}/public/invoice/${invoiceData.id}`
-      const message = `Hello ${invoiceData.customer_name},\n\nYour invoice #${invoiceData.invoice_number} is ready.\n\n📋 Invoice Details:\n• Amount: PKR ${invoiceData.total_amount.toFixed(2)}\n• Due Date: ${formatDate(invoiceData.due_date)}\n• Status: ${invoiceData.status}\n\n📄 View your complete invoice here:\n${publicInvoiceUrl}\n\nPlease review your invoice and make the payment if pending.\n\nThank you for choosing MBA Communications!`
+      const compName = invoiceData?.company?.name || 'our service'
+      const message = `Hello ${invoiceData.customer_name},\n\nYour invoice #${invoiceData.invoice_number} is ready.\n\n📋 Invoice Details:\n• Amount: PKR ${invoiceData.total_amount.toFixed(2)}\n• Due Date: ${formatDate(invoiceData.due_date)}\n• Status: ${invoiceData.status}\n\n📄 View your complete invoice here:\n${publicInvoiceUrl}\n\nPlease review your invoice and make the payment if pending.\n\nThank you for choosing ${compName}!`
       const whatsappAppUrl = `whatsapp://send?phone=${phoneNumber}&text=${encodeURIComponent(message)}`
       const whatsappWebUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`
       window.location.href = whatsappAppUrl
@@ -332,13 +332,15 @@ const InvoiceGenerationPage: React.FC = () => {
                       )}
                       <div className="h-6 w-px bg-slate-300" />
                       <div className="h-10 w-28 flex items-center">
-                        <MBALogo variant="landscape" />
+                        <MBALogo variant="landscape" companyName={invoiceData?.company?.name} />
                       </div>
                     </div>
                     <p className="font-bold text-[#2A5C8A] text-base">{invoiceData?.company?.name || ""}</p>
-                    <p className="text-slate-500 text-xs leading-relaxed whitespace-pre-line">
-                      {invoiceData?.company?.address || "Kharak Stop Overhead Bridge\nCity, Lahore 54000"}
-                    </p>
+                    {invoiceData?.company?.address && (
+                      <p className="text-slate-500 text-xs leading-relaxed whitespace-pre-line">
+                        {invoiceData.company.address}
+                      </p>
+                    )}
                     {invoiceData?.company?.contact_number && (
                       <p className="text-slate-500 text-xs">{invoiceData.company.contact_number}</p>
                     )}
@@ -585,14 +587,16 @@ const InvoiceGenerationPage: React.FC = () => {
                       {invoiceData.company.invoice_footer_notes}
                     </p>
                   )}
-                  <p className="text-sm text-slate-500 mb-2">
-                    Questions? {invoiceData?.company?.email ? (
-                      <a href={`mailto:${invoiceData.company.email}`} className="text-blue-600 hover:underline">{invoiceData.company.email}</a>
-                    ) : (
-                      <a href="mailto:support@Mba.net92@gmail.com" className="text-blue-600 hover:underline">support@Mba.net92@gmail.com</a>
-                    )}
-                    {invoiceData?.company?.contact_number ? ` • ${invoiceData.company.contact_number}` : ' • 0323 4689090'}
-                  </p>
+                  {(invoiceData?.company?.email || invoiceData?.company?.contact_number) && (
+                    <p className="text-sm text-slate-500 mb-2">
+                      Questions? {invoiceData.company.email && (
+                        <a href={`mailto:${invoiceData.company.email}`} className="text-blue-600 hover:underline">{invoiceData.company.email}</a>
+                      )}
+                      {invoiceData.company.contact_number && (
+                        <span>{invoiceData.company.email ? ' • ' : ''}{invoiceData.company.contact_number}</span>
+                      )}
+                    </p>
+                  )}
                   <p className="text-xs text-slate-400">Invoice generated on {formatDate(new Date().toISOString())}</p>
                 </div>
               </div>
