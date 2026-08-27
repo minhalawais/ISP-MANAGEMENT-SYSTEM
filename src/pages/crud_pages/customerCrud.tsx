@@ -7,6 +7,7 @@ import { CRUDPage } from "../../components/customerCrudPage.tsx"
 import { CustomerForm } from "../../components/forms/customerForm.tsx"
 import { ImageViewerModal, useImageViewer } from "../../components/modals/ImageViewerModal.tsx"
 import axiosInstance from "../../utils/axiosConfig.ts"
+import { Link } from "react-router-dom"
 import { Eye, FileText } from "lucide-react"
 import { useCompany } from "../../context/CompanyContext.tsx"
 
@@ -33,6 +34,7 @@ interface Customer {
   cnic_back_image: string | null
   gps_coordinates: string | null
   agreement_document: string | null
+  has_portal_credentials?: boolean
 }
 
 const CustomerManagement: React.FC = () => {
@@ -48,10 +50,28 @@ const CustomerManagement: React.FC = () => {
       {
         header: "Internet ID",
         accessorKey: "internet_id",
+        cell: (info) => (
+          <Link
+            to={`/customers/${info.row.original.id}`}
+            className="text-electric-blue font-medium hover:underline whitespace-nowrap text-sm"
+            title={`View profile for ${info.getValue() as string}`}
+          >
+            {info.getValue() as string}
+          </Link>
+        ),
       },
       {
         header: "Name",
         accessorFn: (row) => row.name || `${row.first_name || ''} ${row.last_name || ''}`.trim(),
+        cell: (info) => (
+          <Link
+            to={`/customers/${info.row.original.id}`}
+            className="text-electric-blue font-medium hover:underline text-sm"
+            title="View profile"
+          >
+            {info.getValue() as string}
+          </Link>
+        ),
       },
       {
         header: "Phone 1",
@@ -107,9 +127,9 @@ const CustomerManagement: React.FC = () => {
                   `CNIC Front - ${info.row.original.first_name} ${info.row.original.last_name}`,
                   axiosInstance
                 )}
-                className="px-3 py-1.5 bg-electric-blue text-white text-xs font-medium rounded-full flex items-center gap-1.5 hover:bg-btn-hover transition-colors"
+                className="px-2 py-1 bg-electric-blue text-white text-xs font-medium rounded-md inline-flex items-center gap-1 hover:bg-btn-hover transition-colors"
               >
-                <Eye className="h-3.5 w-3.5" />
+                <Eye className="h-3 w-3" />
                 View
               </button>
             ) : (
@@ -130,9 +150,9 @@ const CustomerManagement: React.FC = () => {
                   `CNIC Back - ${info.row.original.first_name} ${info.row.original.last_name}`,
                   axiosInstance
                 )}
-                className="px-3 py-1.5 bg-electric-blue text-white text-xs font-medium rounded-full flex items-center gap-1.5 hover:bg-btn-hover transition-colors"
+                className="px-2 py-1 bg-electric-blue text-white text-xs font-medium rounded-md inline-flex items-center gap-1 hover:bg-btn-hover transition-colors"
               >
-                <Eye className="h-3.5 w-3.5" />
+                <Eye className="h-3 w-3" />
                 View
               </button>
             ) : (
@@ -153,7 +173,7 @@ const CustomerManagement: React.FC = () => {
                   `Agreement - ${info.row.original.first_name} ${info.row.original.last_name}`,
                   axiosInstance
                 )}
-                className="px-3 py-1.5 bg-electric-blue text-white text-xs font-medium rounded-full flex items-center gap-1.5 hover:bg-btn-hover transition-colors"
+                className="px-2 py-1 bg-electric-blue text-white text-xs font-medium rounded-md inline-flex items-center gap-1 hover:bg-btn-hover transition-colors"
               >
                 <FileText className="h-3.5 w-3.5" />
                 View

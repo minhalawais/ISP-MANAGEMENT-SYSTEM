@@ -268,68 +268,53 @@ export const FinancialKPIs: React.FC<FinancialKPIsProps> = ({ data }) => {
   }, [data])
 
   return (
-    <motion.div 
-      className="mb-6"
-      variants={containerVariants}
-      initial="hidden"
-      animate="visible"
-    >
-      {/* Responsive grid layout */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 mb-4">
+    <div className="mb-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 mb-3">
         {kpis.slice(0, 5).map((kpi, index) => {
           const IconComponent = kpi.icon
           return (
-            <motion.div
+            <div
               key={index}
-              variants={itemVariants}
-              className={`bg-white rounded-2xl border ${kpi.borderColor} p-6 hover:shadow-lg transition-all duration-300 ease-in-out group backdrop-blur-sm bg-white/90`}
+              className={`bg-white rounded-xl border ${kpi.borderColor} p-3 shadow-sm`}
             >
-              <div className="flex items-start justify-between mb-4">
+              <div className="flex items-center gap-2.5 mb-2">
                 <div
-                  className={`w-12 h-12 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 ${kpi.bgColor}`}
+                  className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${kpi.bgColor}`}
                   style={{ backgroundColor: kpi.color }}
                 >
-                  <IconComponent className="w-6 h-6 text-white" />
+                  <IconComponent className="w-4 h-4 text-white" />
                 </div>
+                <h3 className="text-xs font-medium text-gray-600 leading-tight">{kpi.title}</h3>
               </div>
-              <div>
-                <h3 className="text-sm font-semibold text-gray-600 mb-2 leading-tight">{kpi.title}</h3>
-                <p className="text-2xl font-bold text-gray-900 mb-1 leading-none">{kpi.value}</p>
-                <p className="text-xs text-gray-500 leading-tight">{kpi.description}</p>
-              </div>
-            </motion.div>
+              <p className="text-xl font-semibold text-gray-900 leading-none">{kpi.value}</p>
+            </div>
           )
         })}
       </div>
-      
-      {/* Second row - responsive grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         {kpis.slice(5).map((kpi, index) => {
           const IconComponent = kpi.icon
           return (
-            <motion.div
+            <div
               key={index + 5}
-              variants={itemVariants}
-              className={`bg-white rounded-2xl border ${kpi.borderColor} p-6 hover:shadow-lg transition-all duration-300 ease-in-out group backdrop-blur-sm bg-white/90`}
+              className={`bg-white rounded-xl border ${kpi.borderColor} p-3 shadow-sm`}
             >
-              <div className="flex items-start justify-between mb-4">
+              <div className="flex items-center gap-2.5 mb-2">
                 <div
-                  className={`w-12 h-12 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 ${kpi.bgColor}`}
+                  className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${kpi.bgColor}`}
                   style={{ backgroundColor: kpi.color }}
                 >
-                  <IconComponent className="w-6 h-6 text-white" />
+                  <IconComponent className="w-4 h-4 text-white" />
                 </div>
+                <h3 className="text-xs font-medium text-gray-600 leading-tight">{kpi.title}</h3>
               </div>
-              <div>
-                <h3 className="text-sm font-semibold text-gray-600 mb-2 leading-tight">{kpi.title}</h3>
-                <p className="text-2xl font-bold text-gray-900 mb-1 leading-none">{kpi.value}</p>
-                <p className="text-xs text-gray-500 leading-tight">{kpi.description}</p>
-              </div>
-            </motion.div>
+              <p className="text-xl font-semibold text-gray-900 leading-none">{kpi.value}</p>
+            </div>
           )
         })}
       </div>
-    </motion.div>
+    </div>
   )
 }
 
@@ -397,13 +382,13 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
 
   return (
     <motion.div 
-      className="bg-white rounded-2xl border border-gray-200 p-6 mb-6 shadow-sm hover:shadow-md transition-all duration-300 ease-in-out"
+      className="bg-white rounded-xl border border-gray-200 p-4 mb-3 shadow-sm hover:shadow-md transition-all duration-300 ease-in-out"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
     >
       {/* Header */}
-      <div className="flex items-center mb-6 pb-4 border-b border-gray-100">
+      <div className="flex items-center mb-3 pb-4 border-b border-gray-100">
         <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center mr-3">
           <IconFilter className="w-5 h-5 text-primary" />
         </div>
@@ -414,7 +399,7 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
       </div>
 
       {/* Quick Filters */}
-      <div className="mb-6">
+      <div className="mb-3">
         <label className="text-sm font-semibold text-gray-700 mb-3 flex items-center">
           <IconCalendar className="w-4 h-4 mr-2 text-primary" />
           Quick Time Periods

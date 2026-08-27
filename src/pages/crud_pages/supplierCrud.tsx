@@ -55,6 +55,7 @@ const SupplierManagement: React.FC = () => {
     <CRUDPage<Supplier>
       title="Supplier"
       endpoint="suppliers"
+      filterModuleKey="supplier"
       columns={columns}
       FormComponent={SupplierForm}
     />

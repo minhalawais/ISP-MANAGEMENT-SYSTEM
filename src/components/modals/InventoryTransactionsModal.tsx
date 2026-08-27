@@ -5,7 +5,7 @@ import { useState, useEffect } from "react"
 import { Modal } from "../modal.tsx"
 import axiosInstance from "../../utils/axiosConfig.ts"
 import { getToken } from "../../utils/auth.ts"
-import { toast } from "react-toastify"
+import { toast } from "../../utils/notify.ts";
 import { Plus, Minus } from "lucide-react"
 
 interface InventoryTransaction {

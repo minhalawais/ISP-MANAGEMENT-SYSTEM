@@ -2,11 +2,13 @@
 
 import type React from "react"
 import { useState, useEffect } from "react"
-import { Menu, Bell, User, ChevronDown, Settings, LogOut } from "lucide-react"
+import { Menu, User, ChevronDown, Settings, LogOut } from "lucide-react"
 import { getToken, removeToken, getAssetUrl } from "../utils/auth.ts"
 import { useNavigate } from "react-router-dom"
 import axiosInstance from "../utils/axiosConfig.ts"
 import MBALogo from "../assets/mba_logo.tsx"
+import { LOGIN_ROUTE } from "../utils/authRedirects.ts"
+import { NotificationBell } from "./notifications/NotificationBell.tsx"
 
 import { useCompany } from "../context/CompanyContext.tsx"
 
@@ -48,18 +50,21 @@ export const Topbar: React.FC<TopbarProps> = ({ toggleSidebar }) => {
       removeToken()
       localStorage.clear()
       setIsProfileOpen(false)
-      navigate("/login")
+      navigate(LOGIN_ROUTE)
     }
   }
 
   return (
-    <nav className="bg-white shadow-sm fixed w-full z-40 border-b border-[#EBF5FF]">
-      <div className="max-w mx-2 px-2 sm:px-2 lg:px-2">
+    <nav className="bg-white shadow-sm fixed top-0 left-0 right-0 z-40 border-b border-[#EBF5FF]">
+      <div className="px-2 sm:px-3">
         <div className="flex items-center justify-between h-14">
-          <div className="flex items-center">
+          <div className="flex items-center min-w-0">
             <button
+              type="button"
               onClick={toggleSidebar}
-              className="p-2 rounded-md text-[#4A5568] hover:bg-[#EBF5FF] transition-colors duration-200 mr-2"
+              aria-label="Toggle sidebar"
+              title="Expand or collapse sidebar"
+              className="p-2 rounded-md text-[#4A5568] hover:bg-[#EBF5FF] transition-colors duration-200 mr-2 flex-shrink-0"
             >
               <Menu className="h-5 w-5" />
             </button>
@@ -83,11 +88,7 @@ export const Topbar: React.FC<TopbarProps> = ({ toggleSidebar }) => {
           </div>
 
           <div className="flex items-center space-x-6">
-            <button className="relative p-2 text-[#4A5568] hover:bg-[#EBF5FF] rounded-full transition-colors duration-200">
-              <Bell className="h-5 w-5" />
-              <span className="absolute top-0 right-0 h-2 w-2 bg-[#EF4444] rounded-full"></span>
-            </button>
-
+            <NotificationBell />
             <div className="relative">
               <button
                 className="flex items-center space-x-3 text-[#4A5568] hover:bg-[#EBF5FF] p-2 rounded-lg transition-colors duration-200"

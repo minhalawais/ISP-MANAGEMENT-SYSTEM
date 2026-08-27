@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState, useRef, useEffect, useCallback } from "react"
+import { useState, useRef, useEffect, useCallback, useMemo } from "react"
 import { Link, useLocation, useNavigate } from "react-router-dom"
 import {
   Users,
@@ -34,123 +34,170 @@ import {
   Wrench,
   MapPin,
   Store,
-  Shield
+  Shield,
 } from "lucide-react"
 import { removeToken } from "../utils/auth.ts"
 import axiosInstance from "../utils/axiosConfig.ts"
+import { LOGIN_ROUTE } from "../utils/authRedirects.ts"
+import { isAnyPathActive, isPathActive } from "../utils/sidebarNav.ts"
 
-// Storage keys for persistent state
 const SIDEBAR_OPEN_DROPDOWNS_KEY = "sidebar_open_dropdowns"
 const SIDEBAR_SCROLL_POSITION_KEY = "sidebar_scroll_position"
 
-// Grouped menu structure with dropdowns - User requested order
-export const menuItems = [
-  // 1. Reporting & Analytics
+export type SidebarLeaf = {
+  title: string
+  path: string
+  icon: React.ComponentType<{ className?: string }>
+}
+
+export type SidebarGroup = {
+  id: string
+  title: string
+  icon: React.ComponentType<{ className?: string }>
+  isDropdown: true
+  subItems: SidebarLeaf[]
+}
+
+export type SidebarLink = {
+  id: string
+  title: string
+  icon: React.ComponentType<{ className?: string }>
+  isDropdown?: false
+  path: string
+}
+
+export type SidebarItem = SidebarGroup | SidebarLink
+
+export const pinnedItems: SidebarLeaf[] = [
+  { title: "Executive Overview", path: "/reporting/executive", icon: PieChart },
+  { title: "Customers", path: "/customer-management", icon: Users },
+  { title: "Billing & Invoices", path: "/billing-invoices", icon: Receipt },
+  { title: "Payments", path: "/payment-management", icon: CreditCard },
+  { title: "Complaints", path: "/complaint-management", icon: AlertCircle },
+]
+
+export const menuItems: SidebarItem[] = [
   {
-    title: "Reporting & Analytics",
+    id: "reporting",
+    title: "Reporting",
     icon: BarChart,
-    description: "Comprehensive business intelligence",
     isDropdown: true,
     subItems: [
-      { title: "Executive Overview", description: "High-level business summary", path: "/reporting/executive", icon: PieChart },
-      { title: "Customer Analytics", description: "Customer insights & trends", path: "/reporting/customers", icon: Users },
-      { title: "Financial Analytics", description: "Revenue & financial metrics", path: "/reporting/financial", icon: DollarSign },
-      { title: "Service & Support", description: "Support performance metrics", path: "/reporting/service", icon: Wrench },
-      { title: "Inventory Analytics", description: "Stock & equipment analysis", path: "/reporting/inventory", icon: Package },
-      { title: "Employee Performance", description: "Staff productivity metrics", path: "/reporting/employees", icon: UserCheck },
-      { title: "Regional Analysis", description: "Geographic performance", path: "/reporting/regional", icon: MapPin },
-      { title: "Service Plans", description: "Plan performance & trends", path: "/reporting/plans", icon: FileText },
-      { title: "Collections", description: "Recovery & collection tracking", path: "/reporting/collections", icon: Wallet },
-      { title: "Operations", description: "Operational efficiency", path: "/reporting/operations", icon: Activity },
-    ]
+      { title: "Executive Overview", path: "/reporting/executive", icon: PieChart },
+      { title: "Customer Analytics", path: "/reporting/customers", icon: Users },
+      { title: "Financial Analytics", path: "/reporting/financial", icon: DollarSign },
+      { title: "Service & Support", path: "/reporting/service", icon: Wrench },
+      { title: "Inventory Analytics", path: "/reporting/inventory", icon: Package },
+      { title: "Employee Performance", path: "/reporting/employees", icon: UserCheck },
+      { title: "Regional Analysis", path: "/reporting/regional", icon: MapPin },
+      { title: "Service Plans", path: "/reporting/plans", icon: FileText },
+      { title: "Collections", path: "/reporting/collections", icon: Wallet },
+      { title: "Operations", path: "/reporting/operations", icon: Activity },
+    ],
   },
-  // 2. Vendor & Employee Management
   {
-    title: "Vendor & Employee Management",
+    id: "people",
+    title: "People & Vendors",
     icon: Briefcase,
-    description: "Vendors, employees & suppliers",
     isDropdown: true,
     subItems: [
-      { title: "Employee Management", description: "Manage staff records", path: "/employee-management", icon: Users },
-      { title: "Vendor Management", description: "Manage vendor profiles", path: "/vendor-management", icon: Store },
-      { title: "Supplier Management", description: "Supplier relationships", path: "/supplier-management", icon: Truck },
-      { title: "ISP Management", description: "ISP company details", path: "/isp-management", icon: Network },
-    ]
+      { title: "Employee Management", path: "/employee-management", icon: Users },
+      { title: "Vendor Management", path: "/vendor-management", icon: Store },
+      { title: "Supplier Management", path: "/supplier-management", icon: Truck },
+      { title: "ISP Management", path: "/isp-management", icon: Network },
+    ],
   },
-  // 3. Customer Management
   {
-    title: "Customer Management",
+    id: "customers",
+    title: "Customers",
     icon: Users,
-    description: "Customers & service plans",
     isDropdown: true,
     subItems: [
-      { title: "Customer Management", description: "Customer relationships", path: "/customer-management", icon: Users },
-      { title: "Service Plan Management", description: "Manage service plans", path: "/service-plan-management", icon: FileText },
-    ]
+      { title: "Customer Management", path: "/customer-management", icon: Users },
+      { title: "Service Plan Management", path: "/service-plan-management", icon: FileText },
+    ],
   },
-  // 4. Payments
   {
+    id: "payments",
     title: "Payments",
     icon: DollarSign,
-    description: "Payments, billing & finances",
     isDropdown: true,
     subItems: [
-      { title: "Payment Management", description: "Track customer payments", path: "/payment-management", icon: CreditCard },
-      { title: "ISP Payments", description: "ISP payment tracking", path: "/isp-payment-management", icon: Network },
-      { title: "Billing & Invoices", description: "Invoice management", path: "/billing-invoices", icon: Receipt },
-      { title: "Bank Accounts", description: "Bank account management", path: "/bank-management", icon: Banknote },
-      { title: "Expense Management", description: "Track expenses", path: "/expense-management", icon: DollarSign },
-      { title: "Extra Income", description: "Additional income sources", path: "/extra-income-management", icon: TrendingUp },
-    ]
+      { title: "Payment Management", path: "/payment-management", icon: CreditCard },
+      { title: "ISP Payments", path: "/isp-payment-management", icon: Network },
+      { title: "Billing & Invoices", path: "/billing-invoices", icon: Receipt },
+      { title: "Bank Accounts", path: "/bank-management", icon: Banknote },
+      { title: "Expense Management", path: "/expense-management", icon: DollarSign },
+      { title: "Extra Income", path: "/extra-income-management", icon: TrendingUp },
+    ],
   },
-  // 5. Complaint Management
   {
-    title: "Complaint Management",
+    id: "ops",
+    title: "Ops",
     icon: AlertCircle,
-    description: "Complaints, tasks & recovery",
     isDropdown: true,
     subItems: [
-      { title: "Complaint Management", description: "Resolve customer issues", path: "/complaint-management", icon: AlertCircle },
-      { title: "Task Management", description: "Organize tasks", path: "/task-management", icon: CheckSquare },
-      { title: "Recovery Tasks", description: "Recovery tracking", path: "/recovery-task-management", icon: UserCheck },
-    ]
+      { title: "Complaint Management", path: "/complaint-management", icon: AlertCircle },
+      { title: "Task Management", path: "/task-management", icon: CheckSquare },
+      { title: "Recovery Tasks", path: "/recovery-task-management", icon: UserCheck },
+    ],
   },
-  // 6. Inventory Management
   {
-    title: "Inventory Management",
+    id: "inventory",
+    title: "Inventory",
     icon: Package,
-    description: "Stock & equipment tracking",
-    isDropdown: true,
-    subItems: [
-      { title: "Inventory Management", description: "Stock management", path: "/inventory-management", icon: Package },
-    ]
+    path: "/inventory-management",
   },
-  // 7. Area Zone Management
   {
-    title: "Area Zone Management",
+    id: "areas",
+    title: "Areas",
     icon: Map,
-    description: "Areas & sub-zones",
     isDropdown: true,
     subItems: [
-      { title: "Area/Zone Management", description: "Manage main areas", path: "/area-zone-management", icon: Map },
-      { title: "Sub-Zones", description: "Manage sub-zones", path: "/areas", icon: Layers },
-    ]
+      { title: "Area/Zone Management", path: "/area-zone-management", icon: Map },
+      { title: "Sub-Zones", path: "/areas", icon: Layers },
+    ],
   },
-  // 8. Admin
   {
+    id: "admin",
     title: "Admin",
     icon: Shield,
-    description: "Messaging, logs & settings",
     isDropdown: true,
     subItems: [
-      { title: "Messaging", description: "Internal messaging", path: "/message-management", icon: MessageSquare },
-      { title: "WhatsApp Queue", description: "Message queue", path: "/whatsapp/queue", icon: MessageSquare },
-      { title: "Bulk Sender", description: "Send bulk messages", path: "/whatsapp/bulk-sender", icon: MessageSquare },
-      { title: "WhatsApp Settings", description: "Configure WhatsApp", path: "/whatsapp/settings", icon: Settings },
-      { title: "Logs Management", description: "View system logs", path: "/logs-management", icon: Clipboard },
-    ]
+      { title: "Messaging", path: "/message-management", icon: MessageSquare },
+      { title: "WhatsApp Queue", path: "/whatsapp/queue", icon: MessageSquare },
+      { title: "Bulk Sender", path: "/whatsapp/bulk-sender", icon: MessageSquare },
+      { title: "WhatsApp Settings", path: "/whatsapp/settings", icon: Settings },
+      { title: "Logs Management", path: "/logs-management", icon: Clipboard },
+    ],
   },
 ]
+
+function isGroup(item: SidebarItem): item is SidebarGroup {
+  return item.isDropdown === true
+}
+
+function groupPaths(item: SidebarGroup): string[] {
+  return item.subItems.map((s) => s.path)
+}
+
+function readOpenDropdowns(): string[] {
+  try {
+    const saved = localStorage.getItem(SIDEBAR_OPEN_DROPDOWNS_KEY)
+    return saved ? JSON.parse(saved) : []
+  } catch {
+    return []
+  }
+}
+
+function readScrollPosition(): number {
+  try {
+    const saved = localStorage.getItem(SIDEBAR_SCROLL_POSITION_KEY)
+    return saved ? parseInt(saved, 10) || 0 : 0
+  } catch {
+    return 0
+  }
+}
 
 interface SidebarProps {
   isOpen: boolean
@@ -158,127 +205,264 @@ interface SidebarProps {
   setIsOpen?: React.Dispatch<React.SetStateAction<boolean>>
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar, setIsOpen }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
   const [searchQuery, setSearchQuery] = useState("")
   const location = useLocation()
-  const [isHovered, setIsHovered] = useState(false)
   const navRef = useRef<HTMLElement>(null)
+  const flyoutRef = useRef<HTMLDivElement>(null)
+  const flyoutCloseTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const navigate = useNavigate()
   const [isMobile, setIsMobile] = useState(false)
+  const [flyoutId, setFlyoutId] = useState<string | null>(null)
+  const [flyoutTop, setFlyoutTop] = useState(56)
+  const [openDropdowns, setOpenDropdowns] = useState<string[]>(readOpenDropdowns)
+  const persistedOpenRef = useRef<string[]>(readOpenDropdowns())
+  const scrollRestoredRef = useRef(false)
 
-  // Initialize open dropdowns from localStorage (empty array = all closed by default)
-  const [openDropdowns, setOpenDropdowns] = useState<string[]>(() => {
-    try {
-      const saved = localStorage.getItem(SIDEBAR_OPEN_DROPDOWNS_KEY)
-      return saved ? JSON.parse(saved) : []
-    } catch {
-      return []
+  const expanded = isMobile ? isOpen : isOpen
+
+  const clearFlyoutCloseTimer = () => {
+    if (flyoutCloseTimer.current) {
+      clearTimeout(flyoutCloseTimer.current)
+      flyoutCloseTimer.current = null
     }
-  })
+  }
 
-  // Initialize scroll position from localStorage
-  const [scrollPosition, setScrollPosition] = useState(() => {
-    try {
-      const saved = localStorage.getItem(SIDEBAR_SCROLL_POSITION_KEY)
-      return saved ? parseInt(saved, 10) : 0
-    } catch {
-      return 0
-    }
-  })
+  /** Align flyout top with the hovered/clicked icon; clamp so it stays on-screen. */
+  const positionFlyout = (anchor: HTMLElement | null) => {
+    if (!anchor) return
+    const rect = anchor.getBoundingClientRect()
+    const estimatedH = flyoutRef.current?.offsetHeight ?? 160
+    const maxTop = Math.max(56, window.innerHeight - estimatedH - 8)
+    setFlyoutTop(Math.min(Math.max(rect.top, 56), maxTop))
+  }
 
-  // Persist open dropdowns to localStorage
+  const openFlyout = (id: string, anchor?: HTMLElement | null) => {
+    clearFlyoutCloseTimer()
+    if (anchor) positionFlyout(anchor)
+    setFlyoutId(id)
+  }
+
+  const scheduleFlyoutClose = () => {
+    clearFlyoutCloseTimer()
+    flyoutCloseTimer.current = setTimeout(() => setFlyoutId(null), 180)
+  }
+
+  useEffect(() => () => clearFlyoutCloseTimer(), [])
+
+  // Re-clamp after flyout paints (real height known)
+  useEffect(() => {
+    if (!flyoutId || !flyoutRef.current) return
+    const el = flyoutRef.current
+    const h = el.offsetHeight
+    const maxTop = Math.max(56, window.innerHeight - h - 8)
+    const clamped = Math.min(Math.max(flyoutTop, 56), maxTop)
+    if (clamped !== flyoutTop) setFlyoutTop(clamped)
+  }, [flyoutId, flyoutTop])
+
   useEffect(() => {
     try {
       localStorage.setItem(SIDEBAR_OPEN_DROPDOWNS_KEY, JSON.stringify(openDropdowns))
-    } catch (e) {
-      console.error("Failed to save sidebar state:", e)
+      if (!searchQuery.trim()) persistedOpenRef.current = openDropdowns
+    } catch {
+      // ignore
     }
-  }, [openDropdowns])
+  }, [openDropdowns, searchQuery])
 
-  // Persist scroll position to localStorage (save only, no auto-restore to prevent auto-scroll fighting)
   const saveScrollPosition = useCallback(() => {
-    if (navRef.current) {
-      const position = navRef.current.scrollTop
-      setScrollPosition(position)
-      try {
-        localStorage.setItem(SIDEBAR_SCROLL_POSITION_KEY, position.toString())
-      } catch (e) {
-        console.error("Failed to save scroll position:", e)
-      }
+    if (!navRef.current) return
+    const position = navRef.current.scrollTop
+    try {
+      localStorage.setItem(SIDEBAR_SCROLL_POSITION_KEY, String(position))
+    } catch {
+      // ignore
     }
   }, [])
 
-  // Filter menu items based on search
-  const filteredMenuItems = menuItems.filter((item) => {
-    if (item.title.toLowerCase().includes(searchQuery.toLowerCase())) return true
-    if (item.subItems?.some(sub => sub.title.toLowerCase().includes(searchQuery.toLowerCase()))) return true
-    return false
-  })
+  const restoreScrollPosition = useCallback(() => {
+    if (!navRef.current) return
+    navRef.current.scrollTop = readScrollPosition()
+  }, [])
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 1024)
+    checkMobile()
+    window.addEventListener("resize", checkMobile)
+    return () => window.removeEventListener("resize", checkMobile)
+  }, [])
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (isMobile && isOpen && setIsOpen) {
+        const sidebar = document.getElementById("sidebar")
+        if (sidebar && !sidebar.contains(event.target as Node)) {
+          setIsOpen(false)
+        }
+      }
+      if (flyoutId && flyoutRef.current && !flyoutRef.current.contains(event.target as Node)) {
+        const sidebar = document.getElementById("sidebar")
+        if (sidebar && sidebar.contains(event.target as Node)) return
+        setFlyoutId(null)
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [isMobile, isOpen, setIsOpen, flyoutId])
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setFlyoutId(null)
+    }
+    document.addEventListener("keydown", onKey)
+    return () => document.removeEventListener("keydown", onKey)
+  }, [])
+
+  useEffect(() => {
+    setFlyoutId(null)
+  }, [location.pathname])
+
+  // Auto-expand group for current route
+  useEffect(() => {
+    const activeGroup = menuItems.find(
+      (item) => isGroup(item) && isAnyPathActive(location.pathname, groupPaths(item)),
+    )
+    if (activeGroup && isGroup(activeGroup)) {
+      setOpenDropdowns((prev) =>
+        prev.includes(activeGroup.id) ? prev : [...prev, activeGroup.id],
+      )
+    }
+  }, [location.pathname])
+
+  // Restore scroll when expanded / mounted
+  useEffect(() => {
+    if (!expanded && !isMobile) return
+    const id = requestAnimationFrame(() => {
+      restoreScrollPosition()
+      scrollRestoredRef.current = true
+      const active = navRef.current?.querySelector("[data-sidebar-active='true']")
+      if (active && typeof (active as HTMLElement).scrollIntoView === "function") {
+        ;(active as HTMLElement).scrollIntoView({ block: "nearest" })
+      }
+    })
+    return () => cancelAnimationFrame(id)
+  }, [expanded, isMobile, location.pathname, restoreScrollPosition, openDropdowns])
+
+  const q = searchQuery.trim().toLowerCase()
+
+  // Search: auto-open matching groups
+  useEffect(() => {
+    if (!q) {
+      setOpenDropdowns(persistedOpenRef.current)
+      return
+    }
+    const matchIds = menuItems
+      .filter((item) => {
+        if (!isGroup(item)) {
+          return item.title.toLowerCase().includes(q)
+        }
+        if (item.title.toLowerCase().includes(q)) return true
+        return item.subItems.some((s) => s.title.toLowerCase().includes(q))
+      })
+      .map((item) => item.id)
+    setOpenDropdowns(matchIds)
+  }, [q])
+
+  const filteredMenuItems = useMemo(() => {
+    if (!q) return menuItems
+    return menuItems.filter((item) => {
+      if (!isGroup(item)) return item.title.toLowerCase().includes(q)
+      if (item.title.toLowerCase().includes(q)) return true
+      return item.subItems.some((s) => s.title.toLowerCase().includes(q))
+    })
+  }, [q])
+
+  const filteredPinned = useMemo(() => {
+    if (!q) return pinnedItems
+    return pinnedItems.filter((p) => p.title.toLowerCase().includes(q))
+  }, [q])
 
   const handleLogout = async () => {
     try {
       await axiosInstance.post("/auth/logout")
       removeToken()
-      navigate("/login")
+      navigate(LOGIN_ROUTE)
     } catch (error) {
       console.error("Logout failed", error)
     }
   }
 
-  const toggleDropdown = (title: string) => {
-    setOpenDropdowns(prev =>
-      prev.includes(title)
-        ? prev.filter(t => t !== title)
-        : [...prev, title]
+  const toggleDropdown = (id: string) => {
+    setOpenDropdowns((prev) =>
+      prev.includes(id) ? prev.filter((t) => t !== id) : [...prev, id],
     )
   }
 
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 1024)
-    }
-
-    checkMobile()
-    window.addEventListener('resize', checkMobile)
-
-    return () => window.removeEventListener('resize', checkMobile)
-  }, [])
-
-  // Close sidebar when clicking outside on mobile
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (isMobile && isOpen && setIsOpen) {
-        const sidebar = document.getElementById('sidebar')
-        if (sidebar && !sidebar.contains(event.target as Node)) {
-          setIsOpen(false)
-        }
-      }
-    }
-
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [isMobile, isOpen, setIsOpen])
-
   const handleLinkClick = () => {
-    if (isMobile && setIsOpen) {
-      setIsOpen(false)
-    }
     saveScrollPosition()
+    setFlyoutId(null)
+    if (isMobile && setIsOpen) setIsOpen(false)
   }
 
-  // Check if any sub-item is active for a dropdown
-  const isDropdownActive = (item: typeof menuItems[0]) => {
-    return item.subItems?.some(sub => location.pathname === sub.path)
+  const flyoutGroup = useMemo(() => {
+    if (!flyoutId) return null
+    const item = menuItems.find((m) => m.id === flyoutId)
+    return item && isGroup(item) ? item : null
+  }, [flyoutId])
+
+  const renderLeafLink = (sub: SidebarLeaf, opts?: { inFlyout?: boolean }) => {
+    const SubIcon = sub.icon
+    const active = isPathActive(location.pathname, sub.path)
+    return (
+      <Link
+        key={sub.path}
+        to={sub.path}
+        data-sidebar-active={active ? "true" : undefined}
+        className={`group flex items-center px-2.5 py-1.5 rounded-md transition-colors duration-150 text-sm ${
+          active
+            ? "bg-blue-50 text-blue-700"
+            : "text-slate-600 hover:bg-slate-50 hover:text-slate-800"
+        } ${opts?.inFlyout ? "w-full" : ""}`}
+        onClick={handleLinkClick}
+      >
+        <SubIcon
+          className={`h-4 w-4 mr-2.5 flex-shrink-0 ${
+            active ? "text-blue-600" : "text-slate-400 group-hover:text-slate-600"
+          }`}
+        />
+        <span className={`font-medium truncate ${active ? "text-blue-700" : ""}`}>{sub.title}</span>
+      </Link>
+    )
   }
 
-  const shouldExpand = isMobile ? isOpen : (isOpen || isHovered)
+  const onCollapsedIconClick = (item: SidebarItem, anchor: HTMLElement) => {
+    if (!isGroup(item)) {
+      navigate(item.path)
+      handleLinkClick()
+      return
+    }
+    if (item.subItems.length === 1) {
+      navigate(item.subItems[0].path)
+      handleLinkClick()
+      return
+    }
+    if (flyoutId === item.id) {
+      setFlyoutId(null)
+      return
+    }
+    positionFlyout(anchor)
+    setFlyoutId(item.id)
+  }
+
+  const onCollapsedIconEnter = (item: SidebarItem, anchor: HTMLElement) => {
+    if (!isGroup(item) || item.subItems.length <= 1) return
+    openFlyout(item.id, anchor)
+  }
 
   return (
     <>
-      {/* Overlay for mobile */}
       {isMobile && isOpen && (
         <div
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 lg:hidden transition-opacity duration-300"
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 lg:hidden"
           onClick={() => setIsOpen && setIsOpen(false)}
         />
       )}
@@ -286,173 +470,176 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar, setIsOp
       <aside
         id="sidebar"
         className={`
-          bg-gradient-to-b from-white to-slate-50
-          ${shouldExpand ? "w-72" : "w-20"} 
-          h-[calc(100vh-3.5rem)] 
-          flex 
-          flex-col 
-          shadow-xl
-          transition-all 
-          duration-300 
-          ease-in-out 
-          fixed 
-          ${isMobile ? 'z-50' : 'z-30'}
-          top-14
-          ${isMobile && !isOpen ? '-left-72' : 'left-0'}
+          bg-white
+          ${expanded ? "w-72" : "w-20"}
+          h-[calc(100vh-3.5rem)]
+          flex flex-col
+          transition-[width] duration-300 ease-in-out
+          fixed z-30 top-14
+          ${isMobile && !isOpen ? "-left-72" : "left-0"}
+          ${isMobile ? "z-50" : ""}
           overflow-hidden
-          border-r border-slate-200/80
+          border-r border-slate-200
         `}
-        onMouseEnter={() => {
-          if (!isMobile) {
-            setIsHovered(true)
-          }
-        }}
-        onMouseLeave={() => {
-          if (!isMobile) {
-            setIsHovered(false)
-            saveScrollPosition()
-          }
-        }}
       >
-        {/* Mobile Close Button */}
         {isMobile && isOpen && (
           <button
-            className="absolute top-4 right-4 p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors z-10"
+            type="button"
+            className="absolute top-3 right-3 p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg z-10"
             onClick={() => setIsOpen && setIsOpen(false)}
+            aria-label="Close sidebar"
           >
             <X className="h-5 w-5" />
           </button>
         )}
 
-        {/* Search Bar */}
-        {shouldExpand && (
-          <div className="p-4 flex-shrink-0">
+        {expanded && (
+          <div className="p-3 flex-shrink-0 border-b border-slate-100">
             <div className="relative">
               <input
                 type="text"
                 placeholder="Search modules..."
-                className="w-full px-4 py-2.5 bg-white text-slate-700 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 placeholder-slate-400 text-sm shadow-sm"
+                className="w-full h-9 px-3 pr-9 bg-white text-slate-700 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm placeholder-slate-400"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
-              <Search className="absolute right-3 top-3 text-slate-400 h-4 w-4" />
+              <Search className="absolute right-2.5 top-2.5 text-slate-400 h-4 w-4 pointer-events-none" />
             </div>
           </div>
         )}
 
-        {/* Navigation Items */}
         <nav
-          className="flex-1 overflow-y-auto px-3 py-2 scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent hover:scrollbar-thumb-slate-300"
           ref={navRef}
+          className={`flex-1 overflow-y-auto py-2 scrollbar-thin ${
+            expanded ? "px-2" : "px-2 flex flex-col items-center gap-0.5"
+          }`}
           onScroll={saveScrollPosition}
         >
-          {filteredMenuItems.map((item, index) => {
-            const isActive = isDropdownActive(item)
-            const isDropdownOpen = openDropdowns.includes(item.title)
+          {/* Pinned */}
+          {filteredPinned.length > 0 && (
+            <div className={`mb-2 ${expanded ? "" : "w-full flex flex-col items-center gap-0.5"}`}>
+              {expanded && (
+                <p className="px-2 mb-1 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                  Frequent
+                </p>
+              )}
+              {filteredPinned.map((pin) => {
+                const Icon = pin.icon
+                const active = isPathActive(location.pathname, pin.path)
+                if (!expanded) {
+                  return (
+                    <Link
+                      key={pin.path}
+                      to={pin.path}
+                      title={pin.title}
+                      data-sidebar-active={active ? "true" : undefined}
+                      onClick={handleLinkClick}
+                      className={`h-9 w-9 flex items-center justify-center rounded-lg transition-colors ${
+                        active
+                          ? "bg-blue-600 text-white"
+                          : "text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+                      }`}
+                    >
+                      <Icon className="h-[18px] w-[18px]" />
+                      <span className="sr-only">{pin.title}</span>
+                    </Link>
+                  )
+                }
+                return renderLeafLink(pin)
+              })}
+              {expanded && <div className="my-2 border-t border-slate-100" />}
+            </div>
+          )}
+
+          {filteredMenuItems.map((item) => {
             const Icon = item.icon
+            const containsActive =
+              isGroup(item)
+                ? isAnyPathActive(location.pathname, groupPaths(item))
+                : isPathActive(location.pathname, item.path)
+            const isDropdownOpen = isGroup(item) && openDropdowns.includes(item.id)
+
+            if (!expanded) {
+              return (
+                <div
+                  key={item.id}
+                  className="w-full flex justify-center relative"
+                  onMouseEnter={(e) => onCollapsedIconEnter(item, e.currentTarget)}
+                  onMouseLeave={scheduleFlyoutClose}
+                >
+                  <button
+                    type="button"
+                    title={item.title}
+                    className={`h-9 w-9 flex items-center justify-center rounded-lg transition-colors ${
+                      containsActive
+                        ? "bg-slate-100 text-blue-700 ring-1 ring-blue-200"
+                        : "text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+                    }`}
+                    onClick={(e) => onCollapsedIconClick(item, e.currentTarget)}
+                  >
+                    <Icon className="h-[18px] w-[18px]" />
+                    <span className="sr-only">{item.title}</span>
+                  </button>
+                </div>
+              )
+            }
+
+            if (!isGroup(item)) {
+              const active = isPathActive(location.pathname, item.path)
+              return (
+                <div key={item.id} className="mb-0.5">
+                  <Link
+                    to={item.path}
+                    data-sidebar-active={active ? "true" : undefined}
+                    onClick={handleLinkClick}
+                    className={`group flex items-center w-full h-9 px-3 rounded-lg text-sm transition-colors ${
+                      active
+                        ? "bg-blue-50 text-blue-700"
+                        : "text-slate-600 hover:bg-slate-100 hover:text-slate-800"
+                    }`}
+                  >
+                    <Icon
+                      className={`h-[18px] w-[18px] mr-3 flex-shrink-0 ${
+                        active ? "text-blue-600" : "text-slate-500"
+                      }`}
+                    />
+                    <span className="font-medium truncate">{item.title}</span>
+                  </Link>
+                </div>
+              )
+            }
+
+            const children = item.subItems.filter(
+              (sub) => !q || sub.title.toLowerCase().includes(q) || item.title.toLowerCase().includes(q),
+            )
 
             return (
-              <div key={index} className="mb-2">
-                {/* Dropdown Header - Premium styling */}
+              <div key={item.id} className="mb-0.5">
                 <button
-                  className={`
-                    group
-                    flex 
-                    items-center 
-                    w-full
-                    px-3 
-                    py-3 
-                    rounded-xl 
-                    transition-all 
-                    duration-200
-                    ${!shouldExpand ? "justify-center" : ""}
-                    ${isActive
-                      ? "bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-lg shadow-blue-500/25"
+                  type="button"
+                  className={`group flex items-center w-full h-9 px-3 rounded-lg text-sm transition-colors relative ${
+                    containsActive
+                      ? "bg-slate-100 text-slate-800"
                       : isDropdownOpen
-                        ? "bg-slate-100 text-slate-700"
+                        ? "bg-slate-50 text-slate-700"
                         : "text-slate-600 hover:bg-slate-100"
-                    }
-                    relative
-                    cursor-pointer
-                  `}
-                  onClick={() => shouldExpand && toggleDropdown(item.title)}
+                  }`}
+                  onClick={() => toggleDropdown(item.id)}
                 >
-                  <div className={`
-                    ${shouldExpand ? "mr-3" : ""} 
-                    ${!isActive ? "p-2 rounded-lg bg-gradient-to-br from-slate-100 to-slate-50 group-hover:from-blue-100 group-hover:to-blue-50 shadow-sm" : "p-2"}
-                    transition-all duration-200
-                  `}>
-                    <Icon
-                      className={`h-5 w-5 flex-shrink-0 ${isActive ? "text-white" : "text-slate-500 group-hover:text-blue-600"}`}
-                    />
-                  </div>
-                  {shouldExpand ? (
-                    <>
-                      <div className="flex-1 min-w-0 text-left">
-                        <span
-                          className={`font-semibold text-sm block truncate ${isActive ? "text-white" : "text-slate-700"}`}
-                        >
-                          {item.title}
-                        </span>
-                        <p className={`text-xs mt-0.5 truncate ${isActive ? "text-blue-100" : "text-slate-400"}`}>{item.description}</p>
-                      </div>
-                      <ChevronDown
-                        className={`h-4 w-4 ml-2 transition-transform duration-300 ${isActive ? "text-blue-100" : "text-slate-400"} ${isDropdownOpen ? 'rotate-180' : ''}`}
-                      />
-                    </>
-                  ) : (
-                    <span className="sr-only">{item.title}</span>
+                  {containsActive && (
+                    <span className="absolute left-0 top-1.5 bottom-1.5 w-0.5 rounded-full bg-blue-600" />
                   )}
-                  {!shouldExpand && !isMobile && (
-                    <div className="absolute left-full ml-3 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap shadow-xl z-50 pointer-events-none">
-                      {item.title}
-                      <div className="absolute top-1/2 -left-1.5 transform -translate-y-1/2 w-0 h-0 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent border-r-[6px] border-r-slate-800"></div>
-                    </div>
-                  )}
+                  <Icon className="h-[18px] w-[18px] mr-3 flex-shrink-0 text-slate-500" />
+                  <span className="flex-1 min-w-0 text-left font-medium truncate">{item.title}</span>
+                  <ChevronDown
+                    className={`h-4 w-4 ml-2 flex-shrink-0 text-slate-400 transition-transform ${
+                      isDropdownOpen ? "rotate-180" : ""
+                    }`}
+                  />
                 </button>
-
-                {/* Dropdown Sub-Items - Distinct styling */}
-                {shouldExpand && isDropdownOpen && item.subItems && (
-                  <div className="mt-2 ml-3 pl-3 border-l-2 border-slate-200 space-y-1">
-                    {item.subItems
-                      .filter(sub => sub.title.toLowerCase().includes(searchQuery.toLowerCase()) || !searchQuery)
-                      .map((subItem, subIndex) => {
-                        const SubIcon = subItem.icon
-                        const isSubActive = location.pathname === subItem.path
-                        return (
-                          <Link
-                            key={subIndex}
-                            to={subItem.path}
-                            className={`
-                              group
-                              flex 
-                              items-center 
-                              px-3 
-                              py-2.5
-                              rounded-lg 
-                              transition-all 
-                              duration-200
-                              ${isSubActive
-                                ? "bg-blue-50 text-blue-700 border-l-2 border-blue-500 -ml-[2px] pl-[14px]"
-                                : "text-slate-600 hover:bg-slate-50 hover:text-slate-800"
-                              }
-                              relative
-                              cursor-pointer
-                            `}
-                            onClick={handleLinkClick}
-                          >
-                            <SubIcon className={`h-4 w-4 mr-3 flex-shrink-0 transition-colors ${isSubActive ? 'text-blue-600' : 'text-slate-400 group-hover:text-slate-600'}`} />
-                            <div className="flex-1 min-w-0">
-                              <span className={`font-medium text-sm block truncate ${isSubActive ? "text-blue-700" : "text-slate-600 group-hover:text-slate-800"}`}>
-                                {subItem.title}
-                              </span>
-                            </div>
-                            {isSubActive && (
-                              <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></div>
-                            )}
-                          </Link>
-                        )
-                      })}
+                {isDropdownOpen && children.length > 0 && (
+                  <div className="mt-0.5 ml-2 pl-2 border-l border-slate-200 space-y-0.5">
+                    {children.map((sub) => renderLeafLink(sub))}
                   </div>
                 )}
               </div>
@@ -460,57 +647,48 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar, setIsOp
           })}
         </nav>
 
-        {/* Logout Button */}
-        <div className={`p-4 border-t border-slate-200 ${!shouldExpand ? "flex justify-center" : ""} flex-shrink-0 bg-white`}>
+        <div
+          className={`border-t border-slate-200 flex-shrink-0 bg-white ${
+            expanded ? "p-3" : "p-2 flex justify-center"
+          }`}
+        >
           <button
-            className={`
-              group
-              flex 
-              items-center 
-              ${shouldExpand ? "w-full px-4" : "justify-center"} 
-              py-2.5 
-              text-slate-500
-              hover:bg-red-50 
-              hover:text-red-600
-              rounded-xl 
-              transition-all 
-              duration-200
-              relative
-            `}
+            type="button"
+            className={`group flex items-center text-slate-500 hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors ${
+              expanded ? "w-full h-9 px-3" : "h-9 w-9 justify-center"
+            }`}
             onClick={handleLogout}
+            title={!expanded ? "Logout" : undefined}
           >
-            <LogOut className={`h-5 w-5 flex-shrink-0 ${shouldExpand ? "mr-3" : ""}`} />
-            {shouldExpand ? (
-              <span className="font-medium text-sm">Logout</span>
-            ) : (
-              <>
-                <span className="sr-only">Logout</span>
-                {!isMobile && (
-                  <div className="absolute left-full ml-3 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 shadow-xl z-50 pointer-events-none whitespace-nowrap">
-                    Logout
-                    <div className="absolute top-1/2 -left-1.5 transform -translate-y-1/2 w-0 h-0 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent border-r-[6px] border-r-slate-800"></div>
-                  </div>
-                )}
-              </>
-            )}
+            <LogOut className={`h-[18px] w-[18px] flex-shrink-0 ${expanded ? "mr-2.5" : ""}`} />
+            {expanded ? <span className="font-medium text-sm">Logout</span> : <span className="sr-only">Logout</span>}
           </button>
         </div>
       </aside>
 
+      {/* Collapsed flyout — aligned to the hovered/clicked icon */}
+      {!expanded && !isMobile && flyoutGroup && (
+        <div
+          ref={flyoutRef}
+          style={{ top: flyoutTop, left: 80 }}
+          className="fixed z-40 w-64 max-h-[min(24rem,calc(100vh-1rem))] overflow-y-auto bg-white border border-slate-200 rounded-r-lg shadow-lg py-2"
+          onMouseEnter={clearFlyoutCloseTimer}
+          onMouseLeave={scheduleFlyoutClose}
+        >
+          <p className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+            {flyoutGroup.title}
+          </p>
+          <div className="px-1.5 space-y-0.5">
+            {flyoutGroup.subItems.map((sub) => renderLeafLink(sub, { inFlyout: true }))}
+          </div>
+        </div>
+      )}
+
       <style>{`
-        .scrollbar-thin::-webkit-scrollbar {
-          width: 6px;
-        }
-        .scrollbar-thin::-webkit-scrollbar-track {
-          background: transparent;
-        }
-        .scrollbar-thin::-webkit-scrollbar-thumb {
-          background: #e2e8f0;
-          border-radius: 3px;
-        }
-        .scrollbar-thin:hover::-webkit-scrollbar-thumb {
-          background: #cbd5e1;
-        }
+        .scrollbar-thin::-webkit-scrollbar { width: 6px; }
+        .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+        .scrollbar-thin::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 3px; }
+        .scrollbar-thin:hover::-webkit-scrollbar-thumb { background: #cbd5e1; }
       `}</style>
     </>
   )

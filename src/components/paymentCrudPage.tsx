@@ -17,11 +17,20 @@ import {
 } from "lucide-react"
 import { Table } from "./table/PaymentTable.tsx"
 import { Modal } from "./modal.tsx"
+import { MODAL_CANCEL_BTN, MODAL_FOOTER, MODAL_PRIMARY_BTN } from "./ui/modalStyles.ts"
 import { Topbar } from "./topNavbar.tsx"
+import { useOptionalAdminChrome } from "../context/AdminLayoutContext.tsx"
 import { Sidebar } from "./sideNavbar.tsx"
 import { getToken } from "../utils/auth.ts"
-import { toast } from "react-toastify"
+import { toast } from "../utils/notify.ts";
 import axiosInstance from "../utils/axiosConfig.ts"
+import { CRUD_FILTER_CONFIGS } from "../config/crudFilterConfigs.ts"
+import { useCrudTableFilters } from "../hooks/useCrudTableFilters.ts"
+import { useCrudPeriodFilter } from "../hooks/useCrudPeriodFilter.ts"
+import { getCrudPeriodConfig } from "../config/crudPeriodConfigs.ts"
+import { CrudStatsSection } from "./crud/CrudStatsSection.tsx"
+import { periodQueryParamsForTextSearch } from "../utils/crudPeriodUtils.ts"
+import type { StatCardDef } from "../types/crudFilters.ts"
 
 interface CRUDPageProps<T> {
   title: string
@@ -53,22 +62,48 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
   const [isModalVisible, setIsModalVisible] = useState(false)
   const [editingItem, setEditingItem] = useState<T | null>(null)
   const [formData, setFormData] = useState<Partial<T>>({})
+  const hasChrome = useOptionalAdminChrome()
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [selectedRows, setSelectedRows] = useState<string[]>([])
   const [isLoading, setIsLoading] = useState(false)
 
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 20 })
   const [pageCount, setPageCount] = useState<number>(0)
-  const [sorting, setSorting] = useState<{ id: string; desc: boolean }[]>([])
+  const [sorting, setSorting] = useState<{ id: string; desc: boolean }[]>([
+    { id: "created_at", desc: true },
+  ])
   const [globalSearch, setGlobalSearch] = useState("")
-  const [columnFilters, setColumnFilters] = useState<{ id: string; value: string }[]>([])
   const [stats, setStats] = useState<Summary>({ total: 0, active: 0, pending: 0, totalAmount: 0 })
+
+  const filterConfig = CRUD_FILTER_CONFIGS.payment
+  const periodConfig = getCrudPeriodConfig("payment")
+  const tableFilters = useCrudTableFilters({
+    config: filterConfig,
+    onFilterChange: () => setPagination((p) => ({ ...p, pageIndex: 0 })),
+  })
+  const periodFilter = useCrudPeriodFilter({
+    config: periodConfig,
+    onPeriodChange: () => setPagination((p) => ({ ...p, pageIndex: 0 })),
+  })
+
+  const statCards: StatCardDef[] = useMemo(
+    () =>
+      filterConfig.statCards.map((card) => {
+        if (card.id === "total") return { ...card, value: stats.total }
+        if (card.id === "active") return { ...card, value: stats.active }
+        if (card.id === "pending") return { ...card, value: stats.pending }
+        if (card.id === "amount") return { ...card, value: `PKR ${stats.totalAmount.toLocaleString()}`, clickable: false }
+        return { ...card, value: 0 }
+      }),
+    [filterConfig.statCards, stats],
+  )
 
   const fetchSummary = useCallback(async () => {
     try {
       const token = getToken()
       const res = await axiosInstance.get(`/${endpoint}/summary`, {
         headers: { Authorization: `Bearer ${token}` },
+        params: periodFilter.queryParams,
       })
       const s = res.data as Summary
       setStats({
@@ -81,7 +116,7 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
       // Fallback silently; don't block page
       console.warn("Failed to fetch summary", e)
     }
-  }, [endpoint, refreshTrigger])
+  }, [endpoint, refreshTrigger, periodFilter.queryParams])
 
   const fetchPage = useCallback(async () => {
     setIsLoading(true)
@@ -96,9 +131,10 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
         q: globalSearch || undefined,
       }
       // column filters to query params (key=value)
-      columnFilters.forEach((f) => {
+      tableFilters.mergedColumnFilters.forEach((f) => {
         if (f.value) params[`filter_${f.id}`] = f.value
       })
+      Object.assign(params, periodQueryParamsForTextSearch(periodFilter.period, globalSearch))
 
       const res = await axiosInstance.get(`/${endpoint}/page`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -115,13 +151,11 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
       if (onDataChange) onDataChange()
     } catch (error) {
       console.error(`Failed to fetch ${title}`, error)
-      toast.error(`Failed to fetch ${title}`, {
-        style: { background: "#FEE2E2", color: "#EF4444" },
-      })
+      toast.error(`Failed to fetch ${title}`)
     } finally {
       setIsLoading(false)
     }
-  }, [endpoint, title, sorting, globalSearch, columnFilters, pagination, onDataChange, stats.total, refreshTrigger])
+  }, [endpoint, title, sorting, globalSearch, tableFilters.mergedColumnFilters, pagination, onDataChange, stats.total, refreshTrigger, periodFilter.period])
 
   useEffect(() => {
     fetchSummary()
@@ -139,15 +173,11 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
         { is_active: !currentStatus },
         { headers: { Authorization: `Bearer ${token}` } },
       )
-      toast.success(`${title} status updated successfully`, {
-        style: { background: "#D1FAE5", color: "#10B981" },
-      })
+      toast.success(`${title} status updated successfully`)
       await fetchPage()
     } catch (error) {
       console.error(`Failed to update ${title} status`, error)
-      toast.error(`Failed to update ${title} status`, {
-        style: { background: "#FEE2E2", color: "#EF4444" },
-      })
+      toast.error(`Failed to update ${title} status`)
     }
   }
 
@@ -170,17 +200,12 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
         `${selectedRows.length} ${title.toLowerCase()}${selectedRows.length > 1 ? "s" : ""} ${
           newStatus ? "activated" : "deactivated"
         } successfully`,
-        {
-          style: { background: "#D1FAE5", color: "#10B981" },
-        },
       )
       await fetchPage()
       setSelectedRows([])
     } catch (error) {
       console.error(`Failed to update ${title} status`, error)
-      toast.error(`Failed to update ${title} status`, {
-        style: { background: "#FEE2E2", color: "#EF4444" },
-      })
+      toast.error(`Failed to update ${title} status`)
     } finally {
       setIsLoading(false)
     }
@@ -205,31 +230,51 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
     try {
       const token = getToken()
 
-      // Create FormData for file uploads
+      // Create FormData for file uploads — only editable payment fields
       const formDataToSend = new FormData()
+      const editableKeys = [
+        "invoice_id",
+        "amount",
+        "payment_date",
+        "payment_time",
+        "payment_method",
+        "transaction_id",
+        "status",
+        "failure_reason",
+        "received_by",
+        "bank_account_id",
+        "is_active",
+        "payment_proof",
+      ]
 
-      // Append all form data with proper type conversion
-      Object.keys(formData).forEach((key) => {
-        if (formData[key] !== undefined && formData[key] !== null) {
-          const value = formData[key]
+      editableKeys.forEach((key) => {
+        const value = formData[key as keyof typeof formData]
+        if (value === undefined || value === null || value === "") {
+          // bank_account_id may be cleared intentionally
+          if (key === "bank_account_id" && value === "") {
+            formDataToSend.append(key, "")
+          }
+          return
+        }
 
-          // Handle file separately
-          if (key === "payment_proof" && value instanceof File) {
+        if (key === "payment_proof") {
+          // Only upload a newly selected file; keep existing path server-side
+          if (value instanceof File) {
             formDataToSend.append(key, value)
           }
-          // Convert boolean strings to actual booleans
-          else if (key === "is_active") {
-            if (typeof value === "string") {
-              formDataToSend.append(key, value.toLowerCase() === "true" ? "true" : "false")
-            } else {
-              formDataToSend.append(key, value ? "true" : "false")
-            }
-          }
-          // Handle other fields
-          else {
-            formDataToSend.append(key, value.toString())
-          }
+          return
         }
+
+        if (key === "is_active") {
+          if (typeof value === "string") {
+            formDataToSend.append(key, value.toLowerCase() === "true" ? "true" : "false")
+          } else {
+            formDataToSend.append(key, value ? "true" : "false")
+          }
+          return
+        }
+
+        formDataToSend.append(key, String(value))
       })
 
       let response
@@ -240,9 +285,7 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
             "Content-Type": "multipart/form-data",
           },
         })
-        toast.success(`${title} updated successfully`, {
-          style: { background: "#D1FAE5", color: "#10B981" },
-        })
+        toast.success(`${title} updated successfully`)
       } else {
         response = await axiosInstance.post(`/${endpoint}/add`, formDataToSend, {
           headers: {
@@ -250,17 +293,13 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
             "Content-Type": "multipart/form-data",
           },
         })
-        toast.success(`${title} added successfully`, {
-          style: { background: "#D1FAE5", color: "#10B981" },
-        })
+        toast.success(`${title} added successfully`)
       }
       fetchPage()
       handleCancel()
     } catch (error) {
       console.error("Operation failed", error)
-      toast.error("Operation failed:" + error.toString(), {
-        style: { background: "#FEE2E2", color: "#EF4444" },
-      })
+      toast.error("Operation failed:" + error.toString())
     } finally {
       setIsLoading(false)
     }
@@ -274,15 +313,11 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
         await axiosInstance.delete(`/${endpoint}/delete/${id}`, {
           headers: { Authorization: `Bearer ${token}` },
         })
-        toast.success(`${title} deleted successfully`, {
-          style: { background: "#D1FAE5", color: "#10B981" },
-        })
+        toast.success(`${title} deleted successfully`)
         await fetchPage()
       } catch (error) {
         console.error("Delete operation failed", error)
-        toast.error("Delete operation failed", {
-          style: { background: "#FEE2E2", color: "#EF4444" },
-        })
+        toast.error("Delete operation failed")
       } finally {
         setIsLoading(false)
       }
@@ -331,14 +366,14 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
           <div className="flex items-center gap-2">
             <button
               onClick={() => showModal(info.row.original)}
-              className="p-2 text-white bg-electric-blue rounded-md hover:bg-btn-hover transition-colors"
+              className="h-8 w-8 inline-flex items-center justify-center text-white bg-electric-blue rounded-md hover:bg-btn-hover transition-colors"
               title="Edit"
             >
               <Pencil className="h-4 w-4" />
             </button>
             <button
               onClick={() => handleDelete(info.row.original.id)}
-              className="p-2 text-white bg-coral-red rounded-md hover:bg-coral-red/80 transition-colors"
+              className="h-8 w-8 inline-flex items-center justify-center text-white bg-coral-red rounded-md hover:bg-coral-red/80 transition-colors"
               title="Delete"
             >
               <Trash2 className="h-4 w-4" />
@@ -359,7 +394,7 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
         sort_dir: sort?.desc ? "desc" : "asc",
         q: globalSearch || undefined,
       }
-      columnFilters.forEach((f) => {
+      tableFilters.mergedColumnFilters.forEach((f) => {
         if (f.value) params[`filter_${f.id}`] = f.value
       })
       const res = await axiosInstance.get(`/${endpoint}/export`, {
@@ -376,112 +411,73 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
       a.remove()
       URL.revokeObjectURL(url)
     } catch (e) {
-      toast.error("Export failed", { style: { background: "#FEE2E2", color: "#EF4444" } })
+      toast.error("Export failed")
     }
   }
 
   return (
-    <div className="flex h-screen bg-light-sky/50">
-      <Sidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} setIsOpen={setIsSidebarOpen} />
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <Topbar toggleSidebar={toggleSidebar} />
+    <div className={hasChrome ? "flex-1 min-w-0 w-full" : "flex h-screen bg-light-sky/50"}>
+      {!hasChrome && (
+        <Sidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} setIsOpen={setIsSidebarOpen} />
+      )}
+      <div className={hasChrome ? "flex-1 min-w-0 w-full" : "flex-1 flex flex-col overflow-hidden"}>
+        {!hasChrome && <Topbar toggleSidebar={toggleSidebar} />}
         <main
-  className={`flex-1 overflow-x-hidden overflow-y-auto bg-light-sky/50 p-0 sm:p-6 pt-20 transition-all duration-300 ${
+  className={
+    hasChrome
+      ? "px-3 py-3 sm:px-4"
+      : `flex-1 overflow-x-hidden overflow-y-auto bg-light-sky/50 px-3 py-3 sm:px-4 pt-16 transition-all duration-300 ${
     isSidebarOpen ? "ml-64" : "ml-0 lg:ml-20"
-  }`}
+  }`
+  }
 >
 
           <div className="container mx-auto">
             {/* Breadcrumb */}
-            <div className="flex items-center text-sm text-slate-gray mb-6">
-              <LayoutDashboard className="h-4 w-4 mr-1" />
+            <div className="flex items-center text-xs text-slate-gray mb-2">
+              <LayoutDashboard className="h-3.5 w-3.5 mr-1" />
               <span>Dashboard</span>
-              <ChevronRight className="h-4 w-4 mx-1" />
+              <ChevronRight className="h-3.5 w-3.5 mx-1" />
               <span className="text-deep-ocean font-medium">{title} Management</span>
             </div>
 
             {/* Header Section */}
-            <div className="bg-white rounded-xl shadow-md p-6 mb-6">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-                <div>
-                  <h1 className="text-2xl md:text-3xl font-bold text-deep-ocean flex items-center gap-2">
-                    <DollarSign className="h-7 w-7 text-electric-blue" />
-                    {title} Management
-                  </h1>
-                  <p className="text-slate-gray mt-1">Manage your {title.toLowerCase()} records efficiently</p>
-                </div>
-                <div className="flex flex-wrap gap-3">
+            <div className="bg-white rounded-xl shadow-sm p-4 mb-3">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-3">
+                <h1 className="text-xl font-semibold text-deep-ocean flex items-center gap-2">
+                  <DollarSign className="h-5 w-5 text-electric-blue" />
+                  {title} Management
+                </h1>
+                <div className="flex flex-wrap gap-2">
                   <button
                     onClick={handleExport}
-                    className="bg-golden-amber text-white px-4 py-2.5 rounded-lg hover:bg-golden-amber/90 transition-colors flex items-center gap-2 shadow-sm"
+                    className="h-9 bg-golden-amber text-white px-3 text-sm rounded-lg hover:bg-golden-amber/90 transition-colors inline-flex items-center gap-1.5"
                   >
-                    <FileDown className="h-5 w-5" /> Export CSV
+                    <FileDown className="h-4 w-4" /> Export CSV
                   </button>
                   <button
                     onClick={() => showModal(null)}
-                    className="bg-electric-blue text-white px-4 py-2.5 rounded-lg hover:bg-btn-hover transition-colors flex items-center gap-2 shadow-sm"
+                    className="h-9 bg-electric-blue text-white px-3 text-sm rounded-lg hover:bg-btn-hover transition-colors inline-flex items-center gap-1.5"
                   >
-                    <Plus className="h-5 w-5" /> Add New {title}
+                    <Plus className="h-4 w-4" /> Add New {title}
                   </button>
                 </div>
               </div>
 
-              {/* Stats Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-              <div className="bg-light-sky/50 rounded-lg p-4 border border-slate-gray/10">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-slate-gray text-sm">Total {title}s</p>
-                      <h3 className="text-2xl font-bold text-deep-ocean mt-1">{stats.total}</h3>
-                    </div>
-                    <div className="bg-deep-ocean/10 p-3 rounded-full">
-                      <DollarSign className="h-6 w-6 text-deep-ocean" />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-emerald-green/5 rounded-lg p-4 border border-emerald-green/10">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-slate-gray text-sm">Active {title}s</p>
-                      <h3 className="text-2xl font-bold text-emerald-green mt-1">{stats.active}</h3>
-                    </div>
-                    <div className="bg-emerald-green/10 p-3 rounded-full">
-                      <CheckCircle2 className="h-6 w-6 text-emerald-green" />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-amber-500/5 rounded-lg p-4 border border-amber-500/10">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-slate-gray text-sm">Pending {title}s</p>
-                      <h3 className="text-2xl font-bold text-amber-600 mt-1">{stats.pending}</h3>
-                    </div>
-                    <div className="bg-amber-500/10 p-3 rounded-full">
-                      <Clock className="h-6 w-6 text-amber-600" />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-electric-blue/5 rounded-lg p-4 border border-electric-blue/10">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-slate-gray text-sm">Total Amount</p>
-                      <h3 className="text-2xl font-bold text-electric-blue mt-1">
-                        PKR{stats.totalAmount.toLocaleString()}
-                      </h3>
-                    </div>
-                    <div className="bg-electric-blue/10 p-3 rounded-full">
-                      <DollarSign className="h-6 w-6 text-electric-blue" />
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <CrudStatsSection
+                cards={statCards}
+                activeStatId={tableFilters.activeStatId}
+                onStatClick={tableFilters.applyStatFilter}
+                period={periodFilter.period}
+                periodLabel={periodFilter.label}
+                periodActive={periodFilter.isActive}
+                onSetPeriod={periodFilter.setPeriod}
+                onSetPeriodAll={periodFilter.setAll}
+              />
 
               {/* Bulk Actions */}
               {selectedRows.length > 0 && (
-                <div className="bg-electric-blue/5 border border-electric-blue/20 rounded-lg p-4 mb-6 flex flex-wrap items-center justify-between gap-4">
+                <div className="bg-electric-blue/5 border border-electric-blue/20 rounded-lg p-3 mb-3 flex flex-wrap items-center justify-between gap-3">
                   <div className="flex items-center gap-2">
                     <span className="text-deep-ocean font-medium">
                       {selectedRows.length} {title.toLowerCase()}
@@ -509,7 +505,7 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
             </div>
 
             {/* Table Section */}
-            <div className="mb-8">
+            <div className="mb-4">
             <Table
   data={data}
   columns={memoizedColumns}
@@ -517,12 +513,11 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
   setSelectedRows={setSelectedRows}
   handleToggleStatus={handleToggleStatus}
   isLoading={isLoading}
-  manualPagination={true} // Explicitly set to true
+  manualPagination={true}
   pageCount={pageCount}
   pagination={pagination}
   onPaginationChange={(p) => {
     setPagination(p)
-    // The fetchPage useEffect will trigger due to pagination dependency change
   }}
   sorting={sorting}
   onSortingChange={(s) => setSorting(s as any)}
@@ -530,10 +525,13 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
     setGlobalSearch(value)
     setPagination((p) => ({ ...p, pageIndex: 0 }))
   }}
-  onColumnFiltersChangeExternal={(filters) => {
-    setColumnFilters(filters as any)
-    setPagination((p) => ({ ...p, pageIndex: 0 }))
-  }}
+  onColumnFiltersChangeExternal={tableFilters.handleColumnFiltersChange}
+  quickFilters={filterConfig.quickFilters}
+  filterState={tableFilters.filterState}
+  onQuickFilterChange={tableFilters.setQuickFilter}
+  onClearFilters={tableFilters.clearAllFilters}
+  hasActiveFilters={tableFilters.hasAnyActiveFilters}
+  inlineFilterFields={tableFilters.inlineFields}
 />
             </div>
           </div>
@@ -549,18 +547,18 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
       >
         <form onSubmit={handleSubmit}>
           <FormComponent formData={formData} handleInputChange={handleInputChange} isEditing={!!editingItem} />
-          <div className="mt-6 flex justify-end gap-3">
+          <div className={MODAL_FOOTER}>
             <button
               type="button"
               onClick={handleCancel}
-              className="px-4 py-2.5 border border-slate-gray/20 text-slate-gray rounded-lg hover:bg-light-sky/50 transition-colors"
+              className={MODAL_CANCEL_BTN}
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isLoading}
-              className="px-4 py-2.5 bg-electric-blue text-white rounded-lg hover:bg-btn-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-electric-blue disabled:opacity-50 transition-colors flex items-center gap-2"
+              className={MODAL_PRIMARY_BTN}
             >
               {isLoading ? (
                 <>

@@ -10,9 +10,22 @@ interface ModalProps {
   children: React.ReactNode
   isLoading?: boolean
   size?: "sm" | "md" | "lg" | "xl"
+  /** Override header background/border classes */
+  headerClassName?: string
+  /** Title/close color. Defaults to dark when headerClassName is set, else light (white on brand). */
+  headerTone?: "light" | "dark"
 }
 
-export function Modal({ isVisible, onClose, title, children, isLoading, size = "md" }: ModalProps) {
+export function Modal({
+  isVisible,
+  onClose,
+  title,
+  children,
+  isLoading,
+  size = "md",
+  headerClassName,
+  headerTone,
+}: ModalProps) {
   if (!isVisible) return null
 
   const sizeClasses = {
@@ -22,38 +35,63 @@ export function Modal({ isVisible, onClose, title, children, isLoading, size = "
     xl: "sm:max-w-6xl",
   }
 
+  const resolvedTone =
+    headerTone ||
+    (headerClassName &&
+    (headerClassName.includes("bg-white") ||
+      headerClassName.includes("bg-slate") ||
+      headerClassName.includes("E8EEF1") ||
+      headerClassName.includes("F1F0E8") ||
+      headerClassName.includes("bg-gray"))
+      ? "dark"
+      : "light")
+
+  const isDarkText = resolvedTone === "dark"
+
   return (
     <div className="fixed z-50 inset-0 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
       <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
         <div
-          className="fixed inset-0 bg-black/40 backdrop-blur-sm transition-opacity duration-300 ease-in-out"
+          className="fixed inset-0 bg-black/45 backdrop-blur-[2px] transition-opacity duration-300 ease-in-out"
           aria-hidden="true"
           onClick={onClose}
         />
 
-        {/* Modal positioning */}
         <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">
           &#8203;
         </span>
 
         <div
-          className={`inline-block align-bottom bg-white rounded-2xl text-left overflow-hidden shadow-2xl transform transition-all duration-300 ease-out sm:my-8 sm:align-middle sm:w-full ${sizeClasses[size]} animate-in fade-in zoom-in-95 duration-300`}
+          className={`inline-block align-bottom bg-slate-100 rounded-xl text-left overflow-hidden shadow-2xl border border-slate-300/70 transform transition-all duration-300 ease-out sm:my-8 sm:align-middle sm:w-full ${sizeClasses[size]} animate-in fade-in zoom-in-95 duration-300`}
         >
-          <div className="bg-gradient-to-r from-[#89A8B2] to-[#B3C8CF] px-6 sm:px-8 py-5 sm:py-6 border-b border-[#B3C8CF]/20 flex items-center justify-between">
-            <h3 className="text-xl sm:text-2xl font-bold text-white" id="modal-title">
+          <div
+            className={`flex items-center justify-between px-5 sm:px-6 py-3.5 border-b ${
+              headerClassName || "bg-[#2A5C8A] border-[#1e4568]"
+            }`}
+          >
+            <h3
+              className={`text-base sm:text-lg font-semibold tracking-tight ${
+                isDarkText ? "text-slate-800" : "text-white"
+              }`}
+              id="modal-title"
+            >
               {title}
             </h3>
             <button
               onClick={onClose}
-              className="text-white/80 hover:text-white transition-all duration-200 p-2 rounded-full hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/30"
+              className={`transition-colors duration-150 p-1.5 rounded-md focus:outline-none focus:ring-2 ${
+                isDarkText
+                  ? "text-slate-500 hover:text-slate-800 hover:bg-black/5 focus:ring-slate-200"
+                  : "text-white/80 hover:text-white hover:bg-white/10 focus:ring-white/30"
+              }`}
               disabled={isLoading}
               aria-label="Close modal"
             >
-              <X className="w-5 h-5 sm:w-6 sm:h-6" />
+              <X className="w-5 h-5" />
             </button>
           </div>
 
-          <div className="px-6 sm:px-8 py-6 sm:py-8 max-h-[calc(100vh-200px)] overflow-y-auto custom-scrollbar bg-white">
+          <div className="px-5 sm:px-6 py-5 max-h-[calc(100vh-180px)] overflow-y-auto custom-scrollbar bg-slate-100">
             {React.Children.map(children, (child) => {
               if (React.isValidElement(child) && child.type === "form") {
                 return React.cloneElement(child, { isLoading })

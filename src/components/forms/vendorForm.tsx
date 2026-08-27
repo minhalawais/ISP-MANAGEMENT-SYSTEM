@@ -1,8 +1,9 @@
 "use client"
 
 import type React from "react"
-import { useState, useCallback, useEffect } from "react"
-import { User, Phone, Mail, CreditCard, Image, FileText, X } from "lucide-react"
+import { useState, useCallback } from "react"
+import { User, Phone, Mail, CreditCard, Image, FileText, X, Globe, Sparkles } from "lucide-react"
+import { WebsiteContentEditor } from "./WebsiteContentEditor.tsx"
 
 interface VendorFormProps {
   formData: any
@@ -13,22 +14,13 @@ interface VendorFormProps {
 
 export function VendorForm({ formData, handleInputChange, handleFileChange, isEditing }: VendorFormProps) {
   const [previewUrls, setPreviewUrls] = useState<Record<string, string>>({})
-  const inputFields = [
-  { name: 'name', type: 'text', placeholder: 'Enter vendor name', icon: User, required: true },
-  { name: 'phone', type: 'tel', placeholder: 'Enter phone number', icon: Phone, required: true },
-  { name: 'email', type: 'email', placeholder: 'Enter email address', icon: Mail, required: false },
-  { name: 'cnic', type: 'text', placeholder: 'Enter CNIC number', icon: CreditCard, required: true },
-];
-  // Add this to debug
-  useEffect(() => {
-    console.log('VendorForm formData:', formData);
-  }, [formData]);
 
   const inputClasses = `
     w-full 
     pl-10 
     pr-4 
-    py-3 
+    py-2.5
+    text-sm
     border 
     border-[#EBF5FF] 
     rounded-lg 
@@ -53,12 +45,18 @@ export function VendorForm({ formData, handleInputChange, handleFileChange, isEd
       const url = URL.createObjectURL(file)
       setPreviewUrls(prev => ({ ...prev, [name]: url }))
       
-      // Use the CRUDPage handleFileChange signature
       if (handleFileChange) {
         handleFileChange(name, file)
       }
     }
   }, [handleFileChange])
+
+  const handleWebsiteContentChange = useCallback(
+    (content: Record<string, unknown>) => {
+      handleInputChange({ target: { name: "website_content", value: content } } as unknown as React.ChangeEvent<HTMLInputElement>)
+    },
+    [handleInputChange]
+  )
 
   const removeFile = (fieldName: string) => {
     setPreviewUrls(prev => {
@@ -69,7 +67,6 @@ export function VendorForm({ formData, handleInputChange, handleFileChange, isEd
       delete newUrls[fieldName]
       return newUrls
     })
-    // Clear the file data
     if (handleFileChange) {
       handleFileChange(fieldName, null)
     }
@@ -134,8 +131,7 @@ export function VendorForm({ formData, handleInputChange, handleFileChange, isEd
   }
 
   return (
-    <div className="space-y-6">
-      {/* Vendor Name */}
+    <div className="space-y-5">
       <div className="space-y-2">
         <label className={labelClasses}>Vendor Name *</label>
         <div className="relative">
@@ -154,7 +150,29 @@ export function VendorForm({ formData, handleInputChange, handleFileChange, isEd
         </div>
       </div>
 
-      {/* Phone Number */}
+      <div className="space-y-2">
+        <label className={labelClasses}>Domain *</label>
+        <div className="relative">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <Globe className={iconClasses} />
+          </div>
+          <input
+            type="text"
+            name="domain"
+            value={formData.domain || formData.primary_domain || ""}
+            onChange={handleInputChange}
+            placeholder="fastnet.mbanet.com.pk"
+            className={inputClasses}
+            required
+            autoComplete="off"
+            spellCheck={false}
+          />
+        </div>
+        <p className="text-xs text-[#4A5568]/70">
+          Hostname only — no http:// or path. Vendor users sign in only on this domain.
+        </p>
+      </div>
+
       <div className="space-y-2">
         <label className={labelClasses}>Phone Number *</label>
         <div className="relative">
@@ -173,7 +191,6 @@ export function VendorForm({ formData, handleInputChange, handleFileChange, isEd
         </div>
       </div>
 
-      {/* Email */}
       <div className="space-y-2">
         <label className={labelClasses}>Email</label>
         <div className="relative">
@@ -191,7 +208,6 @@ export function VendorForm({ formData, handleInputChange, handleFileChange, isEd
         </div>
       </div>
 
-      {/* CNIC */}
       <div className="space-y-2">
         <label className={labelClasses}>CNIC Number *</label>
         <div className="relative">
@@ -211,10 +227,8 @@ export function VendorForm({ formData, handleInputChange, handleFileChange, isEd
         </div>
       </div>
 
-      {/* Divider */}
-      <div className="border-t border-[#EBF5FF] my-6"></div>
+      <div className="border-t border-[#EBF5FF] my-4"></div>
 
-      {/* File Uploads */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {renderFileUpload(
           'picture',
@@ -244,6 +258,25 @@ export function VendorForm({ formData, handleInputChange, handleFileChange, isEd
           <FileText className="h-8 w-8 text-[#4A5568]/50 mb-2" />
         )}
       </div>
+
+      {isEditing && formData.is_provisioned && (
+        <>
+          <div className="border-t border-[#EBF5FF] my-4"></div>
+          <div className="space-y-1">
+            <p className="flex items-center gap-1.5 text-sm font-semibold text-[#2A5C8A]">
+              <Sparkles className="h-4 w-4 text-[#3A86FF]" />
+              Website Content
+            </p>
+            <p className="text-xs text-[#4A5568]/70">
+              Copy shown on this vendor's public marketing site at their domain. Leave blank to use defaults.
+            </p>
+          </div>
+          <WebsiteContentEditor
+            content={formData.website_content || {}}
+            onChange={handleWebsiteContentChange}
+          />
+        </>
+      )}
     </div>
   )
 }

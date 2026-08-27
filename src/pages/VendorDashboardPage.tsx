@@ -7,6 +7,7 @@ import axiosInstance from '../utils/axiosConfig.ts';
 import { useCompany } from '../context/CompanyContext.tsx';
 import { Sidebar } from '../components/sideNavbar.tsx';
 import { Topbar } from '../components/topNavbar.tsx';
+import { useOptionalAdminChrome } from '../context/AdminLayoutContext.tsx';
 import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, Legend
@@ -17,7 +18,7 @@ import {
   CheckCircle, Copy, X, RefreshCw, Building2, Phone,
   Mail, CreditCard, Activity, Wallet, UserCheck, BarChart2
 } from 'lucide-react';
-import { toast } from 'react-toastify';
+import { toast } from "../utils/notify.ts";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface VendorRecord {
@@ -170,6 +171,7 @@ const VendorDashboardPage: React.FC = () => {
   const [credModal, setCredModal] = useState<CredentialResult | null>(null);
   const [actionBusy, setActionBusy] = useState('');
   const [imgError, setImgError] = useState(false);
+  const hasChrome = useOptionalAdminChrome();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const { setPageTitle } = useCompany();
@@ -253,11 +255,13 @@ const VendorDashboardPage: React.FC = () => {
   const fmtNum = (n?: number | null) => (n || 0).toLocaleString();
 
   return (
-    <div className="flex h-screen bg-slate-50 overflow-hidden">
-      <Sidebar isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} />
-      <div className="flex flex-col flex-1 overflow-hidden">
-        <Topbar isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} />
-        <main className="flex-1 overflow-y-auto">
+    <div className={hasChrome ? "flex-1 min-w-0 w-full" : "flex h-screen bg-slate-50 overflow-hidden"}>
+      {!hasChrome && (
+        <Sidebar isOpen={isSidebarOpen} toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} setIsOpen={setIsSidebarOpen} />
+      )}
+      <div className={hasChrome ? "flex-1 min-w-0 w-full" : "flex flex-col flex-1 overflow-hidden"}>
+        {!hasChrome && <Topbar toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />}
+        <main className={hasChrome ? "" : "flex-1 overflow-y-auto pt-16"}>
 
           {/* ── HEADER ──────────────────────────────────────────────────────── */}
           <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 px-6 py-8">

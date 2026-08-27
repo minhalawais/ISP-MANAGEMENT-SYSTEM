@@ -81,6 +81,12 @@ module.exports = {
         "success-bg": "#D1FAE5",
         "error-bg": "#FEE2E2",
         "warning-bg": "#FEF3C7",
+
+        // Employee Portal — aligned with brand palette (semantic color on shared primitives)
+        "portal-accent": "#3A86FF", // electric-blue; accents, selected chrome
+        "portal-primary": "#2A5C8A", // deep-ocean; CTAs, active nav, links
+        "portal-primary-dark": "#1E4568", // hover/active states
+        "portal-tint": "#EBF5FF", // light-sky; soft backgrounds
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -108,11 +114,16 @@ module.exports = {
           "0%": { transform: "translateX(-20px)", opacity: 0 },
           "100%": { transform: "translateX(0)", opacity: 1 },
         },
+        sheetUp: {
+          "0%": { transform: "translateY(100%)" },
+          "100%": { transform: "translateY(0)" },
+        },
       },
       animation: {
         modal: "modal 0.2s ease-out",
         fadeIn: "fadeIn 0.3s ease-out forwards",
         slideIn: "slideIn 0.3s ease-out forwards",
+        sheetUp: "sheetUp 0.25s ease-out",
       },
     },
   },

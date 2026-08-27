@@ -83,13 +83,13 @@ export const CashFlowAnalysis: React.FC<CashFlowAnalysisProps> = ({ data }) => {
 
   return (
     <motion.div
-      className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-all duration-300 ease-in-out"
+      className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm hover:shadow-md transition-all duration-300 ease-in-out"
       variants={containerVariants}
       initial="hidden"
       animate="visible"
     >
       <motion.div variants={itemVariants} className="mb-8">
-        <h3 className="text-2xl font-bold text-gray-900 mb-2">Cash Flow Analysis</h3>
+        <h3 className="text-xl font-semibold text-gray-900 mb-2">Cash Flow Analysis</h3>
         <p className="text-gray-600">
           Monthly cash inflows, outflows, and net position including initial balances
         </p>
@@ -132,7 +132,7 @@ export const CashFlowAnalysis: React.FC<CashFlowAnalysisProps> = ({ data }) => {
           <motion.div
             key={stat.label}
             variants={cardVariants}
-            className={`bg-${stat.color}-50 border border-${stat.color}-200 rounded-xl p-4 backdrop-blur-sm bg-white/90 hover:shadow-lg transition-all duration-300`}
+            className={`bg-${stat.color}-50 border border-${stat.color}-200 rounded-xl p-4  shadow-sm`}
           >
             <p className={`text-sm font-semibold text-${stat.color}-700 mb-2`}>{stat.label}</p>
             <p className={`text-xl font-bold text-${stat.color}-800 mb-2`}>
@@ -225,9 +225,9 @@ export const CashFlowAnalysis: React.FC<CashFlowAnalysisProps> = ({ data }) => {
       </motion.div>
 
       {/* Breakdown Grid */}
-      <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Inflow Breakdown */}
-        <div className="bg-gray-50/50 rounded-xl p-6 border border-gray-200">
+        <div className="bg-gray-50/50 rounded-xl p-4 border border-gray-200">
           <h4 className="text-lg font-semibold text-gray-800 mb-4">Inflow by Method</h4>
           <div className="space-y-3">
             {data.inflow_breakdown.map((item, index) => (
@@ -248,7 +248,7 @@ export const CashFlowAnalysis: React.FC<CashFlowAnalysisProps> = ({ data }) => {
         </div>
 
         {/* Outflow Breakdown */}
-        <div className="bg-gray-50/50 rounded-xl p-6 border border-gray-200">
+        <div className="bg-gray-50/50 rounded-xl p-4 border border-gray-200">
           <h4 className="text-lg font-semibold text-gray-800 mb-4">Outflow by Type</h4>
           <div className="space-y-3">
             {data.outflow_breakdown.map((item, index) => (

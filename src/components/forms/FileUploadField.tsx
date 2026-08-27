@@ -3,7 +3,7 @@
 import type React from "react"
 import { useState, useRef } from "react"
 import { Upload, X, Eye, FileText, ImageIcon } from "lucide-react"
-import { toast } from "react-toastify"
+import { toast } from "../../utils/notify.ts";
 import axiosInstance from "../../utils/axiosConfig.ts"
 import { getToken } from "../../utils/auth.ts"
 
@@ -39,9 +39,7 @@ export function FileUploadField({
 
     // Validate file size
     if (file.size > maxSize * 1024 * 1024) {
-      toast.error(`File size must be less than ${maxSize}MB`, {
-        style: { background: "#FEE2E2", color: "#EF4444" },
-      })
+      toast.error(`File size must be less than ${maxSize}MB`)
       return
     }
 
@@ -54,9 +52,7 @@ export function FileUploadField({
     })
 
     if (!isValidType) {
-      toast.error("Invalid file type", {
-        style: { background: "#FEE2E2", color: "#EF4444" },
-      })
+      toast.error("Invalid file type")
       return
     }
 
@@ -94,15 +90,11 @@ export function FileUploadField({
         } as React.ChangeEvent<HTMLInputElement>
         onChange(syntheticEvent)
 
-        toast.success("File uploaded successfully", {
-          style: { background: "#D1FAE5", color: "#10B981" },
-        })
+        toast.success("File uploaded successfully")
       }
     } catch (error: any) {
       console.error("Error uploading file:", error)
-      toast.error(error.response?.data?.error || "Failed to upload file", {
-        style: { background: "#FEE2E2", color: "#EF4444" },
-      })
+      toast.error(error.response?.data?.error || "Failed to upload file")
     } finally {
       setIsUploading(false)
     }
@@ -131,9 +123,7 @@ export function FileUploadField({
     } catch (error) {
       console.error("Error deleting file from server:", error)
       // Continue with removal even if server deletion fails
-      toast.error("Failed to delete file from server, but removed locally", {
-        style: { background: "#FEE2E2", color: "#EF4444" },
-      })
+      toast.error("Failed to delete file from server, but removed locally")
     }
   
     // Clear local state
@@ -158,9 +148,7 @@ export function FileUploadField({
       onFileRemove(name)
     }
   
-    toast.success("File removed successfully", {
-      style: { background: "#D1FAE5", color: "#10B981" },
-    })
+    toast.success("File removed successfully")
   }
 
   const viewFile = async () => {
@@ -176,9 +164,7 @@ export function FileUploadField({
         setTimeout(() => window.URL.revokeObjectURL(url), 60000)
       } catch (error) {
         console.error("Error viewing file:", error)
-        toast.error("Failed to load file", {
-          style: { background: "#FEE2E2", color: "#EF4444" },
-        })
+        toast.error("Failed to load file")
       }
     } else if (previewUrl) {
       window.open(previewUrl, "_blank")

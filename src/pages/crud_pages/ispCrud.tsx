@@ -45,7 +45,7 @@ const ISPManagement: React.FC = () => {
     },
   ]
 
-  return <CRUDPage<ISP> title="ISP" endpoint="isps" columns={columns} FormComponent={ISPForm} />
+  return <CRUDPage<ISP> title="ISP" endpoint="isps" filterModuleKey="isp" columns={columns} FormComponent={ISPForm} />
 }
 
 export default ISPManagement

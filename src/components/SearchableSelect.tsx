@@ -1,10 +1,17 @@
-import { useState, useMemo } from "react"
-import { Search, FileText, User, Hash, Calendar, DollarSign, ChevronDown } from "lucide-react"
+import { useEffect, useMemo, useRef, useState } from "react"
+import { Search, FileText, User, Hash, Calendar, DollarSign, ChevronDown, Loader2 } from "lucide-react"
 
 interface SearchableSelectProps {
   options: any[]
   value: string
   onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void
+  /**
+   * Called (debounced ~300ms) whenever the search box changes, so a parent
+   * can re-query a server-side search endpoint instead of relying solely on
+   * client-side filtering of whatever `options` it was handed.
+   */
+  onSearchChange?: (term: string) => void
+  isLoading?: boolean
   error?: string
   placeholder?: string
 }
@@ -13,20 +20,32 @@ export function SearchableSelect({
   options, 
   value, 
   onChange, 
+  onSearchChange,
+  isLoading = false,
   error, 
   placeholder = "Search and select invoice" 
 }: SearchableSelectProps) {
   const [searchTerm, setSearchTerm] = useState("")
   const [isOpen, setIsOpen] = useState(false)
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>()
+
+  useEffect(() => {
+    if (!onSearchChange) return
+    debounceRef.current = setTimeout(() => onSearchChange(searchTerm), 300)
+    return () => clearTimeout(debounceRef.current)
+  }, [searchTerm, onSearchChange])
+
   const filteredOptions = useMemo(() => {
-    if (!searchTerm) return options
-    
+    // When a parent supplies onSearchChange, it already narrows `options`
+    // server-side, so avoid double-filtering.
+    if (!searchTerm || onSearchChange) return options
+
     return options.filter(option => 
       option.customer_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       option.customer_internet_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
       option.invoice_number.toLowerCase().includes(searchTerm.toLowerCase())
     )
-  }, [options, searchTerm])
+  }, [options, searchTerm, onSearchChange])
 
   const selectedInvoice = options.find(opt => opt.id === value)
 
@@ -121,7 +140,12 @@ export function SearchableSelect({
 
           {/* Options list */}
           <div className="p-2">
-            {filteredOptions.length === 0 ? (
+            {isLoading ? (
+              <div className="p-4 flex items-center justify-center gap-2 text-slate-gray text-sm">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Searching…
+              </div>
+            ) : filteredOptions.length === 0 ? (
               <div className="p-4 text-center text-slate-gray text-sm">
                 <Search className="h-8 w-8 mx-auto mb-2 text-slate-gray/40" />
                 <p>No invoices found matching "{searchTerm}"</p>

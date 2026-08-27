@@ -13,6 +13,7 @@ import { RecoveryCollections } from "../dashboard_components/RecoveryCollection.
 import { OperationalMetrics } from "../dashboard_components/OperationaMetrices.tsx"
 import { Sidebar } from "../sideNavbar.tsx"
 import { Topbar } from "../topNavbar.tsx"
+import { useOptionalAdminChrome } from "../../context/AdminLayoutContext.tsx"
 import { UnifiedDashboard } from "../dashboard_components/UnifiedFinancialDashboard.tsx"
 import {
   PieChart,
@@ -24,92 +25,83 @@ import {
   MapPin,
   FileText,
   Wallet,
-  Activity
+  Activity,
+  LayoutDashboard,
+  ChevronRight,
 } from "lucide-react"
 
-// Section configuration
 const sections: Record<string, {
   name: string
   component: React.ComponentType<any>
   category: string
   icon: React.ComponentType<any>
-  description: string
 }> = {
   executive: {
     name: "Executive Overview",
     component: ExecutiveDashboard,
     category: "Leadership",
     icon: PieChart,
-    description: "High-level business summary and key performance indicators"
   },
   customers: {
     name: "Customer Analytics",
     component: CustomerAnalytics,
     category: "Customer",
     icon: Users,
-    description: "Customer insights, trends, and behavioral analysis"
   },
   financial: {
     name: "Financial Analytics",
     component: UnifiedDashboard,
     category: "Financial",
     icon: DollarSign,
-    description: "Revenue, expenses, and financial performance metrics"
   },
   service: {
     name: "Service & Support",
     component: ServiceSupport,
     category: "Operations",
     icon: Wrench,
-    description: "Support performance and service quality metrics"
   },
   inventory: {
     name: "Inventory Analytics",
     component: InventoryManagement,
     category: "Operations",
     icon: Package,
-    description: "Stock levels, equipment tracking, and inventory analysis"
   },
   employees: {
     name: "Employee Performance",
     component: EmployeeAnalytics,
     category: "Human Resources",
     icon: UserCheck,
-    description: "Staff productivity and performance metrics"
   },
   regional: {
     name: "Regional Analysis",
     component: AreaAnalysis,
     category: "Geographic",
     icon: MapPin,
-    description: "Geographic performance and regional distribution"
   },
   plans: {
     name: "Service Plans",
     component: ServicePlanAnalytics,
     category: "Products",
     icon: FileText,
-    description: "Plan performance, distribution, and trends"
   },
   collections: {
     name: "Collections",
     component: RecoveryCollections,
     category: "Financial",
     icon: Wallet,
-    description: "Recovery tracking and collection performance"
   },
   operations: {
     name: "Operations",
     component: OperationalMetrics,
     category: "Operations",
     icon: Activity,
-    description: "Operational efficiency and process metrics"
   },
 }
 
 const ReportingPage = () => {
   const { section } = useParams<{ section: string }>()
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+  const hasChrome = useOptionalAdminChrome()
   const [filters] = useState({
     dateRange: { start: new Date(new Date().getFullYear(), 0, 1), end: new Date() },
     company: "all",
@@ -122,7 +114,7 @@ const ReportingPage = () => {
   const ActiveComponent = currentSection.component
   const Icon = currentSection.icon
 
-  const { company, setPageTitle } = useCompany()
+  const { setPageTitle } = useCompany()
 
   useEffect(() => {
     setPageTitle(currentSection.name)
@@ -133,77 +125,50 @@ const ReportingPage = () => {
   }
 
   return (
-    <div className="flex h-screen bg-[#F1F0E8]">
-      <Sidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} setIsOpen={setIsSidebarOpen} />
+    <div className={hasChrome ? "flex-1 min-w-0 w-full" : "flex h-screen bg-light-sky/50"}>
+      {!hasChrome && (
+        <Sidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} setIsOpen={setIsSidebarOpen} />
+      )}
 
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <Topbar toggleSidebar={toggleSidebar} />
+      <div className={hasChrome ? "flex-1 min-w-0 w-full" : "flex-1 flex flex-col overflow-hidden"}>
+        {!hasChrome && <Topbar toggleSidebar={toggleSidebar} />}
 
         <main
-          className={`flex-1 overflow-x-hidden overflow-y-auto bg-[#F1F0E8] p-0 sm:p-6 pt-20 transition-all duration-300 ${
-            isSidebarOpen ? "ml-72" : "ml-0 lg:ml-20"
-          }`}
+          className={
+            hasChrome
+              ? "px-3 py-3 sm:px-4"
+              : `flex-1 overflow-x-hidden overflow-y-auto bg-light-sky/50 px-3 py-3 sm:px-4 pt-16 transition-all duration-300 ${
+            isSidebarOpen ? "ml-64" : "ml-0 lg:ml-20"
+          }`
+          }
         >
-          {/* Header Section */}
-          <div className="bg-white shadow-sm border-b border-[#E5E1DA] px-8 pt-20 pb-6">
-            <div className="max-w-[1800px] mx-auto">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="p-3 bg-gradient-to-br from-[#3A86FF] to-[#2A5C8A] rounded-xl shadow-lg">
-                    <Icon className="w-6 h-6 text-white" />
-                  </div>
-                  <div>
-                    <h1 className="text-2xl font-semibold text-gray-900">{currentSection.name}</h1>
-                    <p className="text-gray-600 text-sm mt-1">{currentSection.description}</p>
-                  </div>
-                </div>
+          <div className="container mx-auto max-w-[1800px]">
+            <div className="flex items-center text-xs text-slate-gray mb-2">
+              <LayoutDashboard className="h-3.5 w-3.5 mr-1" />
+              <span>Reporting</span>
+              <ChevronRight className="h-3.5 w-3.5 mx-1" />
+              <span className="text-deep-ocean font-medium">{currentSection.name}</span>
+            </div>
 
-                {/* Filter Indicators */}
-                <div className="flex items-center gap-3">
-                  <span className="text-xs text-gray-500 bg-[#F1F0E8] px-3 py-2 rounded-md border">
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 mb-3">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <h1 className="text-xl font-semibold text-deep-ocean flex items-center gap-2">
+                  <Icon className="h-5 w-5 text-electric-blue" />
+                  {currentSection.name}
+                </h1>
+                <div className="flex flex-wrap items-center gap-2 text-xs text-slate-gray">
+                  <span className="px-2 py-1 rounded-md border border-slate-200 bg-slate-50">
                     {currentSection.category}
                   </span>
-                  <div className="text-xs text-gray-500 bg-[#F1F0E8] px-3 py-2 rounded-md border">
-                    {filters.dateRange.start.toLocaleDateString()} - {filters.dateRange.end.toLocaleDateString()}
-                  </div>
-                  <div className="flex items-center gap-2 text-xs text-gray-500">
-                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                    Live
-                  </div>
+                  <span className="px-2 py-1 rounded-md border border-slate-200 bg-slate-50">
+                    {filters.dateRange.start.toLocaleDateString()} – {filters.dateRange.end.toLocaleDateString()}
+                  </span>
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Main Content Area */}
-          <div className="flex-1 px-0 py-4">
-            <div className="max-w-[1800px] mx-auto">
-              <div className="bg-white rounded-lg shadow-sm border border-[#E5E1DA] min-h-[600px]">
-                <div className="p-2 sm:p-6">
-                  <div className="transition-all duration-300 ease-in-out">
-                    <ActiveComponent filters={filters} />
-                  </div>
-                </div>
-              </div>
-            </div>
+            <ActiveComponent filters={filters} />
           </div>
-
-          {/* Footer */}
-          <footer className="bg-white border-t border-[#E5E1DA] px-8 py-4 mt-4">
-            <div className="max-w-[1800px] mx-auto">
-              <div className="flex justify-between items-center text-xs text-gray-500">
-                  <div className="flex items-center gap-6">
-                    <span>© {new Date().getFullYear()} {company?.name || 'MBA NET'}</span>
-                    <span>Business Intelligence Platform</span>
-                    <span>Version 2.1.0</span>
-                  </div>
-                <div className="flex items-center gap-4">
-                  <span>Server Status: Active</span>
-                  <span>Last Sync: {new Date().toLocaleTimeString()}</span>
-                </div>
-              </div>
-            </div>
-          </footer>
         </main>
       </div>
     </div>

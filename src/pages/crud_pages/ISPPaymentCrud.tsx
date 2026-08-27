@@ -115,6 +115,7 @@ const ISPPaymentManagement: React.FC = () => {
       <CRUDPage<ISPPayment>
         title="ISP Payment"
         endpoint="isp-payments"
+        filterModuleKey="isp-payment"
         columns={columns}
         FormComponent={ISPPaymentForm}
       />

@@ -47,12 +47,12 @@ export const CashFlowAnalysis: React.FC<CashFlowAnalysisProps> = ({ data }) => {
   }
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-6">
+    <div className="bg-white rounded-xl border border-gray-200 p-4">
       <h3 className="text-xl font-bold text-gray-900 mb-2">Cash Flow Analysis</h3>
-      <p className="text-gray-600 text-sm mb-6">Monthly cash inflows, outflows, and net position including initial balances</p>
+      <p className="text-gray-600 text-sm mb-3">Monthly cash inflows, outflows, and net position including initial balances</p>
 
       {/* Summary Stats */}
-      <div className="grid grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-4 gap-4 mb-3">
         <div className="text-center p-4 bg-green-50 rounded-lg">
           <p className="text-sm text-green-700 font-medium">Total Inflow</p>
           <p className="text-lg font-bold text-green-800">
@@ -129,7 +129,7 @@ export const CashFlowAnalysis: React.FC<CashFlowAnalysisProps> = ({ data }) => {
       </div>
 
       {/* Breakdown Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Inflow Breakdown */}
         <div>
           <h4 className="text-lg font-semibold text-gray-800 mb-4">Inflow by Method</h4>

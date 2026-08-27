@@ -15,3 +15,5 @@ class Config:
     MAIL_USERNAME = os.environ.get('MAIL_USERNAME')
     MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
     MAIL_DEFAULT_SENDER = os.environ.get('MAIL_DEFAULT_SENDER')
+    AUTO_INVOICE_CHUNK_SIZE = os.environ.get('AUTO_INVOICE_CHUNK_SIZE', '100')
+    # AUTO_INVOICE_LOCK_ENABLED / AUTO_INVOICE_SCHEDULER_ENABLED via env (default true)

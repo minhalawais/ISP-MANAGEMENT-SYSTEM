@@ -4,6 +4,7 @@ import { useNavigate, useParams } from "react-router-dom"
 import { Lock } from "lucide-react"
 import axios from "axios"
 import axiosInstance from "../utils/axiosConfig.ts"
+import { LOGIN_ROUTE } from "../utils/authRedirects.ts"
 
 const ResetPasswordPage: React.FC = () => {
   const [password, setPassword] = useState("")
@@ -49,7 +50,7 @@ const ResetPasswordPage: React.FC = () => {
       const response = await axiosInstance.post(`/auth/reset-password/${token}`, { password });
       setMessage(response.data.message);
   
-      setTimeout(() => navigate("/login"), 3000);
+      setTimeout(() => navigate(LOGIN_ROUTE), 3000);
     } catch (err) {
       if (axios.isAxiosError(err) && err.response) {
         setError(err.response.data.error || "An error occurred. Please try again.");

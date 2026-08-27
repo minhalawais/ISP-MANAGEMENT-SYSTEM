@@ -14,13 +14,14 @@ interface Task {
   id: string;
   customer_id: string | null;
   customer_name: string | null;
-  task_type: 'installation' | 'maintenance' | 'complaint' | 'recovery';
+  task_type: 'installation' | 'maintenance' | 'complaint' | 'inspection' | 'recovery';
   priority: 'low' | 'medium' | 'high' | 'critical';
   due_date: string;
   status: 'pending' | 'in_progress' | 'completed' | 'cancelled';
   notes: string | null;
   assignees: Assignee[];
   assigned_to: string[];
+  is_unassigned?: boolean;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -39,6 +40,7 @@ const TaskManagement: React.FC = () => {
       case 'installation': return 'bg-blue-100 text-blue-800';
       case 'maintenance': return 'bg-purple-100 text-purple-800';
       case 'complaint': return 'bg-orange-100 text-orange-800';
+      case 'inspection': return 'bg-teal-100 text-teal-800';
       case 'recovery': return 'bg-red-100 text-red-800';
       default: return 'bg-gray-100 text-gray-800';
     }
@@ -165,8 +167,23 @@ const TaskManagement: React.FC = () => {
     <CRUDPage<Task>
       title="Task"
       endpoint="tasks"
+      filterModuleKey="task"
       columns={columns}
       FormComponent={TaskForm}
+      validateBeforeSubmit={(formData) => {
+        if (!formData.task_type) return "Task type is required";
+        if (formData.task_type === "recovery") {
+          return "Use Recovery Tasks for collection work";
+        }
+        if (!formData.due_date) return "Due date is required";
+        const assigned = Array.isArray(formData.assigned_to)
+          ? formData.assigned_to
+          : formData.assigned_to
+            ? [formData.assigned_to]
+            : [];
+        if (!assigned.length) return "At least one assignee is required";
+        return null;
+      }}
     />
   );
 };

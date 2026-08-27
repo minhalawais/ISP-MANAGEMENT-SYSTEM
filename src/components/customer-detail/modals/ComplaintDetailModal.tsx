@@ -44,14 +44,14 @@ export const ComplaintDetailModal: React.FC<Props> = ({ complaint, onClose }) =>
   const StatusIcon = status.icon
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 backdrop-blur-[2px] p-4" onClick={onClose}>
+      <div className="bg-white rounded-xl shadow-2xl border border-slate-300/70 w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
         {/* Header */}
-        <div className="flex items-center justify-between p-5 border-b" style={{ backgroundColor: '#89A8B2' }}>
+        <div className="flex items-center justify-between p-5 border-b" style={{ backgroundColor: '#2A5C8A' }}>
           <div className="flex items-center gap-3">
             <MessageSquare className="w-5 h-5 text-white" />
             <div>
-              <h3 className="text-lg font-semibold text-white">Complaint Ticket</h3>
+              <h3 className="text-base font-semibold text-white tracking-tight">Complaint Ticket</h3>
               <p className="text-xs text-white/80 font-mono">#{complaint.ticket_number}</p>
             </div>
           </div>
@@ -78,7 +78,7 @@ export const ComplaintDetailModal: React.FC<Props> = ({ complaint, onClose }) =>
                  <p className="text-xs text-gray-500 uppercase font-semibold mb-2">Timeline</p>
                  <div className="space-y-3 relative before:absolute before:left-1.5 before:top-1.5 before:bottom-1.5 before:w-0.5 before:bg-gray-200">
                     <div className="relative pl-6">
-                       <span className="absolute left-0 top-1.5 w-3.5 h-3.5 rounded-full bg-[#89A8B2] border-2 border-white shadow-sm" />
+                       <span className="absolute left-0 top-1.5 w-3.5 h-3.5 rounded-full bg-[#2A5C8A] border-2 border-white shadow-sm" />
                        <p className="text-xs text-gray-500">Created</p>
                        <p className="text-sm font-medium text-gray-900">{new Date(complaint.created_at).toLocaleString()}</p>
                     </div>
@@ -175,7 +175,7 @@ export const ComplaintDetailModal: React.FC<Props> = ({ complaint, onClose }) =>
 
         {/* Footer */}
         <div className="px-5 py-4 border-t bg-gray-50 flex justify-end">
-          <button onClick={onClose} className="px-6 py-2.5 font-medium rounded-xl text-white hover:opacity-90 shadow-sm" style={{ backgroundColor: '#89A8B2' }}>
+          <button onClick={onClose} className="px-6 py-2.5 font-medium rounded-xl text-white hover:opacity-90 shadow-sm" style={{ backgroundColor: '#2A5C8A' }}>
             Close
           </button>
         </div>

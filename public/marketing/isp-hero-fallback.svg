@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" fill="none">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0B3D4A"/>
+      <stop offset="45%" stop-color="#0F6E5C"/>
+      <stop offset="100%" stop-color="#102A32"/>
+    </linearGradient>
+    <linearGradient id="glow" x1="0.5" y1="0" x2="0.5" y2="1">
+      <stop offset="0%" stop-color="#7FF0AE" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#7FF0AE" stop-opacity="0"/>
+    </linearGradient>
+    <radialGradient id="node" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#E8FFF4"/>
+      <stop offset="70%" stop-color="#7FF0AE"/>
+      <stop offset="100%" stop-color="#7FF0AE" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1600" height="900" fill="url(#sky)"/>
+  <ellipse cx="1180" cy="220" rx="420" ry="260" fill="url(#glow)"/>
+  <!-- soft city silhouette -->
+  <path d="M0 620 H1600 V900 H0 Z" fill="#0A1C22" opacity="0.55"/>
+  <path d="M80 620 V480 H140 V620 H200 V420 H280 V620 H340 V500 H420 V620 H500 V380 H600 V620 H680 V460 H760 V620 H860 V400 H960 V620 H1040 V440 H1140 V620 H1220 V360 H1320 V620 H1400 V480 H1520 V620" fill="#0E2830"/>
+  <path d="M80 620 V480 H140 V620 H200 V420 H280 V620 H340 V500 H420 V620 H500 V380 H600 V620 H680 V460 H760 V620 H860 V400 H960 V620 H1040 V440 H1140 V620 H1220 V360 H1320 V620 H1400 V480 H1520 V620" fill="#14343C" opacity="0.5"/>
+  <!-- network arcs -->
+  <path d="M180 560 C420 200, 780 180, 1180 300" stroke="#7FF0AE" stroke-opacity="0.35" stroke-width="2" fill="none"/>
+  <path d="M260 600 C520 280, 900 220, 1320 340" stroke="#9BE7FF" stroke-opacity="0.25" stroke-width="2" fill="none"/>
+  <path d="M120 640 C480 360, 860 300, 1400 420" stroke="#7FF0AE" stroke-opacity="0.18" stroke-width="2" fill="none"/>
+  <!-- nodes -->
+  <circle cx="420" cy="360" r="8" fill="url(#node)"/>
+  <circle cx="780" cy="260" r="10" fill="url(#node)"/>
+  <circle cx="1100" cy="310" r="9" fill="url(#node)"/>
+  <circle cx="1320" cy="340" r="7" fill="url(#node)"/>
+  <!-- router block -->
+  <rect x="1080" y="520" width="220" height="88" rx="14" fill="#0F1F24" stroke="#7FF0AE" stroke-opacity="0.45"/>
+  <circle cx="1120" cy="564" r="8" fill="#7FF0AE"/>
+  <circle cx="1150" cy="564" r="8" fill="#9BE7FF"/>
+  <circle cx="1180" cy="564" r="8" fill="#7FF0AE" opacity="0.6"/>
+  <rect x="1220" y="548" width="60" height="10" rx="5" fill="#2A4A52"/>
+  <rect x="1220" y="568" width="44" height="10" rx="5" fill="#2A4A52"/>
+</svg>

@@ -62,6 +62,7 @@ const MessageManagement: React.FC = () => {
     <CRUDPage<Message>
       title="Message"
       endpoint="messages"
+      filterModuleKey="message"
       columns={columns}
       FormComponent={MessageForm}
     />

@@ -5,9 +5,7 @@ import { useState } from "react"
 import { Download, Upload, AlertCircle, CheckCircle, X, FileText, Loader } from "lucide-react"
 import { getToken } from "../../utils/auth.ts"
 import axiosInstance from "../../utils/axiosConfig.ts"
-import { toast } from "react-toastify"
-
-interface BulkAddModalProps {
+import { toast } from "../../utils/notify.ts";interface BulkAddModalProps {
   isVisible: boolean
   onClose: () => void
   endpoint: string
@@ -46,9 +44,7 @@ export function BulkAddModal({ isVisible, onClose, endpoint, entityName, onSucce
         setValidationResult(null)
         setStep("initial")
       } else {
-        toast.error("Please select a CSV or Excel file", {
-          style: { background: "#FEE2E2", color: "#EF4444" },
-        })
+        toast.error("Please select a CSV or Excel file")
       }
     }
   }
@@ -71,14 +67,10 @@ export function BulkAddModal({ isVisible, onClose, endpoint, entityName, onSucce
       link.remove()
       window.URL.revokeObjectURL(url)
 
-      toast.success(`${entityName} template downloaded successfully`, {
-        style: { background: "#D1FAE5", color: "#10B981" },
-      })
+      toast.success(`${entityName} template downloaded successfully`)
     } catch (error) {
       console.error("Failed to download template", error)
-      toast.error("Failed to download template", {
-        style: { background: "#FEE2E2", color: "#EF4444" },
-      })
+      toast.error("Failed to download template")
     }
   }
 
@@ -111,9 +103,6 @@ export function BulkAddModal({ isVisible, onClose, endpoint, entityName, onSucce
       if (response.data.success) {
         toast.success(
           `Successfully added ${response.data.successCount} out of ${response.data.totalRecords} ${entityName.toLowerCase()}s`,
-          {
-            style: { background: "#D1FAE5", color: "#10B981" },
-          },
         )
         onSuccess()
       } else {
@@ -121,16 +110,11 @@ export function BulkAddModal({ isVisible, onClose, endpoint, entityName, onSucce
           `Added ${response.data.successCount} out of ${response.data.totalRecords} ${entityName.toLowerCase()}s with ${
             response.data.failedCount
           } errors`,
-          {
-            style: { background: "#FEF3C7", color: "#D97706" },
-          },
         )
       }
     } catch (error) {
       console.error("Failed to upload file", error)
-      toast.error("Failed to upload file", {
-        style: { background: "#FEE2E2", color: "#EF4444" },
-      })
+      toast.error("Failed to upload file")
       setStep("initial")
     } finally {
       setIsUploading(false)

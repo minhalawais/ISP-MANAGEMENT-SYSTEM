@@ -100,27 +100,16 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
   ]
 
   return (
-    <motion.div
-      className="bg-white rounded-2xl border border-[#E5E1DA] p-4 md:p-6 mb-6 shadow-sm hover:shadow-md transition-shadow duration-300"
-      initial={{ opacity: 0, y: -20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-    >
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6 pb-4 border-b border-[#E5E1DA]">
-        <div className="flex items-center">
-          <div className="w-10 h-10 rounded-lg flex items-center justify-center mr-3 shadow-sm bg-[#89A8B2]/10">
-            <IconFilter className="w-5 h-5 text-[#89A8B2]" />
-          </div>
-          <div>
-            <h3 className="text-lg font-bold text-[#1F2937]">Advanced Filters</h3>
-            <p className="text-sm text-[#6B7280]">Refine your data view with custom filters</p>
-          </div>
-        </div>
+    <div className="bg-white rounded-xl border border-[#E5E1DA] p-4 mb-3 shadow-sm">
+      <div className="flex items-center justify-between mb-3 pb-2 border-b border-[#E5E1DA]">
+        <h3 className="text-sm font-semibold text-[#1F2937] flex items-center gap-2">
+          <IconFilter className="w-4 h-4 text-[#89A8B2]" />
+          Filters
+        </h3>
         {onOpenPaymentModal && (
           <button
             onClick={onOpenPaymentModal}
-            className="flex items-center gap-2 px-4 py-2 bg-[#89A8B2] text-white rounded-lg hover:bg-[#7896a0] transition-colors shadow-sm font-medium text-sm"
+            className="h-9 inline-flex items-center gap-1.5 px-3 text-sm bg-[#89A8B2] text-white rounded-lg hover:bg-[#7896a0] transition-colors"
           >
             <Plus className="w-4 h-4" />
             Add Transaction
@@ -129,7 +118,7 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
       </div>
 
       {/* Quick Filters */}
-      <div className="mb-6">
+      <div className="mb-3">
         <label className="text-sm font-semibold text-[#1F2937] mb-3 flex items-center">
           <IconCalendar className="w-4 h-4 mr-2 text-[#89A8B2]" />
           Quick Time Periods
@@ -255,6 +244,6 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
           </select>
         </motion.div>
       </div>
-    </motion.div>
+    </div>
   )
 }

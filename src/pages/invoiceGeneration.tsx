@@ -3,7 +3,9 @@
 import type React from "react"
 import { useEffect, useState, useRef } from "react"
 import { useParams } from "react-router-dom"
-import { getToken, getAssetUrl } from "../utils/auth.ts"
+import { getToken, getAssetUrl, getRole } from "../utils/auth.ts"
+import { isEmployeePortalRole } from "../utils/authRedirects.ts"
+import { portalHomePath } from "../utils/employeePortalNavigation.ts"
 import { useCompany } from "../context/CompanyContext.tsx"
 import { useReactToPrint } from "react-to-print"
 import jsPDF from "jspdf"
@@ -11,6 +13,9 @@ import html2canvas from "html2canvas"
 import axiosInstance from "../utils/axiosConfig.ts"
 import { Sidebar } from "../components/sideNavbar.tsx"
 import { Topbar } from "../components/topNavbar.tsx"
+import { useOptionalAdminChrome } from "../context/AdminLayoutContext.tsx"
+import { InvoicePaymentMethodCard } from "../components/invoice/InvoicePaymentMethodCard.tsx"
+import { Link } from "react-router-dom"
 import MBALogo from "../assets/mba_logo.tsx"
 import { PaidStamp } from "../components/PaidStamp.tsx"
 
@@ -21,9 +26,12 @@ interface LineItem {
   unit_price: number
   discount_amount: number
   line_total: number
+  charge_type?: string
   item_type?: string
   inventory_item_id?: string
   inventory_item_type?: string
+  billing_start_date?: string | null
+  billing_end_date?: string | null
 }
 
 interface PendingInvoice {
@@ -86,6 +94,7 @@ interface BankAccount {
   account_number: string
   iban?: string
   branch_code?: string
+  qr_code_image?: string | null
 }
 
 const InvoiceGenerationPage: React.FC = () => {
@@ -96,6 +105,7 @@ const InvoiceGenerationPage: React.FC = () => {
   const [isDownloading, setIsDownloading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const printRef = useRef<HTMLDivElement>(null)
+  const hasChrome = useOptionalAdminChrome()
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
 
   const { setPageTitle } = useCompany()
@@ -154,8 +164,15 @@ const InvoiceGenerationPage: React.FC = () => {
     }
   }
 
-  const isSubscription = (invoiceData?.invoice_type || "").toLowerCase() === "subscription"
+  const hasSubscriptionLine = (invoiceData?.line_items || []).some(
+    (li) => (li.charge_type || "").toLowerCase() === "subscription"
+  )
+  const isSubscription =
+    (invoiceData?.invoice_type || "").toLowerCase() === "subscription" || hasSubscriptionLine
   const invoiceDateToShow = isSubscription ? invoiceData?.billing_start_date : invoiceData?.due_date || invoiceData?.billing_start_date
+
+  const formatChargeType = (value?: string) =>
+    (value || "charge").replace(/_/g, " ")
 
   const getStatusConfig = (status: string) => {
     switch (status.toLowerCase()) {
@@ -257,14 +274,34 @@ const InvoiceGenerationPage: React.FC = () => {
   }
 
   const statusConfig = getStatusConfig(invoiceData?.status || "")
+  const employeeView = isEmployeePortalRole(getRole())
+  const useAdminShell = !employeeView && !hasChrome
 
   return (
-    <div className="flex h-screen bg-gradient-to-br from-slate-100 via-slate-50 to-blue-50">
-      <Sidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} setIsOpen={setIsSidebarOpen} />
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <Topbar toggleSidebar={toggleSidebar} />
-        <div className={`flex-1 overflow-x-hidden overflow-y-auto p-6 pt-20 transition-all duration-300 ${isSidebarOpen ? "ml-72" : "ml-0 md:ml-20"}`}>
+    <div className={hasChrome && !employeeView ? "flex-1 min-w-0 w-full" : employeeView ? "min-h-screen bg-gradient-to-br from-slate-100 via-slate-50 to-blue-50" : "flex h-screen bg-gradient-to-br from-slate-100 via-slate-50 to-blue-50"}>
+      {useAdminShell && (
+        <Sidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} setIsOpen={setIsSidebarOpen} />
+      )}
+      <div className={hasChrome && !employeeView ? "flex-1 min-w-0 w-full" : "flex-1 flex flex-col overflow-hidden"}>
+        {useAdminShell && <Topbar toggleSidebar={toggleSidebar} />}
+        <div className={
+          employeeView
+            ? "flex-1 overflow-x-hidden overflow-y-auto px-4 sm:px-6 pb-4 sm:pb-6 pt-4"
+            : hasChrome
+              ? "px-4 sm:px-6 py-4 sm:py-6"
+              : `flex-1 overflow-x-hidden overflow-y-auto px-4 sm:px-6 pb-4 sm:pb-6 pt-20 transition-all duration-300 ${isSidebarOpen ? "ml-72" : "ml-0 md:ml-20"}`
+        }>
           <div className="max-w-4xl mx-auto">
+            {employeeView && (
+              <div className="mb-4">
+                <Link
+                  to={portalHomePath()}
+                  className="inline-flex items-center gap-1.5 text-sm text-[#6B8A94] hover:text-[#89A8B2]"
+                >
+                  ← Back to portal
+                </Link>
+              </div>
+            )}
             {/* Top Action Bar */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
               <div>
@@ -388,74 +425,74 @@ const InvoiceGenerationPage: React.FC = () => {
                 {/* Line Items Table */}
                 <div className="py-8 border-b border-slate-100">
                   <div className="rounded-xl overflow-hidden border border-slate-200">
-                    <table className="w-full table-fixed">
+                    <table className="w-full">
                       <thead>
                         <tr className="bg-gradient-to-r from-slate-800 to-slate-700">
-                          <th className="text-left text-xs font-bold text-white/90 uppercase tracking-wider py-4 px-5 w-[70%]">{invoiceData?.invoice_type === 'equipment' ? 'Item Description' : 'Service Description'}</th>
-                          {invoiceData?.invoice_type === 'equipment' && (
-                            <>
-                              <th className="text-center text-xs font-bold text-white/90 uppercase tracking-wider py-4 px-3 whitespace-nowrap w-[10%]">Qty</th>
-                              <th className="text-right text-xs font-bold text-white/90 uppercase tracking-wider py-4 px-5 whitespace-nowrap w-[20%]">Unit Price</th>
-                            </>
-                          )}
-                          <th className="text-right text-xs font-bold text-white/90 uppercase tracking-wider py-4 px-5 whitespace-nowrap w-[30%]">Amount</th>
+                          <th className="text-left text-xs font-bold text-white/90 uppercase tracking-wider py-4 px-4">Charge</th>
+                          <th className="text-left text-xs font-bold text-white/90 uppercase tracking-wider py-4 px-4">Description</th>
+                          <th className="text-center text-xs font-bold text-white/90 uppercase tracking-wider py-4 px-3">Qty</th>
+                          <th className="text-right text-xs font-bold text-white/90 uppercase tracking-wider py-4 px-4">Price</th>
+                          <th className="text-right text-xs font-bold text-white/90 uppercase tracking-wider py-4 px-4">Amount</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100">
                         {invoiceData?.line_items && invoiceData.line_items.length > 0 ? (
-                          invoiceData.line_items.map((item, index) => (
-                            <tr key={item.id || index} className="hover:bg-slate-50/50 transition-colors">
-                              <td className="py-4 px-5" style={{ width: "70%" }}>
-                                <p className="font-semibold text-slate-800 whitespace-nowrap">{item.description}</p>
-                                {index === 0 && isSubscription && (
-                                  <p className="text-xs text-slate-500 mt-0.5 whitespace-nowrap">Period: {formatDate(invoiceData.billing_start_date)} — {formatDate(invoiceData.billing_end_date)}</p>
-                                )}
-                                {item.item_type === 'equipment' && item.inventory_item_type && (
-                                  <p className="text-xs text-slate-400 mt-0.5 whitespace-nowrap">Type: {item.inventory_item_type}</p>
-                                )}
-                              </td>
-                              {invoiceData?.invoice_type === 'equipment' && (
-                                <>
-                                  <td className="py-4 px-3 text-center text-slate-700">{item.quantity}</td>
-                                  <td className="py-4 px-5 text-right text-slate-600 whitespace-nowrap">PKR {item.unit_price.toLocaleString()}</td>
-                                </>
-                              )}
-                              <td className="py-4 px-5 text-right font-bold text-slate-800 whitespace-nowrap">PKR {item.line_total.toLocaleString()}</td>
-                            </tr>
-                          ))
+                          invoiceData.line_items.map((item, index) => {
+                            const charge = item.charge_type || item.item_type || invoiceData.invoice_type
+                            const periodStart = item.billing_start_date || (charge === "subscription" ? invoiceData.billing_start_date : null)
+                            const periodEnd = item.billing_end_date || (charge === "subscription" ? invoiceData.billing_end_date : null)
+                            return (
+                              <tr key={item.id || index} className="hover:bg-slate-50/50 transition-colors">
+                                <td className="py-3 px-4 text-xs capitalize text-slate-600 whitespace-nowrap">{formatChargeType(charge)}</td>
+                                <td className="py-3 px-4">
+                                  <p className="font-semibold text-slate-800 text-sm">{item.description}</p>
+                                  {periodStart && periodEnd && (
+                                    <p className="text-xs text-slate-500 mt-0.5">
+                                      Period: {formatDate(periodStart)} — {formatDate(periodEnd)}
+                                    </p>
+                                  )}
+                                </td>
+                                <td className="py-3 px-3 text-center text-slate-700 text-sm">{item.quantity}</td>
+                                <td className="py-3 px-4 text-right text-slate-600 text-sm whitespace-nowrap">PKR {Number(item.unit_price || 0).toLocaleString()}</td>
+                                <td className="py-3 px-4 text-right font-bold text-slate-800 text-sm whitespace-nowrap">PKR {Number(item.line_total || 0).toLocaleString()}</td>
+                              </tr>
+                            )
+                          })
                         ) : (
                           <tr className="hover:bg-slate-50/50 transition-colors">
-                            <td className="py-4 px-5" colSpan={invoiceData?.invoice_type === 'equipment' ? 3 : 1}>
-                              <p className="font-semibold text-slate-800 whitespace-nowrap">{invoiceData && getServiceDescription(invoiceData)}</p>
-                              <p className="text-xs text-slate-500 mt-0.5 whitespace-nowrap">
+                            <td className="py-3 px-4 text-xs capitalize text-slate-600">{formatChargeType(invoiceData?.invoice_type)}</td>
+                            <td className="py-3 px-4">
+                              <p className="font-semibold text-slate-800 text-sm">{invoiceData && getServiceDescription(invoiceData)}</p>
+                              <p className="text-xs text-slate-500 mt-0.5">
                                 {isSubscription ? `Period: ${formatDate(invoiceData!.billing_start_date)} — ${formatDate(invoiceData!.billing_end_date)}` : `Date: ${formatDate(invoiceDateToShow || "")}`}
                               </p>
-                              {invoiceData?.notes && <p className="text-xs text-slate-400 mt-1 whitespace-nowrap">Note: {invoiceData.notes}</p>}
                             </td>
-                            <td className="py-4 px-5 text-right font-bold text-slate-800 whitespace-nowrap">PKR {invoiceData?.subtotal.toLocaleString()}</td>
+                            <td className="py-3 px-3 text-center text-slate-700 text-sm">1</td>
+                            <td className="py-3 px-4 text-right text-slate-600 text-sm whitespace-nowrap">PKR {(invoiceData?.subtotal ?? 0).toLocaleString()}</td>
+                            <td className="py-3 px-4 text-right font-bold text-slate-800 text-sm whitespace-nowrap">PKR {(invoiceData?.subtotal ?? 0).toLocaleString()}</td>
                           </tr>
                         )}
-                        {isSubscription && invoiceData && invoiceData.discount_percentage > 0 && (
+                        {invoiceData && invoiceData.discount_percentage > 0 && (
                           <tr className="bg-emerald-50/50">
-                            <td className="py-3 px-5 text-slate-600" colSpan={invoiceData?.invoice_type === 'equipment' ? 3 : 1}>Discount ({invoiceData.discount_percentage}%)</td>
-                            <td className="py-3 px-5 text-right font-semibold text-emerald-600 whitespace-nowrap">-PKR {(invoiceData.subtotal * (invoiceData.discount_percentage / 100)).toFixed(2)}</td>
+                            <td className="py-3 px-4 text-slate-600" colSpan={4}>Discount ({invoiceData.discount_percentage}%)</td>
+                            <td className="py-3 px-4 text-right font-semibold text-emerald-600 whitespace-nowrap">-PKR {(invoiceData.subtotal * (invoiceData.discount_percentage / 100)).toFixed(2)}</td>
                           </tr>
                         )}
                       </tbody>
                       <tfoot>
                         <tr className="bg-gradient-to-r from-slate-800 to-slate-700">
-                          <td className="py-4 px-5 text-right font-bold text-white uppercase tracking-wide" colSpan={invoiceData?.invoice_type === 'equipment' ? 3 : 1}>Total Amount</td>
-                          <td className="py-4 px-5 text-right"><span className="text-2xl font-bold text-white">PKR {invoiceData?.total_amount.toLocaleString()}</span></td>
+                          <td className="py-4 px-4 text-right font-bold text-white uppercase tracking-wide" colSpan={4}>Total Amount</td>
+                          <td className="py-4 px-4 text-right"><span className="text-xl font-bold text-white">PKR {invoiceData?.total_amount.toLocaleString()}</span></td>
                         </tr>
                         {(invoiceData?.total_paid ?? 0) > 0 && (
                           <>
                             <tr className="bg-emerald-50/50">
-                              <td className="py-3 px-5 text-right font-bold text-emerald-700 uppercase tracking-wide" colSpan={invoiceData?.invoice_type === 'equipment' ? 3 : 1}>Amount Paid</td>
-                              <td className="py-3 px-5 text-right"><span className="text-lg font-bold text-emerald-700">PKR {(invoiceData?.total_paid ?? 0).toLocaleString()}</span></td>
+                              <td className="py-3 px-4 text-right font-bold text-emerald-700 uppercase tracking-wide" colSpan={4}>Amount Paid</td>
+                              <td className="py-3 px-4 text-right"><span className="text-lg font-bold text-emerald-700">PKR {(invoiceData?.total_paid ?? 0).toLocaleString()}</span></td>
                             </tr>
                             <tr className={`${(invoiceData?.remaining_amount ?? 0) > 0 ? 'bg-red-50/50' : 'bg-slate-50/50'}`}>
-                              <td className={`py-3 px-5 text-right font-bold uppercase tracking-wide ${(invoiceData?.remaining_amount ?? 0) > 0 ? 'text-red-700' : 'text-slate-700'}`} colSpan={invoiceData?.invoice_type === 'equipment' ? 3 : 1}>Balance Due</td>
-                              <td className="py-3 px-5 text-right"><span className={`text-lg font-bold ${(invoiceData?.remaining_amount ?? 0) > 0 ? 'text-red-700' : 'text-slate-700'}`}>PKR {(invoiceData?.remaining_amount ?? 0).toLocaleString()}</span></td>
+                              <td className={`py-3 px-4 text-right font-bold uppercase tracking-wide ${(invoiceData?.remaining_amount ?? 0) > 0 ? 'text-red-700' : 'text-slate-700'}`} colSpan={4}>Balance Due</td>
+                              <td className="py-3 px-4 text-right"><span className={`text-lg font-bold ${(invoiceData?.remaining_amount ?? 0) > 0 ? 'text-red-700' : 'text-slate-700'}`}>PKR {(invoiceData?.remaining_amount ?? 0).toLocaleString()}</span></td>
                             </tr>
                           </>
                         )}
@@ -555,15 +592,7 @@ const InvoiceGenerationPage: React.FC = () => {
                     <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Payment Methods</p>
                     <div className="grid md:grid-cols-2 gap-4">
                       {bankAccounts.map((account) => (
-                        <div key={account.id} className="bg-gradient-to-br from-slate-800 to-slate-700 rounded-xl p-5 text-white">
-                          <p className="text-xs text-slate-300 uppercase tracking-wider mb-2">{account.bank_name}</p>
-                          <p className="font-bold text-lg mb-3">{account.account_title}</p>
-                          <div className="space-y-1 text-sm text-slate-200">
-                            <p><span className="text-slate-400">A/C:</span> {account.account_number}</p>
-                            {account.iban && <p><span className="text-slate-400">IBAN:</span> {account.iban}</p>}
-                            {account.branch_code && <p><span className="text-slate-400">Branch:</span> {account.branch_code}</p>}
-                          </div>
-                        </div>
+                        <InvoicePaymentMethodCard key={account.id} account={account} />
                       ))}
                     </div>
                   </div>

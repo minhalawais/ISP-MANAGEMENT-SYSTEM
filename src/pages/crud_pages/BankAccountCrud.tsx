@@ -11,8 +11,9 @@ interface BankAccount {
   account_number: string
   iban?: string
   branch_code?: string
-  initial_balance: number  // NEW
+  initial_balance: number
   branch_address?: string
+  qr_code_image?: string | null
   is_active: boolean
   created_at?: string
   updated_at?: string
@@ -55,15 +56,10 @@ const BankAccountManagement: React.FC = () => {
         cell: info => info.getValue() || 'N/A',
       },
       {
-        header: 'Status',
-        accessorKey: 'is_active',
-        cell: info => (
-          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-            info.getValue() ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'
-          }`}>
-            {info.getValue() ? 'Active' : 'Inactive'}
-          </span>
-        ),
+        header: 'QR',
+        id: 'qr_code_image',
+        accessorKey: 'qr_code_image',
+        cell: info => (info.getValue() ? 'Yes' : '—'),
       },
       {
         header: 'Created At',
@@ -81,8 +77,10 @@ const BankAccountManagement: React.FC = () => {
     <CRUDPage<BankAccount>
       title="Bank Account"
       endpoint="bank-accounts"
+      filterModuleKey="bank-account"
       columns={columns}
       FormComponent={BankAccountForm}
+      useFormData={true}
     />
   )
 }

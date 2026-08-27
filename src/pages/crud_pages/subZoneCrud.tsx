@@ -6,12 +6,22 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, MapPin, Plus, Pencil, Trash2, CheckCircle2, XCircle } from 'lucide-react';
 import { Table } from '../../components/table/table.tsx';
 import { Modal } from '../../components/modal.tsx';
+import { MODAL_CANCEL_BTN, MODAL_FOOTER, MODAL_INPUT, MODAL_LABEL, MODAL_PRIMARY_BTN } from '../../components/ui/modalStyles.ts';
 import { Topbar } from '../../components/topNavbar.tsx';
+import { useOptionalAdminChrome } from '../../context/AdminLayoutContext.tsx';
 import { Sidebar } from '../../components/sideNavbar.tsx';
 import { getToken } from '../../utils/auth.ts';
-import { toast } from 'react-toastify';
+import { toast } from "../../utils/notify.ts";
 import axiosInstance from '../../utils/axiosConfig.ts';
 import { useCompany } from '../../context/CompanyContext.tsx';
+import { CRUD_FILTER_CONFIGS } from '../../config/crudFilterConfigs.ts';
+import { useCrudTableFilters } from '../../hooks/useCrudTableFilters.ts';
+import { useCrudPeriodFilter } from '../../hooks/useCrudPeriodFilter.ts';
+import { getCrudPeriodConfig } from '../../config/crudPeriodConfigs.ts';
+import { CrudStatsSection } from '../../components/crud/CrudStatsSection.tsx';
+import { computeCrudStats } from '../../utils/crudFilterParams.ts';
+import { filterRowsByPktPeriod, periodForTextSearch } from '../../utils/crudPeriodUtils.ts';
+import type { StatCardDef } from '../../types/crudFilters.ts';
 
 interface SubZone {
   id: string;
@@ -20,6 +30,7 @@ interface SubZone {
   name: string;
   description: string;
   is_active: boolean;
+  is_public: boolean;
 }
 
 interface Area {
@@ -38,8 +49,48 @@ const SubZoneManagement: React.FC = () => {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingItem, setEditingItem] = useState<SubZone | null>(null);
   const [formData, setFormData] = useState<Partial<SubZone>>({});
+  const hasChrome = useOptionalAdminChrome();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
+  const [computedStats, setComputedStats] = useState<Record<string, number>>({ total: 0 });
+  const filterConfig = CRUD_FILTER_CONFIGS['sub-zone'];
+  const periodConfig = getCrudPeriodConfig('sub-zone');
+  const tableFilters = useCrudTableFilters({ config: filterConfig });
+  const periodFilter = useCrudPeriodFilter({ config: periodConfig });
+  const [searchText, setSearchText] = useState("");
+
+  const periodScopedData = useMemo(
+    () =>
+      filterRowsByPktPeriod(
+        subZones as unknown as Record<string, unknown>[],
+        periodFilter.period,
+        periodConfig.dateField,
+      ) as SubZone[],
+    [subZones, periodFilter.period, periodConfig.dateField],
+  );
+
+  const displaySubZones = useMemo(
+    () =>
+      filterRowsByPktPeriod(
+        subZones as unknown as Record<string, unknown>[],
+        periodForTextSearch(periodFilter.period, searchText),
+        periodConfig.dateField,
+      ) as SubZone[],
+    [subZones, periodFilter.period, periodConfig.dateField, searchText],
+  );
+
+  useEffect(() => {
+    setComputedStats(computeCrudStats(periodScopedData, filterConfig.statCards));
+  }, [periodScopedData, filterConfig.statCards]);
+
+  const statCards: StatCardDef[] = useMemo(
+    () =>
+      filterConfig.statCards.map((card) => ({
+        ...card,
+        value: computedStats[card.id] ?? computedStats.total ?? 0,
+      })),
+    [filterConfig.statCards, computedStats],
+  );
 
   useEffect(() => {
     setPageTitle("Sub-Zone Management");
@@ -133,6 +184,10 @@ const SubZoneManagement: React.FC = () => {
       {
         header: 'Status',
         accessorKey: 'is_active',
+        filterFn: (row, columnId, filterValue) => {
+          if (!filterValue) return true;
+          return String(row.getValue(columnId)) === String(filterValue);
+        },
         cell: info => (
           <span className={`px-2 py-1 rounded-full text-xs font-medium ${
             info.getValue() ? 'bg-emerald-green/10 text-emerald-green' : 'bg-coral-red/10 text-coral-red'
@@ -141,6 +196,7 @@ const SubZoneManagement: React.FC = () => {
           </span>
         ),
       },
+      { header: 'Website', accessorKey: 'is_public', cell: info => info.getValue<boolean>() ? 'Published' : 'Private' },
       {
         header: 'Actions',
         cell: info => (
@@ -173,13 +229,19 @@ const SubZoneManagement: React.FC = () => {
   const toggleSidebar = () => setIsSidebarOpen(prev => !prev);
 
   return (
-    <div className="flex h-screen bg-light-sky/50">
-      <Sidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} setIsOpen={setIsSidebarOpen} />
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <Topbar toggleSidebar={toggleSidebar} />
-        <main className={`flex-1 overflow-x-hidden overflow-y-auto bg-light-sky/50 p-6 pt-20 transition-all duration-300 ${
+    <div className={hasChrome ? "flex-1 min-w-0 w-full" : "flex h-screen bg-light-sky/50"}>
+      {!hasChrome && (
+        <Sidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} setIsOpen={setIsSidebarOpen} />
+      )}
+      <div className={hasChrome ? "flex-1 min-w-0 w-full" : "flex-1 flex flex-col overflow-hidden"}>
+        {!hasChrome && <Topbar toggleSidebar={toggleSidebar} />}
+        <main className={
+          hasChrome
+            ? "px-6 py-6"
+            : `flex-1 overflow-x-hidden overflow-y-auto bg-light-sky/50 px-6 pb-6 pt-20 transition-all duration-300 ${
           isSidebarOpen ? 'ml-64' : 'ml-0 lg:ml-20'
-        }`}>
+        }`
+        }>
           <div className="container mx-auto">
             {/* Header */}
             <div className="bg-white rounded-xl shadow-md p-6 mb-6">
@@ -211,16 +273,36 @@ const SubZoneManagement: React.FC = () => {
                   <Plus className="h-5 w-5" /> Add Sub-Zone
                 </button>
               </div>
+
+              <CrudStatsSection
+                cards={statCards}
+                activeStatId={tableFilters.activeStatId}
+                onStatClick={tableFilters.applyStatFilter}
+                period={periodFilter.period}
+                periodLabel={periodFilter.label}
+                periodActive={periodFilter.isActive}
+                onSetPeriod={periodFilter.setPeriod}
+                onSetPeriodAll={periodFilter.setAll}
+              />
             </div>
 
             {/* Table */}
             <div className="mb-8">
               <Table
-                data={subZones}
+                data={displaySubZones}
                 columns={columns}
                 selectedRows={selectedRows}
                 setSelectedRows={setSelectedRows}
                 isLoading={isLoading}
+                quickFilters={filterConfig.quickFilters}
+                filterState={tableFilters.filterState}
+                onQuickFilterChange={tableFilters.setQuickFilter}
+                onClearFilters={tableFilters.clearAllFilters}
+                hasActiveFilters={tableFilters.hasAnyActiveFilters}
+                inlineFilterFields={tableFilters.inlineFields}
+                controlledColumnFilters={tableFilters.mergedColumnFilters}
+                onControlledColumnFiltersChange={tableFilters.handleColumnFiltersChange}
+                onSearchTextChange={setSearchText}
               />
             </div>
           </div>
@@ -239,13 +321,14 @@ const SubZoneManagement: React.FC = () => {
         isLoading={isLoading}
       >
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-4 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-deep-ocean mb-1">
+            <label className={MODAL_LABEL}>
               Sub-Zone Name *
             </label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <MapPin className="h-5 w-5 text-slate-gray/60" />
+                <MapPin className="h-4 w-4 text-slate-400" />
               </div>
               <input
                 type="text"
@@ -253,14 +336,14 @@ const SubZoneManagement: React.FC = () => {
                 value={formData.name || ''}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 placeholder="Enter sub-zone name"
-                className="w-full pl-10 pr-4 py-2.5 border border-slate-gray/20 rounded-lg focus:ring-2 focus:ring-electric-blue/30 focus:border-transparent"
+                className={`${MODAL_INPUT} pl-9`}
                 required
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-deep-ocean mb-1">
+            <label className={MODAL_LABEL}>
               Description
             </label>
             <textarea
@@ -269,11 +352,19 @@ const SubZoneManagement: React.FC = () => {
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               placeholder="Enter description (optional)"
               rows={3}
-              className="w-full px-4 py-2.5 border border-slate-gray/20 rounded-lg focus:ring-2 focus:ring-electric-blue/30 focus:border-transparent resize-y"
+              className={`${MODAL_INPUT} h-auto py-2 resize-y`}
             />
           </div>
+          <div>
+            <label className={MODAL_LABEL}>Public website coverage</label>
+            <select value={String(formData.is_public === true)} onChange={(e) => setFormData({ ...formData, is_public: e.target.value === 'true' })} className={MODAL_INPUT}>
+              <option value="false">Private operational sub-area</option>
+              <option value="true">Publish on website</option>
+            </select>
+          </div>
+          </div>
 
-          <div className="flex justify-end gap-3 pt-4">
+          <div className={MODAL_FOOTER}>
             <button
               type="button"
               onClick={() => {
@@ -281,14 +372,14 @@ const SubZoneManagement: React.FC = () => {
                 setEditingItem(null);
                 setFormData({});
               }}
-              className="px-4 py-2.5 border border-slate-gray/20 text-slate-gray rounded-lg hover:bg-light-sky/50 transition-colors"
+              className={MODAL_CANCEL_BTN}
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isLoading}
-              className="px-4 py-2.5 bg-electric-blue text-white rounded-lg hover:bg-btn-hover transition-colors flex items-center gap-2"
+              className={MODAL_PRIMARY_BTN}
             >
               {isLoading ? 'Saving...' : editingItem ? 'Update Sub-Zone' : 'Add Sub-Zone'}
             </button>

@@ -53,9 +53,9 @@ export const ThreeLineTrend: React.FC<Props> = ({ data }) => {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.1 }}
-      className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm h-full flex flex-col"
+      className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm h-full flex flex-col"
     >
-      <div className="mb-6">
+      <div className="mb-3">
          <div className="flex items-center justify-between">
             <h3 className="text-lg font-bold text-gray-800">Financial Health Trend</h3>
             <span className="px-2 py-1 bg-purple-50 text-purple-700 text-xs font-medium rounded-lg">Performance</span>

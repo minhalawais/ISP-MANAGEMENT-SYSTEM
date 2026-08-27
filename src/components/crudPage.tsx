@@ -17,18 +17,31 @@ import {
 } from "lucide-react"
 import { Table } from "./table/table.tsx"
 import { Modal } from "./modal.tsx"
+import { MODAL_CANCEL_BTN, MODAL_FOOTER, MODAL_PRIMARY_BTN } from "./ui/modalStyles.ts"
 import { Topbar } from "./topNavbar.tsx"
 import { Sidebar } from "./sideNavbar.tsx"
+import { useOptionalAdminChrome } from "../context/AdminLayoutContext.tsx"
 import { getToken } from "../utils/auth.ts"
-import { toast } from "react-toastify"
+import { toast } from "../utils/notify.ts";
 import axiosInstance from "../utils/axiosConfig.ts"
 import { CredentialsModal } from "./modals/CredentialsModal.tsx"
 import { createFormDataRequestConfig, getOperationErrorMessage } from "../utils/crudSubmit.ts"
+import type { CrudFilterConfig } from "../types/crudFilters.ts"
+import { getCrudFilterConfig } from "../config/crudFilterConfigs.ts"
+import { getCrudPeriodConfig } from "../config/crudPeriodConfigs.ts"
+import { useCrudTableFilters } from "../hooks/useCrudTableFilters.ts"
+import { useCrudPeriodFilter } from "../hooks/useCrudPeriodFilter.ts"
+import { CrudStatsSection } from "./crud/CrudStatsSection.tsx"
+import { computeCrudStats } from "../utils/crudFilterParams.ts"
+import { filterRowsByPktPeriod, periodForTextSearch } from "../utils/crudPeriodUtils.ts"
+import type { StatCardDef } from "../types/crudFilters.ts"
 
 interface CRUDPageProps<T> {
   title: string
   endpoint: string
   columns: ColumnDef<T>[]
+  filterModuleKey?: string
+  filterConfig?: CrudFilterConfig
   FormComponent: React.ComponentType<{
     formData: Partial<T>
     handleInputChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => void
@@ -55,6 +68,8 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
   title,
   endpoint,
   columns,
+  filterModuleKey,
+  filterConfig: filterConfigProp,
   FormComponent,
   onDataChange,
   validateBeforeSubmit,
@@ -66,6 +81,7 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
   const [isModalVisible, setIsModalVisible] = useState(false)
   const [editingItem, setEditingItem] = useState<T | null>(null)
   const [formData, setFormData] = useState<Partial<T>>({})
+  const hasChrome = useOptionalAdminChrome()
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [selectedRows, setSelectedRows] = useState<string[]>([])
   const [isLoading, setIsLoading] = useState(false)
@@ -75,14 +91,53 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
     password: string
     email: string
   } | null>(null)
-  const [stats, setStats] = useState({
-    total: 0,
-    active: 0,
-    inactive: 0,
-  })
   const [fileData, setFileData] = useState<Record<string, File>>({})  // File storage for uploads
   const [asyncValidation, setAsyncValidation] = useState<AsyncValidationState>({ username: "idle", email: "idle" })
   const submitLockRef = useRef(false)
+
+  const filterConfig = filterConfigProp ?? getCrudFilterConfig(filterModuleKey ?? endpoint)
+  const periodConfig = getCrudPeriodConfig(filterModuleKey ?? endpoint)
+
+  const tableFilters = useCrudTableFilters({ config: filterConfig })
+  const periodFilter = useCrudPeriodFilter({ config: periodConfig })
+  const [searchText, setSearchText] = useState("")
+
+  const [computedStats, setComputedStats] = useState<Record<string, number>>({ total: 0 })
+
+  const periodScopedData = useMemo(
+    () =>
+      filterRowsByPktPeriod(
+        data as unknown as Record<string, unknown>[],
+        periodFilter.period,
+        periodConfig.dateField,
+      ) as T[],
+    [data, periodFilter.period, periodConfig.dateField],
+  )
+
+  // Text search ignores month filter and scans the full loaded list
+  const displayData = useMemo(
+    () =>
+      filterRowsByPktPeriod(
+        data as unknown as Record<string, unknown>[],
+        periodForTextSearch(periodFilter.period, searchText),
+        periodConfig.dateField,
+      ) as T[],
+    [data, periodFilter.period, periodConfig.dateField, searchText],
+  )
+
+  useEffect(() => {
+    setComputedStats(computeCrudStats(periodScopedData, filterConfig.statCards))
+  }, [periodScopedData, filterConfig.statCards])
+
+  const statCards: StatCardDef[] = useMemo(
+    () =>
+      filterConfig.statCards.map((card) => ({
+        ...card,
+        value: computedStats[card.id] ?? computedStats.total ?? 0,
+        clickable: card.clickable !== false && !!card.filter,
+      })),
+    [filterConfig.statCards, computedStats],
+  )
 
   const fetchData = async () => {
     setIsLoading(true)
@@ -93,23 +148,12 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
       })
       setData(response.data)
 
-      // Calculate stats
-      const total = response.data.length
-      const active = response.data.filter((item: any) => item.is_active).length
-      setStats({
-        total,
-        active,
-        inactive: total - active,
-      })
-
       if (onDataChange) {
         onDataChange()
       }
     } catch (error) {
       console.error(`Failed to fetch ${title}`, error)
-      toast.error(`Failed to fetch ${title}`, {
-        style: { background: "#FEE2E2", color: "#EF4444" },
-      })
+      toast.error(`Failed to fetch ${title}`)
     } finally {
       setIsLoading(false)
     }
@@ -127,15 +171,11 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
         { is_active: !currentStatus },
         { headers: { Authorization: `Bearer ${token}` } },
       )
-      toast.success(`${title} status updated successfully`, {
-        style: { background: "#D1FAE5", color: "#10B981" },
-      })
+      toast.success(`${title} status updated successfully`)
       await fetchData()
     } catch (error) {
       console.error(`Failed to update ${title} status`, error)
-      toast.error(`Failed to update ${title} status`, {
-        style: { background: "#FEE2E2", color: "#EF4444" },
-      })
+      toast.error(`Failed to update ${title} status`)
     }
   }
 
@@ -156,17 +196,12 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
       )
       toast.success(
         `${selectedRows.length} ${title.toLowerCase()}${selectedRows.length > 1 ? "s" : ""} ${newStatus ? "activated" : "deactivated"} successfully`,
-        {
-          style: { background: "#D1FAE5", color: "#10B981" },
-        },
       )
       await fetchData()
       setSelectedRows([])
     } catch (error) {
       console.error(`Failed to update ${title} status`, error)
-      toast.error(`Failed to update ${title} status`, {
-        style: { background: "#FEE2E2", color: "#EF4444" },
-      })
+      toast.error(`Failed to update ${title} status`)
     } finally {
       setIsLoading(false)
     }
@@ -197,9 +232,7 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
       if (validateBeforeSubmit) {
         const validationError = validateBeforeSubmit(formData)
         if (validationError) {
-          toast.error(validationError, {
-            style: { background: "#FEE2E2", color: "#EF4444" },
-          })
+          toast.error(validationError)
           return
         }
       }
@@ -207,33 +240,25 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
       if (validateFiles) {
         const fileValidationError = validateFiles(fileData)
         if (fileValidationError) {
-          toast.error(fileValidationError, {
-            style: { background: "#FEE2E2", color: "#EF4444" },
-          })
+          toast.error(fileValidationError)
           return
         }
       }
 
       if (requireAsyncValidation && !editingItem) {
         if (asyncValidation.username !== "valid") {
-          toast.error("Please wait for username availability to be confirmed.", {
-            style: { background: "#FEE2E2", color: "#EF4444" },
-          })
+          toast.error("Please wait for username availability to be confirmed.")
           return
         }
         if (asyncValidation.email !== "valid") {
-          toast.error("Please wait for email availability to be confirmed.", {
-            style: { background: "#FEE2E2", color: "#EF4444" },
-          })
+          toast.error("Please wait for email availability to be confirmed.")
           return
         }
         if (asyncValidation.cnic && asyncValidation.cnic !== "valid") {
           const message = asyncValidation.cnic === "invalid"
             ? "CNIC is already in use."
             : "Please wait for CNIC availability to be confirmed."
-          toast.error(message, {
-            style: { background: "#FEE2E2", color: "#EF4444" },
-          })
+          toast.error(message)
           return
         }
       }
@@ -270,7 +295,11 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
             else if (typeof value !== 'object') {
               formDataObj.append(key, String(value));
             }
-            // Skip complex objects (like packages list) to avoid '[object Object]'
+            // Plain nested objects (e.g. website_content) — JSON-encode so the
+            // backend can parse them back out of the multipart form fields.
+            else {
+              formDataObj.append(key, JSON.stringify(value));
+            }
           }
         })
         // Append files
@@ -287,14 +316,10 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
 
       if (editingItem) {
         response = await axiosInstance.put(`/${endpoint}/update/${editingItem.id}`, submitData, requestConfig)
-        toast.success(`${title} updated successfully`, {
-          style: { background: "#D1FAE5", color: "#10B981" },
-        })
+        toast.success(`${title} updated successfully`)
       } else {
         response = await axiosInstance.post(`/${endpoint}/add`, submitData, requestConfig)
-        toast.success(`${title} added successfully`, {
-          style: { background: "#D1FAE5", color: "#10B981" },
-        })
+        toast.success(`${title} added successfully`)
         if (response.data.credentials) {
           setNewEmployeeCredentials(response.data.credentials)
           setShowCredentialsModal(true)
@@ -305,10 +330,7 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
     } catch (error: any) {
       console.error("Operation failed", error)
       const errorMsg = getOperationErrorMessage(error, title)
-      toast.error(errorMsg, {
-        style: { background: "#FEE2E2", color: "#EF4444" },
-        hideProgressBar: false,
-      })
+      toast.error(errorMsg)
     } finally {
       setIsLoading(false)
       submitLockRef.current = false
@@ -323,15 +345,11 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
         await axiosInstance.delete(`/${endpoint}/delete/${id}`, {
           headers: { Authorization: `Bearer ${token}` },
         })
-        toast.success(`${title} deleted successfully`, {
-          style: { background: "#D1FAE5", color: "#10B981" },
-        })
+        toast.success(`${title} deleted successfully`)
         await fetchData()
       } catch (error) {
         console.error("Delete operation failed", error)
-        toast.error("Delete operation failed", {
-          style: { background: "#FEE2E2", color: "#EF4444" },
-        })
+        toast.error("Delete operation failed")
       } finally {
         setIsLoading(false)
       }
@@ -365,6 +383,10 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
       {
         header: "Status",
         accessorKey: "is_active",
+        filterFn: (row, columnId, filterValue) => {
+          if (!filterValue) return true
+          return String(row.getValue(columnId)) === String(filterValue)
+        },
         cell: (info: any) => (
           <div className="flex items-center">
             <button
@@ -393,14 +415,14 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
           <div className="flex items-center gap-2">
             <button
               onClick={() => showModal(info.row.original)}
-              className="p-2 text-white bg-electric-blue rounded-md hover:bg-btn-hover transition-colors"
+              className="h-8 w-8 inline-flex items-center justify-center text-white bg-electric-blue rounded-md hover:bg-btn-hover transition-colors"
               title="Edit"
             >
               <Pencil className="h-4 w-4" />
             </button>
             <button
               onClick={() => handleDelete(info.row.original.id)}
-              className="p-2 text-white bg-coral-red rounded-md hover:bg-coral-red/80 transition-colors"
+              className="h-8 w-8 inline-flex items-center justify-center text-white bg-coral-red rounded-md hover:bg-coral-red/80 transition-colors"
               title="Delete"
             >
               <Trash2 className="h-4 w-4" />
@@ -412,84 +434,58 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
   }, [columns])
 
   return (
-    <div className="flex h-screen bg-light-sky/50">
-      <Sidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} setIsOpen={setIsSidebarOpen} />
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <Topbar toggleSidebar={toggleSidebar} />
+    <div className={hasChrome ? "flex-1 min-w-0 w-full" : "flex h-screen bg-light-sky/50"}>
+      {!hasChrome && (
+        <Sidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} setIsOpen={setIsSidebarOpen} />
+      )}
+      <div className={hasChrome ? "flex-1 min-w-0 w-full" : "flex-1 flex flex-col overflow-hidden"}>
+        {!hasChrome && <Topbar toggleSidebar={toggleSidebar} />}
         <main
-          className={`flex-1 overflow-x-hidden overflow-y-auto bg-light-sky/50 p-0 sm:p-6 pt-20 transition-all duration-300 ${isSidebarOpen ? "ml-64" : "ml-0 lg:ml-20"
-            }`}
+          className={
+            hasChrome
+              ? "px-3 py-3 sm:px-4"
+              : `flex-1 overflow-x-hidden overflow-y-auto bg-light-sky/50 px-3 py-3 sm:px-4 pt-16 transition-all duration-300 ${isSidebarOpen ? "ml-64" : "ml-0 lg:ml-20"}`
+          }
         >
 
           <div className="container mx-auto">
             {/* Breadcrumb */}
-            <div className="flex items-center text-sm text-slate-gray mb-6">
-              <LayoutDashboard className="h-4 w-4 mr-1" />
+            <div className="flex items-center text-xs text-slate-gray mb-2">
+              <LayoutDashboard className="h-3.5 w-3.5 mr-1" />
               <span>Dashboard</span>
-              <ChevronRight className="h-4 w-4 mx-1" />
+              <ChevronRight className="h-3.5 w-3.5 mx-1" />
               <span className="text-deep-ocean font-medium">{title} Management</span>
             </div>
 
             {/* Header Section */}
-            <div className="bg-white rounded-xl shadow-md p-6 mb-6">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-                <div>
-                  <h1 className="text-2xl md:text-3xl font-bold text-deep-ocean flex items-center gap-2">
-                    <Users className="h-7 w-7 text-electric-blue" />
-                    {title} Management
-                  </h1>
-                  <p className="text-slate-gray mt-1">Manage your {title.toLowerCase()} records efficiently</p>
-                </div>
+            <div className="bg-white rounded-xl shadow-sm p-4 mb-3">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-3">
+                <h1 className="text-xl font-semibold text-deep-ocean flex items-center gap-2">
+                  <Users className="h-5 w-5 text-electric-blue" />
+                  {title} Management
+                </h1>
                 <button
                   onClick={() => showModal(null)}
-                  className="bg-electric-blue text-white px-4 py-2.5 rounded-lg hover:bg-btn-hover transition-colors flex items-center justify-center gap-2 shadow-sm self-start md:self-center"
+                  className="h-9 bg-electric-blue text-white px-3 text-sm rounded-lg hover:bg-btn-hover transition-colors inline-flex items-center justify-center gap-1.5 self-start md:self-center"
                 >
-                  <Plus className="h-5 w-5" /> Add New {title}
+                  <Plus className="h-4 w-4" /> Add New {title}
                 </button>
               </div>
 
-              {/* Stats Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                <div className="bg-light-sky/50 rounded-lg p-4 border border-slate-gray/10">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-slate-gray text-sm">Total {title}s</p>
-                      <h3 className="text-2xl font-bold text-deep-ocean mt-1">{stats.total}</h3>
-                    </div>
-                    <div className="bg-deep-ocean/10 p-3 rounded-full">
-                      <Users className="h-6 w-6 text-deep-ocean" />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-emerald-green/5 rounded-lg p-4 border border-emerald-green/10">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-slate-gray text-sm">Active {title}s</p>
-                      <h3 className="text-2xl font-bold text-emerald-green mt-1">{stats.active}</h3>
-                    </div>
-                    <div className="bg-emerald-green/10 p-3 rounded-full">
-                      <CheckCircle2 className="h-6 w-6 text-emerald-green" />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-coral-red/5 rounded-lg p-4 border border-coral-red/10">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-slate-gray text-sm">Inactive {title}s</p>
-                      <h3 className="text-2xl font-bold text-coral-red mt-1">{stats.inactive}</h3>
-                    </div>
-                    <div className="bg-coral-red/10 p-3 rounded-full">
-                      <XCircle className="h-6 w-6 text-coral-red" />
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <CrudStatsSection
+                cards={statCards}
+                activeStatId={tableFilters.activeStatId}
+                onStatClick={tableFilters.applyStatFilter}
+                period={periodFilter.period}
+                periodLabel={periodFilter.label}
+                periodActive={periodFilter.isActive}
+                onSetPeriod={periodFilter.setPeriod}
+                onSetPeriodAll={periodFilter.setAll}
+              />
 
               {/* Bulk Actions */}
               {selectedRows.length > 0 && (
-                <div className="bg-electric-blue/5 border border-electric-blue/20 rounded-lg p-4 mb-6 flex flex-wrap items-center justify-between gap-4">
+                <div className="bg-electric-blue/5 border border-electric-blue/20 rounded-lg p-3 mb-3 flex flex-wrap items-center justify-between gap-3">
                   <div className="flex items-center gap-2">
                     <span className="text-deep-ocean font-medium">
                       {selectedRows.length} {title.toLowerCase()}
@@ -517,14 +513,23 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
             </div>
 
             {/* Table Section */}
-            <div className="mb-8">
+            <div className="mb-4">
               <Table
-                data={data}
+                data={displayData}
                 columns={memoizedColumns}
                 selectedRows={selectedRows}
                 setSelectedRows={setSelectedRows}
                 handleToggleStatus={handleToggleStatus}
                 isLoading={isLoading}
+                quickFilters={filterConfig.quickFilters}
+                filterState={tableFilters.filterState}
+                onQuickFilterChange={tableFilters.setQuickFilter}
+                onClearFilters={tableFilters.clearAllFilters}
+                hasActiveFilters={tableFilters.hasAnyActiveFilters}
+                onSearchTextChange={setSearchText}
+                inlineFilterFields={tableFilters.inlineFields}
+                controlledColumnFilters={tableFilters.mergedColumnFilters}
+                onControlledColumnFiltersChange={tableFilters.handleColumnFiltersChange}
               />
             </div>
           </div>
@@ -546,18 +551,18 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
             isEditing={!!editingItem}
             onValidationStateChange={setAsyncValidation}
           />
-          <div className="mt-6 flex justify-end gap-3">
+          <div className={MODAL_FOOTER}>
             <button
               type="button"
               onClick={handleCancel}
-              className="px-4 py-2.5 border border-slate-gray/20 text-slate-gray rounded-lg hover:bg-light-sky/50 transition-colors"
+              className={MODAL_CANCEL_BTN}
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isLoading}
-              className="px-4 py-2.5 bg-electric-blue text-white rounded-lg hover:bg-btn-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-electric-blue disabled:opacity-50 transition-colors flex items-center gap-2"
+              className={MODAL_PRIMARY_BTN}
             >
               {isLoading ? (
                 <>

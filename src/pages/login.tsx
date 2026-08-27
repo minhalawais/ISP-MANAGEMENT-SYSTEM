@@ -3,6 +3,8 @@ import { useNavigate, Link } from "react-router-dom"
 import { Eye, EyeOff, Lock, User, LogIn } from "lucide-react"
 import axiosInstance from "../utils/axiosConfig.ts"
 import { DomainLoginLogo } from "../components/DomainLoginLogo.tsx"
+import { getHomeRouteForRole } from "../utils/authRedirects.ts"
+import { removeToken } from "../utils/auth.ts"
 
 import { getCurrentLoginBrand, getConnectxLogoSrc } from "../utils/loginBranding.ts"
 
@@ -28,6 +30,7 @@ const Login = () => {
     }
     link.href = faviconUrl
   }, [])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
@@ -50,12 +53,14 @@ const Login = () => {
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new Event('companyAuthChange'))
       }
-  
-      if (data.role === "company_owner" || data.role === "super_admin" || data.role === "auditor") {
-        navigate("/reporting-analytics")
-      } else if (data.role === "employee") {
-        navigate("/employee-portal")
+
+      const homeRoute = getHomeRouteForRole(data.role)
+      if (!homeRoute) {
+        removeToken()
+        setError("Your account role is not configured for portal access. Contact your administrator.")
+        return
       }
+      navigate(homeRoute, { replace: true })
     } catch (err: any) {
       console.error("Login failed", err)
       setError("Invalid credentials")

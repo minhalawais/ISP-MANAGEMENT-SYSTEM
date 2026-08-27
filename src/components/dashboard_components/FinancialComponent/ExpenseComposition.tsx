@@ -50,12 +50,12 @@ export const ExpenseComposition: React.FC<Props> = ({ data }) => {
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ delay: 0.2 }}
-      className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm h-full"
+      className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm h-full"
     >
       <h3 className="text-xl font-bold text-gray-900 mb-2">Expense Composition</h3>
-      <p className="text-sm text-gray-500 mb-6">Breakdown of all operational costs</p>
+      <p className="text-sm text-gray-500 mb-3">Breakdown of all operational costs</p>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-center">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-center">
         <div className="h-[300px] w-full relative">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>

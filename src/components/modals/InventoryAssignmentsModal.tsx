@@ -5,9 +5,7 @@ import { useState, useEffect } from "react"
 import { Modal } from "../modal.tsx"
 import axiosInstance from "../../utils/axiosConfig.ts"
 import { getToken } from "../../utils/auth.ts"
-import { toast } from "react-toastify"
-
-interface InventoryAssignment {
+import { toast } from "../../utils/notify.ts";interface InventoryAssignment {
   id: string
   inventory_item_id: string
   inventory_item_type: string

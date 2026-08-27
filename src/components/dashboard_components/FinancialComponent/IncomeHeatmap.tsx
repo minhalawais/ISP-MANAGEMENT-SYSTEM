@@ -30,7 +30,7 @@ export const IncomeHeatmap: React.FC<IncomeHeatmapProps> = ({ data, title }) => 
   const maxValue = Math.max(...data.map(item => item.value))
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-6">
+    <div className="bg-white rounded-xl border border-gray-200 p-4">
       <h3 className="text-xl font-bold text-gray-900 mb-2">{title}</h3>
       <p className="text-gray-600 text-sm mb-4">Income seasonality by month and week</p>
       

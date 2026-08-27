@@ -7,10 +7,10 @@ import type { ColumnDef } from "@tanstack/react-table"
 import { CRUDPage } from "../../components/crudPage.tsx"
 import { EmployeeForm } from "../../components/forms/employeeForm.tsx"
 import { useNavigate } from "react-router-dom"
-import { Eye, Key, X, RefreshCw, Copy, Check } from "lucide-react"
+import { Eye, Key, Settings2, X, RefreshCw, Copy, Check } from "lucide-react"
 import { getToken } from "../../utils/auth.ts"
 import axiosInstance from "../../utils/axiosConfig.ts"
-import { toast } from "react-toastify"
+import { toast } from "../../utils/notify.ts";
 import { validateEmployeeFiles } from "../../utils/employeeValidation.ts"
 import { getCnicValidationMessage, getPakistaniMobileValidationMessage } from "../../utils/contactValidation.ts"
 import { useCompany } from "../../context/CompanyContext.tsx"
@@ -202,6 +202,17 @@ const EmployeeManagement: React.FC = () => {
               <Key className="h-3.5 w-3.5" />
               Credentials
             </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                navigate(`/employees/${info.row.original.id}/portal-access`)
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-700 text-white rounded-lg hover:bg-slate-800 transition-all duration-200 text-xs font-medium shadow-sm"
+              title="Configure portal access"
+            >
+              <Settings2 className="h-3.5 w-3.5" />
+              Portal
+            </button>
           </div>
         ),
       },
@@ -211,10 +222,11 @@ const EmployeeManagement: React.FC = () => {
 
   return (
     <>
-      <CRUDPage<Employee>
-        title="Employee"
-        endpoint="employees"
-        columns={columns}
+    <CRUDPage<Employee>
+      title="Employee"
+      endpoint="employees"
+      filterModuleKey="employee"
+      columns={columns}
         FormComponent={EmployeeForm}
         useFormData={true}
         validateFiles={validateEmployeeFiles}
@@ -245,24 +257,22 @@ const EmployeeManagement: React.FC = () => {
 
       {/* Credentials Modal */}
       {credentialsModal.isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md">
-            {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b border-gray-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 backdrop-blur-[2px] p-4">
+          <div className="bg-slate-100 rounded-xl shadow-2xl border border-slate-300/70 w-full max-w-md overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-3.5 border-b bg-[#2A5C8A] border-[#1e4568]">
               <div className="flex items-center gap-2">
-                <Key className="w-5 h-5 text-amber-500" />
-                <h3 className="text-lg font-semibold text-gray-900">Manage Credentials</h3>
+                <Key className="w-4 h-4 text-white/80" />
+                <h3 className="text-base font-semibold text-white tracking-tight">Manage Credentials</h3>
               </div>
               <button
                 onClick={() => setCredentialsModal({ isOpen: false, employeeId: null })}
-                className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
+                className="p-1.5 hover:bg-white/10 rounded-md transition-colors"
               >
-                <X className="w-5 h-5 text-gray-500" />
+                <X className="w-5 h-5 text-white/80" />
               </button>
             </div>
 
-            {/* Body */}
-            <div className="p-4 space-y-4">
+            <div className="p-5 space-y-4 bg-slate-100">
               {credentialsLoading ? (
                 <div className="flex items-center justify-center py-8">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-500"></div>

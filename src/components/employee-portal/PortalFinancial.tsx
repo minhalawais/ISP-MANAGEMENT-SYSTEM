@@ -4,17 +4,9 @@ import type React from "react"
 import { useState, useEffect } from "react"
 import { getToken } from "../../utils/auth.ts"
 import axiosInstance from "../../utils/axiosConfig.ts"
-import { toast } from "react-toastify"
-import {
-  Wallet,
-  TrendingUp,
-  TrendingDown,
-  CreditCard,
-  DollarSign,
-  ArrowUpRight,
-  ArrowDownRight,
-  Clock,
-} from "lucide-react"
+import { toast } from "../../utils/notify.ts";
+import { Wallet, TrendingUp, CreditCard, DollarSign, ArrowUpRight, ArrowDownRight } from "lucide-react"
+import { PortalStatStrip, type PortalStatItem } from "./shared/PortalStatStrip.tsx"
 
 interface FinancialData {
   current_balance: number
@@ -40,14 +32,8 @@ const transactionTypeLabels: Record<string, string> = {
   salary_accrual: "Salary",
   payout: "Payout",
   adjustment: "Adjustment",
-}
-
-const transactionTypeColors: Record<string, string> = {
-  connection_commission: "text-green-600 bg-green-50",
-  complaint_commission: "text-blue-600 bg-blue-50",
-  salary_accrual: "text-purple-600 bg-purple-50",
-  payout: "text-red-600 bg-red-50",
-  adjustment: "text-orange-600 bg-orange-50",
+  recovery_cash_hold: "Recovery cash hold",
+  recovery_cash_settle: "Recovery cash settle",
 }
 
 export function PortalFinancial() {
@@ -75,13 +61,10 @@ export function PortalFinancial() {
 
   if (loading) {
     return (
-      <div className="space-y-4 animate-pulse">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {[...Array(4)].map((_, i) => (
-            <div key={i} className="h-24 bg-gray-200 rounded-xl"></div>
-          ))}
-        </div>
-        <div className="h-64 bg-gray-200 rounded-xl"></div>
+      <div className="space-y-3 animate-pulse">
+        <div className="h-20 bg-gray-200 rounded-lg" />
+        <div className="h-40 bg-gray-200 rounded-lg" />
+        <div className="h-64 bg-gray-200 rounded-lg" />
       </div>
     )
   }
@@ -89,142 +72,119 @@ export function PortalFinancial() {
   if (!data) {
     return (
       <div className="text-center py-12">
-        <Wallet className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-        <p className="text-gray-500">Failed to load financial data</p>
+        <Wallet className="w-10 h-10 text-gray-300 mx-auto mb-3" />
+        <p className="text-sm text-gray-500">Failed to load financial data</p>
       </div>
     )
   }
 
-  const summaryCards = [
-    {
-      label: "Current Balance",
-      value: data.current_balance,
-      icon: Wallet,
-      color: "bg-blue-500",
-      bgColor: "bg-blue-50",
-    },
-    {
-      label: "This Month",
-      value: data.month_earnings,
-      icon: TrendingUp,
-      color: "bg-green-500",
-      bgColor: "bg-green-50",
-    },
-    {
-      label: "Total Earned",
-      value: data.total_earned,
-      icon: DollarSign,
-      color: "bg-purple-500",
-      bgColor: "bg-purple-50",
-    },
-    {
-      label: "Total Paid",
-      value: data.total_paid,
-      icon: CreditCard,
-      color: "bg-teal-500",
-      bgColor: "bg-teal-50",
-    },
+  const statItems: PortalStatItem[] = [
+    { key: "month_earnings", label: "This month", value: `PKR ${data.month_earnings.toLocaleString()}`, icon: TrendingUp, tone: "success" },
+    { key: "total_earned", label: "Total earned", value: `PKR ${data.total_earned.toLocaleString()}`, icon: DollarSign, tone: "default" },
+    { key: "total_paid", label: "Total paid", value: `PKR ${data.total_paid.toLocaleString()}`, icon: CreditCard, tone: "default" },
+    { key: "salary", label: "Monthly salary", value: `PKR ${data.salary.toLocaleString()}`, icon: CreditCard, tone: "accent" },
   ]
 
+  const hasCustody = data.breakdown.recovery_cash_hold != null || data.breakdown.recovery_cash_settle != null
+
   return (
-    <div className="space-y-6">
-      {/* Summary Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {summaryCards.map((card, index) => {
-          const Icon = card.icon
-          return (
-            <div
-              key={index}
-              className={`${card.bgColor} rounded-xl p-4 border border-gray-100`}
-            >
-              <div className={`${card.color} w-10 h-10 rounded-lg flex items-center justify-center mb-3`}>
-                <Icon className="w-5 h-5 text-white" />
-              </div>
-              <p className="text-xl font-bold text-gray-900">
-                PKR {card.value.toLocaleString()}
-              </p>
-              <p className="text-sm text-gray-600">{card.label}</p>
-            </div>
-          )
-        })}
-      </div>
-
-      {/* Salary Info */}
-      <div className="bg-gradient-to-r from-[#89A8B2] to-[#6B8A94] rounded-xl p-4 lg:p-6 text-white">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm opacity-80">Monthly Salary</p>
-            <p className="text-2xl font-bold">PKR {data.salary.toLocaleString()}</p>
+    <div className="lg:grid lg:grid-cols-[1fr_1.3fr] lg:items-start lg:gap-4">
+      <div className="space-y-4">
+        <div className="rounded-xl border border-electric-blue/15 bg-gradient-to-br from-electric-blue/5 to-white p-5 shadow-sm">
+          <div className="flex items-center gap-2 text-xs font-medium text-deep-ocean">
+            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-electric-blue/10">
+              <Wallet className="h-4 w-4 text-electric-blue" />
+            </span>
+            Current balance
           </div>
-          <CreditCard className="w-12 h-12 opacity-50" />
+          <p className="mt-2 text-3xl font-bold tabular-nums text-deep-ocean">
+            PKR {data.current_balance.toLocaleString()}
+          </p>
         </div>
-      </div>
 
-      {/* Breakdown */}
-      {Object.keys(data.breakdown).length > 0 && (
-        <div className="bg-white rounded-xl border border-gray-200 p-4 lg:p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            <TrendingUp className="w-5 h-5 text-[#89A8B2]" />
-            Earnings Breakdown
-          </h3>
-          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+        <PortalStatStrip items={statItems} columnsMobile={2} columnsDesktop={4} />
+
+        {hasCustody && (
+          <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
+            <h3 className="text-sm font-semibold text-gray-900 mb-3">Recovery cash custody</h3>
+            <div className="grid grid-cols-2 divide-x divide-gray-100 text-sm">
+              <div className="pr-3">
+                <p className="text-xs text-gray-500">Holds (field collections)</p>
+                <p className="text-lg font-bold tabular-nums text-amber-600">
+                  PKR {Math.abs(Number(data.breakdown.recovery_cash_hold || 0)).toLocaleString()}
+                </p>
+              </div>
+              <div className="pl-3">
+                <p className="text-xs text-gray-500">Settled (cleared)</p>
+                <p className="text-lg font-bold tabular-nums text-portal-primary">
+                  PKR {Math.abs(Number(data.breakdown.recovery_cash_settle || 0)).toLocaleString()}
+                </p>
+              </div>
+            </div>
+            <p className="text-xs text-gray-400 mt-2">
+              Net custody is included in current balance (holds negative, settles positive).
+            </p>
+          </div>
+        )}
+
+        {Object.keys(data.breakdown).length > 0 && (
+          <div className="rounded-xl border border-gray-100 bg-white shadow-sm divide-y divide-gray-100">
+            <div className="px-4 py-3">
+              <h3 className="text-sm font-semibold text-gray-900">Earnings breakdown</h3>
+            </div>
             {Object.entries(data.breakdown).map(([type, amount]) => (
-              <div key={type} className="p-3 bg-gray-50 rounded-lg">
-                <p className="text-xs text-gray-500 capitalize">
-                  {transactionTypeLabels[type] || type.replace("_", " ")}
-                </p>
-                <p className={`text-lg font-bold ${amount >= 0 ? "text-green-600" : "text-red-600"}`}>
+              <div key={type} className="flex items-center justify-between px-4 py-2.5 text-sm">
+                <span className="text-gray-600">{transactionTypeLabels[type] || type.replace("_", " ")}</span>
+                <span className={`font-semibold tabular-nums ${amount >= 0 ? "text-emerald-600" : "text-red-600"}`}>
                   PKR {Math.abs(amount).toLocaleString()}
-                </p>
+                </span>
               </div>
             ))}
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
-      {/* Ledger */}
-      <div className="bg-white rounded-xl border border-gray-200 p-4 lg:p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-          <Clock className="w-5 h-5 text-[#89A8B2]" />
-          Transaction History
-        </h3>
-        
+      <div className="mt-4 rounded-xl border border-gray-100 bg-white shadow-sm lg:mt-0">
+        <div className="px-4 py-3 border-b border-gray-100">
+          <h3 className="text-sm font-semibold text-gray-900">Transaction history</h3>
+        </div>
+
         {data.ledger.length === 0 ? (
           <div className="text-center py-8">
-            <p className="text-gray-500">No transactions yet</p>
+            <p className="text-sm text-gray-500">No transactions yet</p>
           </div>
         ) : (
-          <div className="space-y-3 max-h-[400px] overflow-y-auto">
+          <div className="divide-y divide-gray-100 max-h-[420px] overflow-y-auto lg:max-h-[calc(100vh-160px)]">
             {data.ledger.map((entry) => (
-              <div
-                key={entry.id}
-                className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <div className={`p-2 rounded-lg ${transactionTypeColors[entry.transaction_type] || "bg-gray-100 text-gray-600"}`}>
+              <div key={entry.id} className="flex items-center justify-between gap-3 px-4 py-2.5">
+                <div className="flex min-w-0 items-center gap-2.5">
+                  <div
+                    className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md ${
+                      entry.amount >= 0 ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-600"
+                    }`}
+                  >
                     {entry.amount >= 0 ? (
-                      <ArrowUpRight className="w-4 h-4" />
+                      <ArrowUpRight className="w-3.5 h-3.5" />
                     ) : (
-                      <ArrowDownRight className="w-4 h-4" />
+                      <ArrowDownRight className="w-3.5 h-3.5" />
                     )}
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium text-gray-900">
                       {transactionTypeLabels[entry.transaction_type] || entry.transaction_type}
                     </p>
-                    <p className="text-xs text-gray-500">
-                      {entry.description || "No description"}
+                    <p className="truncate text-xs text-gray-500">
+                      {entry.description || (entry.created_at ? new Date(entry.created_at).toLocaleString() : "No description")}
                     </p>
-                    {entry.created_at && (
-                      <p className="text-xs text-gray-400 mt-0.5">
-                        {new Date(entry.created_at).toLocaleString()}
-                      </p>
-                    )}
                   </div>
                 </div>
-                <p className={`text-sm font-bold ${entry.amount >= 0 ? "text-green-600" : "text-red-600"}`}>
+                <span
+                  className={`shrink-0 text-sm font-semibold tabular-nums whitespace-nowrap ${
+                    entry.amount >= 0 ? "text-emerald-600" : "text-red-600"
+                  }`}
+                >
                   {entry.amount >= 0 ? "+" : ""}PKR {entry.amount.toLocaleString()}
-                </p>
+                </span>
               </div>
             ))}
           </div>

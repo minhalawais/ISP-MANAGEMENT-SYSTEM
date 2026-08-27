@@ -15,6 +15,7 @@ import {
   Target,
   Award,
 } from "lucide-react"
+import { PortalStatStrip, type PortalStatItem } from "./shared/PortalStatStrip.tsx"
 
 interface DashboardStats {
   pending_tasks: number
@@ -72,150 +73,137 @@ export function PortalDashboard() {
 
   if (loading) {
     return (
-      <div className="space-y-4 animate-pulse">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {[...Array(4)].map((_, i) => (
-            <div key={i} className="h-28 bg-gray-200 rounded-xl"></div>
-          ))}
-        </div>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {[...Array(2)].map((_, i) => (
-            <div key={i} className="h-64 bg-gray-200 rounded-xl"></div>
-          ))}
-        </div>
+      <div className="space-y-3 animate-pulse">
+        <div className="h-24 bg-gray-200 rounded-lg" />
+        <div className="h-48 bg-gray-200 rounded-lg" />
       </div>
     )
   }
 
-  const kpiCards = [
+  const kpiItems: PortalStatItem[] = [
+    { key: "pending_tasks", label: "Pending tasks", value: stats?.pending_tasks || 0, icon: ClipboardList, tone: "warning" },
+    { key: "open_complaints", label: "Open complaints", value: stats?.open_complaints || 0, icon: AlertCircle, tone: "danger" },
+    { key: "active_customers", label: "Active customers", value: stats?.managed_customers || 0, icon: Users, tone: "accent" },
     {
-      label: "Pending Tasks",
-      value: stats?.pending_tasks || 0,
-      icon: ClipboardList,
-      color: "bg-blue-500",
-      bgColor: "bg-blue-50",
-    },
-    {
-      label: "Open Complaints",
-      value: stats?.open_complaints || 0,
-      icon: AlertCircle,
-      color: "bg-orange-500",
-      bgColor: "bg-orange-50",
-    },
-    {
-      label: "Active Customers",
-      value: stats?.managed_customers || 0,
-      icon: Users,
-      color: "bg-green-500",
-      bgColor: "bg-green-50",
-    },
-    {
-      label: "Current Balance",
+      key: "current_balance",
+      label: "Current balance",
       value: `PKR ${(stats?.current_balance || 0).toLocaleString()}`,
       icon: Wallet,
-      color: "bg-purple-500",
-      bgColor: "bg-purple-50",
+      tone: "default",
     },
     {
-      label: "Today's Collections",
+      key: "todays_collections",
+      label: "Today's collections",
       value: `PKR ${(stats?.todays_collections || 0).toLocaleString()}`,
       icon: TrendingUp,
-      color: "bg-teal-500",
-      bgColor: "bg-teal-50",
+      tone: "success",
     },
     {
-      label: "Pending Recoveries",
+      key: "pending_recoveries",
+      label: "Pending recoveries",
       value: stats?.pending_recoveries || 0,
       icon: RefreshCw,
-      color: "bg-red-500",
-      bgColor: "bg-red-50",
+      tone: stats?.pending_recoveries ? "warning" : "default",
+    },
+    {
+      key: "month_earnings",
+      label: "This month's earnings",
+      value: `PKR ${(stats?.month_earnings || 0).toLocaleString()}`,
+      icon: Award,
+      tone: "success",
     },
   ]
 
   const performanceCards = [
     {
-      label: "Task Completion",
+      key: "task_completion",
+      label: "Task completion",
       value: `${performance?.task_completion_rate || 0}%`,
       subtext: `${performance?.completed_tasks || 0}/${performance?.total_tasks_assigned || 0} tasks`,
       icon: Target,
-      color: "text-blue-600",
+      progress: performance?.task_completion_rate || 0,
     },
     {
-      label: "Complaint Resolution",
+      key: "complaint_resolution",
+      label: "Complaint resolution",
       value: `${performance?.complaint_resolution_rate || 0}%`,
       subtext: `${performance?.resolved_complaints || 0}/${performance?.total_complaints_assigned || 0} resolved`,
       icon: Award,
-      color: "text-green-600",
+      progress: performance?.complaint_resolution_rate || 0,
     },
     {
-      label: "Avg Resolution Time",
+      key: "avg_resolution_time",
+      label: "Avg resolution time",
       value: `${performance?.avg_resolution_time_hours || 0}h`,
       subtext: "Average time to resolve",
       icon: Clock,
-      color: "text-orange-600",
+      progress: undefined,
     },
     {
-      label: "Customer Retention",
+      key: "customer_retention",
+      label: "Customer retention",
       value: `${performance?.customer_retention_rate || 0}%`,
       subtext: `${performance?.active_customers || 0}/${performance?.total_managed_customers || 0} active`,
       icon: Users,
-      color: "text-purple-600",
+      progress: performance?.customer_retention_rate || 0,
     },
   ]
 
-  return (
-    <div className="space-y-6">
-      {/* KPI Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-        {kpiCards.map((kpi, index) => {
-          const Icon = kpi.icon
-          return (
-            <div
-              key={index}
-              className={`${kpi.bgColor} rounded-xl p-4 border border-gray-100 shadow-sm hover:shadow-md transition-shadow`}
-            >
-              <div className="flex items-start justify-between">
-                <div className={`${kpi.color} p-2 rounded-lg`}>
-                  <Icon className="w-5 h-5 text-white" />
-                </div>
-              </div>
-              <div className="mt-3">
-                <p className="text-2xl font-bold text-gray-900">{kpi.value}</p>
-                <p className="text-sm text-gray-600 mt-1">{kpi.label}</p>
-              </div>
-            </div>
-          )
-        })}
-      </div>
+  const progressTone = (pct: number) =>
+    pct >= 70
+      ? { bar: "bg-emerald-500", text: "text-emerald-600" }
+      : pct >= 40
+        ? { bar: "bg-amber-500", text: "text-amber-600" }
+        : { bar: "bg-red-500", text: "text-red-600" }
 
-      {/* Performance Metrics */}
-      <div className="bg-white rounded-xl border border-gray-200 p-4 lg:p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-          <Target className="w-5 h-5 text-[#89A8B2]" />
-          Performance Metrics
-        </h3>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {performanceCards.map((metric, index) => {
+  return (
+    <div className="space-y-4">
+      <PortalStatStrip items={kpiItems} columnsMobile={3} columnsDesktop={4} />
+
+      <div className="rounded-xl border border-gray-100 bg-white shadow-sm">
+        <div className="flex items-center gap-2 border-b border-gray-100 px-4 py-3">
+          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-electric-blue/10">
+            <Target className="h-3.5 w-3.5 text-electric-blue" />
+          </span>
+          <h3 className="text-sm font-semibold text-gray-900">Performance</h3>
+        </div>
+        <div className="grid grid-cols-1 divide-y divide-gray-100 lg:grid-cols-2 lg:divide-y-0">
+          {performanceCards.map((metric, idx) => {
             const Icon = metric.icon
+            const tone = metric.progress != null ? progressTone(metric.progress) : null
             return (
-              <div key={index} className="text-center p-4 bg-gray-50 rounded-lg">
-                <Icon className={`w-8 h-8 mx-auto mb-2 ${metric.color}`} />
-                <p className="text-2xl font-bold text-gray-900">{metric.value}</p>
-                <p className="text-sm font-medium text-gray-700 mt-1">{metric.label}</p>
-                <p className="text-xs text-gray-500 mt-1">{metric.subtext}</p>
+              <div
+                key={metric.key}
+                className={`p-4 ${idx % 2 === 0 ? "lg:border-r lg:border-gray-100" : ""} ${
+                  idx < performanceCards.length - 2 ? "lg:border-b lg:border-gray-100" : ""
+                }`}
+              >
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <div className="flex min-w-0 items-center gap-2.5">
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-electric-blue/10">
+                      <Icon className="h-3.5 w-3.5 text-electric-blue" />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-gray-900">{metric.label}</p>
+                      <p className="truncate text-xs text-gray-500">{metric.subtext}</p>
+                    </div>
+                  </div>
+                  <span className={`shrink-0 text-base font-bold tabular-nums ${tone?.text || "text-gray-900"}`}>
+                    {metric.value}
+                  </span>
+                </div>
+                {metric.progress != null && (
+                  <div className="h-1.5 w-full rounded-full bg-gray-100">
+                    <div
+                      className={`h-1.5 rounded-full ${tone?.bar}`}
+                      style={{ width: `${Math.min(100, Math.max(0, metric.progress))}%` }}
+                    />
+                  </div>
+                )}
               </div>
             )
           })}
         </div>
-      </div>
-
-      {/* Month Summary */}
-      <div className="bg-gradient-to-r from-[#89A8B2] to-[#6B8A94] rounded-xl p-4 lg:p-6 text-white">
-        <h3 className="text-lg font-semibold mb-2">This Month's Earnings</h3>
-        <p className="text-3xl font-bold">PKR {(stats?.month_earnings || 0).toLocaleString()}</p>
-        <p className="text-sm opacity-80 mt-1">
-          Including commissions, bonuses, and salary accruals
-        </p>
       </div>
     </div>
   )

@@ -63,7 +63,7 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
   ]
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
+    <div className="bg-white rounded-xl border border-gray-200 p-4 mb-3">
       <div className="flex items-center mb-4">
         <svg className="w-5 h-5 text-gray-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path
@@ -77,7 +77,7 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
       </div>
 
       {/* Quick Filters */}
-      <div className="mb-6">
+      <div className="mb-3">
         <label className="text-sm font-medium text-gray-700 mb-3 block">Quick Periods</label>
         <div className="flex flex-wrap gap-2">
           {quickFilters.map((filter) => (

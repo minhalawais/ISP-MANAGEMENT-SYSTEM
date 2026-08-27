@@ -8,10 +8,11 @@ import {
   CheckCircle2, Info, RefreshCw
 } from "lucide-react"
 import axiosInstance from "../utils/axiosConfig.ts"
-import { toast } from "react-toastify"
+import { toast } from "../utils/notify.ts";
 import { getToken, getAssetUrl } from "../utils/auth.ts"
 import { Sidebar } from "../components/sideNavbar.tsx"
 import { Topbar } from "../components/topNavbar.tsx"
+import { useOptionalAdminChrome } from "../context/AdminLayoutContext.tsx"
 import { useCompany } from "../context/CompanyContext.tsx"
 
 const UserProfile: React.FC = () => {
@@ -21,6 +22,7 @@ const UserProfile: React.FC = () => {
   const [userData, setUserData] = useState<any>(null)
   const [isEditing, setIsEditing] = useState(false)
   const [formData, setFormData] = useState<any>({})
+  const hasChrome = useOptionalAdminChrome()
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
 
@@ -274,12 +276,14 @@ const UserProfile: React.FC = () => {
   }
 
   return (
-    <div className="flex h-screen bg-[#F1F0E8]">
-      <Sidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} setIsOpen={setIsSidebarOpen} />
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <Topbar toggleSidebar={toggleSidebar} />
-        <div className="flex-1 overflow-y-auto">
-          <div className="container mx-auto px-4 py-8 mt-16 max-w-4xl">
+    <div className={hasChrome ? "flex-1 min-w-0 w-full" : "flex h-screen bg-[#F1F0E8]"}>
+      {!hasChrome && (
+        <Sidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} setIsOpen={setIsSidebarOpen} />
+      )}
+      <div className={hasChrome ? "flex-1 min-w-0 w-full" : "flex-1 flex flex-col overflow-hidden"}>
+        {!hasChrome && <Topbar toggleSidebar={toggleSidebar} />}
+        <div className={hasChrome ? "" : "flex-1 overflow-y-auto"}>
+          <div className={`container mx-auto px-4 py-8 max-w-4xl ${hasChrome ? "" : "mt-16"}`}>
 
             {/* Header Card */}
             <div className="bg-white shadow-lg rounded-2xl overflow-hidden border border-[#E5E1DA] mb-6">

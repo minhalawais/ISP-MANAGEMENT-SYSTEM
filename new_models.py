@@ -178,6 +178,17 @@ class Customer(db.Model):
     gps_coordinates = db.Column(db.String(50))
     agreement_document = db.Column(db.String(255))
     connection_commission_amount = db.Column(db.Numeric(10, 2), default=0.00)  # Commission per invoice for technician
+    portal_password_hash = db.Column(db.String(255))
+    must_change_password = db.Column(db.Boolean, default=False, nullable=False)
+    portal_credentials_created_at = db.Column(db.TIMESTAMP(timezone=True))
+
+    def set_portal_password(self, password):
+        self.portal_password_hash = generate_password_hash(password)
+
+    def check_portal_password(self, password):
+        if not self.portal_password_hash:
+            return False
+        return check_password_hash(self.portal_password_hash, password)
 
     company = relationship('Company', back_populates='customers')
     area = relationship('Area', back_populates='customers')
@@ -265,6 +276,7 @@ class Payment(db.Model):
     failure_reason = db.Column(db.String(255))
     payment_proof = db.Column(db.String(255))
     received_by = db.Column(UUID(as_uuid=True), db.ForeignKey('users.id'))
+    recovery_task_id = db.Column(UUID(as_uuid=True), db.ForeignKey('recovery_tasks.id'), nullable=True)
     created_at = db.Column(db.TIMESTAMP(timezone=True), server_default=db.func.current_timestamp())
     updated_at = db.Column(db.TIMESTAMP(timezone=True), onupdate=db.func.current_timestamp())
     is_active = db.Column(db.Boolean, default=True)
@@ -327,6 +339,7 @@ class BankAccount(db.Model):
     branch_address = db.Column(db.Text)
     initial_balance = db.Column(db.Numeric(15, 2), default=0.00)
     current_balance = db.Column(db.Numeric(15, 2), default=0.00)  # Dynamic balance
+    qr_code_image = db.Column(db.String(500))  # Path to payment QR code image
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.TIMESTAMP(timezone=True), server_default=db.func.current_timestamp())
     updated_at = db.Column(db.TIMESTAMP(timezone=True), server_default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())
@@ -357,6 +370,7 @@ class Complaint(db.Model):
     customer_id = db.Column(UUID(as_uuid=True), db.ForeignKey('customers.id'))
     assigned_to = db.Column(UUID(as_uuid=True), db.ForeignKey('users.id'))
     description = db.Column(db.Text)
+    category = db.Column(db.String(50), nullable=False, default='other')
     status = db.Column(complaint_status, nullable=False, default='open')
     created_at = db.Column(db.TIMESTAMP(timezone=True), server_default=db.func.current_timestamp())
     updated_at = db.Column(db.TIMESTAMP(timezone=True), server_default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())
@@ -540,17 +554,23 @@ class AuditLog(db.Model):
     created_at = db.Column(db.TIMESTAMP(timezone=True), server_default=db.func.current_timestamp())
 
 class RecoveryTask(db.Model):
-    """Simplified Recovery Task - assigns an invoice to employee for recovery"""
+    """Recovery task: assign invoice for collection; collect → settle lifecycle."""
     __tablename__ = 'recovery_tasks'
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     company_id = db.Column(UUID(as_uuid=True), db.ForeignKey('companies.id'))
     invoice_id = db.Column(UUID(as_uuid=True), db.ForeignKey('invoices.id'), nullable=False)
     assigned_to = db.Column(UUID(as_uuid=True), db.ForeignKey('users.id'), nullable=False)
-    status = db.Column(db.String(20), nullable=False, default='pending')  # pending, in_progress, completed, cancelled
+    # pending | in_progress | collected | completed | cancelled
+    status = db.Column(db.String(20), nullable=False, default='pending')
     notes = db.Column(db.Text)
-    completion_notes = db.Column(db.Text)  # Notes added when recovery is completed
-    completion_proof = db.Column(db.String(500))  # Path to completion proof image
-    completed_at = db.Column(db.TIMESTAMP(timezone=True))  # When recovery was completed
+    completion_notes = db.Column(db.Text)
+    completion_proof = db.Column(db.String(500))
+    completed_at = db.Column(db.TIMESTAMP(timezone=True))
+    collected_amount = db.Column(db.Numeric(10, 2))
+    collected_at = db.Column(db.TIMESTAMP(timezone=True))
+    payment_id = db.Column(UUID(as_uuid=True), db.ForeignKey('payments.id'), nullable=True)
+    settled_at = db.Column(db.TIMESTAMP(timezone=True))
+    settled_by = db.Column(UUID(as_uuid=True), db.ForeignKey('users.id'), nullable=True)
     created_at = db.Column(db.TIMESTAMP(timezone=True), server_default=db.func.current_timestamp())
     updated_at = db.Column(db.TIMESTAMP(timezone=True), server_default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())
 

@@ -1,0 +1,129 @@
+# ============================================================
+# HTTP -> HTTPS redirect
+# ============================================================
+server {
+    listen 80;
+    listen [::]:80;
+
+    server_name nexus.mbanet.com.pk
+                connectx.mbanet.com.pk
+                fastnet.mbanet.com.pk
+                customer.mbanet.com.pk;
+
+    return 301 https://$host$request_uri;
+}
+
+
+# ============================================================
+# Main applications
+# nexus.mbanet.com.pk
+# connectx.mbanet.com.pk
+# fastnet.mbanet.com.pk
+# ============================================================
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+
+    server_name nexus.mbanet.com.pk
+                connectx.mbanet.com.pk
+                fastnet.mbanet.com.pk;
+
+    root /var/www/html/ISP-MANAGEMENT-SYSTEM/build;
+    index index.html;
+
+    client_max_body_size 16M;
+
+    # Redirect /api to /api/
+    location = /api {
+        return 301 /api/;
+    }
+
+    # Flask API
+    # /api/auth/login is forwarded to /auth/login
+    location ^~ /api/ {
+        proxy_pass http://127.0.0.1:5000/;
+        proxy_http_version 1.1;
+
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 60s;
+        proxy_read_timeout 60s;
+    }
+
+    # React application
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # Cache static frontend assets
+    location /static/ {
+        try_files $uri =404;
+        expires 30d;
+        add_header Cache-Control "public, immutable";
+    }
+
+    ssl_certificate /etc/letsencrypt/live/nexus.mbanet.com.pk/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/nexus.mbanet.com.pk/privkey.pem;
+    include /etc/letsencrypt/options-ssl-nginx.conf;
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+}
+
+
+# ============================================================
+# Customer portal
+# customer.mbanet.com.pk
+# ============================================================
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+
+    server_name customer.mbanet.com.pk;
+
+    root /var/www/html/ISP-MANAGEMENT-SYSTEM/build;
+    index index.html;
+
+    client_max_body_size 16M;
+
+    # Redirect /api to /api/
+    location = /api {
+        return 301 /api/;
+    }
+
+    # Flask API
+    location ^~ /api/ {
+        proxy_pass http://127.0.0.1:5000/;
+        proxy_http_version 1.1;
+
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 60s;
+        proxy_read_timeout 60s;
+    }
+
+    # React application
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # Cache static frontend assets
+    location /static/ {
+        try_files $uri =404;
+        expires 30d;
+        add_header Cache-Control "public, immutable";
+    }
+
+    ssl_certificate /etc/letsencrypt/live/nexus.mbanet.com.pk/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/nexus.mbanet.com.pk/privkey.pem;
+    include /etc/letsencrypt/options-ssl-nginx.conf;
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+}

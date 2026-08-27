@@ -13,23 +13,21 @@ import {
   type FilterFn,
   type ColumnFiltersState,
 } from "@tanstack/react-table"
-import { useVirtual } from "react-virtual"
 import {
   Search,
   SortAsc,
   SortDesc,
   ArrowUpDown,
-  ChevronDown,
-  FileDown,
   ChevronLeft,
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
-  Filter,
 } from "lucide-react"
-import { CSVLink } from "react-csv"
 import debounce from "lodash/debounce"
 import { rankItem } from "@tanstack/match-sorter-utils"
+import type { CrudFilterState, FilterValue, QuickFilterDef } from "../../types/crudFilters.ts"
+import { CrudTableToolbar } from "../crud/CrudTableToolbar.tsx"
+import { CrudAdvancedFiltersPanel } from "../crud/CrudAdvancedFiltersPanel.tsx"
 import "./table.css"
 
 // Define fuzzy search filter function
@@ -56,6 +54,16 @@ interface TableProps<T> {
   setSelectedRows?: (rows: string[]) => void
   handleToggleStatus?: (id: string, currentStatus: boolean) => void
   isLoading?: boolean
+  quickFilters?: QuickFilterDef[]
+  filterState?: CrudFilterState
+  onQuickFilterChange?: (field: string, value: FilterValue) => void
+  onClearFilters?: () => void
+  hasActiveFilters?: boolean
+  inlineFilterFields?: string[]
+  controlledColumnFilters?: ColumnFiltersState
+  onControlledColumnFiltersChange?: (filters: ColumnFiltersState) => void
+  /** Fired (debounced) when the toolbar text search changes — used to bypass period filters. */
+  onSearchTextChange?: (q: string) => void
 }
 
 export function Table<T extends { id: string }>({
@@ -65,10 +73,27 @@ export function Table<T extends { id: string }>({
   setSelectedRows: setExternalSelectedRows,
   handleToggleStatus,
   isLoading = false,
+  quickFilters,
+  filterState,
+  onQuickFilterChange,
+  onClearFilters,
+  hasActiveFilters,
+  inlineFilterFields = [],
+  controlledColumnFilters,
+  onControlledColumnFiltersChange,
+  onSearchTextChange,
 }: TableProps<T>) {
+  const useControlledFilters = controlledColumnFilters !== undefined
   const [globalFilter, setGlobalFilter] = useState("")
   const [localGlobalFilter, setLocalGlobalFilter] = useState("")
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
+  const [internalColumnFilters, setInternalColumnFilters] = useState<ColumnFiltersState>([])
+  const columnFilters = useControlledFilters ? controlledColumnFilters : internalColumnFilters
+  const setColumnFilters = useControlledFilters
+    ? (updater: ColumnFiltersState | ((prev: ColumnFiltersState) => ColumnFiltersState)) => {
+        const next = typeof updater === "function" ? updater(controlledColumnFilters!) : updater
+        onControlledColumnFiltersChange?.(next)
+      }
+    : setInternalColumnFilters
   const [localColumnFilters, setLocalColumnFilters] = useState<Record<string, string>>({})
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
   const [distinctValues, setDistinctValues] = useState<Record<string, Set<any>>>({})
@@ -108,8 +133,9 @@ export function Table<T extends { id: string }>({
     () =>
       debounce((value: string) => {
         setGlobalFilter(value)
+        onSearchTextChange?.(value)
       }, 150), // Reduced from 300ms to 150ms
-    [],
+    [onSearchTextChange],
   )
 
   const debouncedColumnSearch = useMemo(
@@ -182,17 +208,7 @@ export function Table<T extends { id: string }>({
     }
   }, [rowSelection, table, setExternalSelectedRows]);
 
-  const tableContainerRef = React.useRef<HTMLDivElement>(null)
-
   const { rows } = table.getRowModel()
-  const rowVirtualizer = useVirtual({
-    parentRef: tableContainerRef,
-    size: rows.length,
-    overscan: 10,
-  })
-  const { virtualItems: virtualRows, totalSize } = rowVirtualizer
-  const paddingTop = virtualRows.length > 0 ? virtualRows?.[0]?.start || 0 : 0
-  const paddingBottom = virtualRows.length > 0 ? totalSize - (virtualRows?.[virtualRows.length - 1]?.end || 0) : 0
 
   const selectedRowsData = useMemo(() => {
     return Object.keys(rowSelection)
@@ -203,98 +219,112 @@ export function Table<T extends { id: string }>({
       .filter((row): row is T => row !== undefined);
   }, [rowSelection, rows])
 
-  // Get current column filter value (use local state for immediate feedback)
-  const getColumnFilterValue = useCallback((columnId: string) => {
-    return localColumnFilters[columnId] || ""
-  }, [localColumnFilters])
+  const getColumnFilterValue = useCallback(
+    (columnId: string) => {
+      if (localColumnFilters[columnId] !== undefined) return localColumnFilters[columnId]
+      const match = columnFilters.find((f) => f.id === columnId)
+      return match ? String(match.value) : ""
+    },
+    [localColumnFilters, columnFilters],
+  )
+
+  useEffect(() => {
+    if (!useControlledFilters) return
+    const next: Record<string, string> = {}
+    controlledColumnFilters?.forEach((f) => {
+      if (!inlineFilterFields.includes(f.id)) next[f.id] = String(f.value)
+    })
+    setLocalColumnFilters(next)
+  }, [controlledColumnFilters, inlineFilterFields, useControlledFilters])
+
+  const toolbarQuickFilters = quickFilters ?? []
+  const useCrudToolbar = toolbarQuickFilters.length > 0
+
+  const advancedFilterChips = useMemo(() => {
+    return Object.entries(localColumnFilters)
+      .filter(([id, val]) => val.trim() && !inlineFilterFields.includes(id))
+      .map(([id, val]) => {
+        const col = columns.find((c) => typeof c.accessorKey === "string" && c.accessorKey === id)
+        return {
+          field: id,
+          label: String(col?.header ?? id),
+          displayValue: val,
+        }
+      })
+  }, [localColumnFilters, inlineFilterFields, columns])
+
+  const handleClearAllFilters = useCallback(() => {
+    onClearFilters?.()
+    handleGlobalFilterChange("")
+  }, [onClearFilters, handleGlobalFilterChange])
+
+  const toolbarHasActive =
+    (hasActiveFilters ?? false) ||
+    localGlobalFilter.trim().length > 0 ||
+    advancedFilterChips.length > 0
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 bg-white p-4 rounded-lg shadow-sm border border-slate-gray/10">
-        <div className="relative w-full lg:w-auto flex-1 max-w-md">
-          <div className="relative">
-            <input
-              type="text"
-              value={localGlobalFilter}
-              onChange={(e) => handleGlobalFilterChange(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 border border-slate-gray/20 rounded-lg bg-light-sky/30 text-deep-ocean placeholder-slate-gray/50 focus:outline-none focus:ring-2 focus:ring-electric-blue/30 focus:border-transparent transition-all duration-200"
-              placeholder="Search all columns..."
+      {useCrudToolbar ? (
+        <>
+          <CrudTableToolbar
+            globalSearch={localGlobalFilter}
+            onGlobalSearchChange={handleGlobalFilterChange}
+            quickFilters={toolbarQuickFilters}
+            filterState={filterState}
+            onQuickFilterChange={onQuickFilterChange}
+            advancedFilterChips={advancedFilterChips}
+            onRemoveAdvancedFilter={(field) => handleColumnFilterChange(field, "")}
+            hasActiveFilters={toolbarHasActive}
+            onClearFilters={handleClearAllFilters}
+            showAdvanced={showFilters}
+            onToggleAdvanced={() => setShowFilters(!showFilters)}
+            exportData={selectedRowsData}
+            exportFilename="selected_rows.csv"
+          />
+          {showFilters && (
+            <CrudAdvancedFiltersPanel
+              columns={columns}
+              excludeFields={inlineFilterFields}
+              getColumnFilterValue={getColumnFilterValue}
+              onColumnFilterChange={handleColumnFilterChange}
+              distinctValues={distinctValues}
             />
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-gray/60 h-4 w-4" />
+          )}
+        </>
+      ) : (
+        <>
+          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 bg-white p-4 rounded-lg shadow-sm border border-slate-gray/10">
+            <div className="relative w-full lg:w-auto flex-1 max-w-md">
+              <input
+                type="text"
+                value={localGlobalFilter}
+                onChange={(e) => handleGlobalFilterChange(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 border border-slate-gray/20 rounded-lg bg-light-sky/30 text-deep-ocean placeholder-slate-gray/50 focus:outline-none focus:ring-2 focus:ring-electric-blue/30 focus:border-transparent transition-all duration-200"
+                placeholder="Search all columns..."
+              />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-gray/60 h-4 w-4" />
+            </div>
           </div>
-        </div>
-
-        <div className="flex items-center gap-3 w-full lg:w-auto">
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border transition-colors ${
-              showFilters
-                ? "bg-electric-blue/10 text-electric-blue border-electric-blue/30"
-                : "bg-white text-slate-gray border-slate-gray/20 hover:bg-light-sky/50"
-            }`}
-          >
-            <Filter className="h-4 w-4" />
-            <span>Filters</span>
-            <ChevronDown className={`h-4 w-4 transition-transform ${showFilters ? "rotate-180" : ""}`} />
-          </button>
-
-          <CSVLink
-            data={selectedRowsData}
-            filename="selected_rows.csv"
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg transition-colors ${
-              selectedRowsData.length === 0
-                ? "bg-slate-gray/10 text-slate-gray/50 cursor-not-allowed"
-                : "bg-electric-blue text-white hover:bg-btn-hover shadow-sm"
-            }`}
-          >
-            <FileDown className="h-4 w-4" />
-            <span>Export {selectedRowsData.length > 0 ? `(${selectedRowsData.length})` : ""}</span>
-          </CSVLink>
-        </div>
-      </div>
-
-      {showFilters && (
-        <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-gray/10 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {columns
-            .filter((col) => col.accessorKey && col.header !== "Actions")
-            .map((column) => {
-              const columnId = column.accessorKey as string
-              return (
-                <div key={columnId} className="space-y-1">
-                  <label className="text-xs font-medium text-slate-gray/70 uppercase tracking-wide">
-                    {column.header as string}
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      value={getColumnFilterValue(columnId)}
-                      onChange={(e) => handleColumnFilterChange(columnId, e.target.value)}
-                      placeholder={`Filter ${column.header as string}...`}
-                      className="w-full pl-3 pr-8 py-2 text-sm border border-slate-gray/20 rounded-md bg-light-sky/20 text-deep-ocean placeholder-slate-gray/40 focus:outline-none focus:ring-1 focus:ring-electric-blue/30"
-                      list={`options-${columnId}`}
-                    />
-                    <Search className="absolute right-2.5 top-1/2 transform -translate-y-1/2 text-slate-gray/40 h-3.5 w-3.5" />
-                    <datalist id={`options-${columnId}`}>
-                      {Array.from(distinctValues[columnId] || []).map((value) => (
-                        <option key={value} value={value} />
-                      ))}
-                    </datalist>
-                  </div>
-                </div>
-              )
-            })}
-        </div>
+          {showFilters && (
+            <CrudAdvancedFiltersPanel
+              columns={columns}
+              getColumnFilterValue={getColumnFilterValue}
+              onColumnFilterChange={handleColumnFilterChange}
+              distinctValues={distinctValues}
+            />
+          )}
+        </>
       )}
 
       <div
-        ref={tableContainerRef}
         className="overflow-auto bg-white rounded-lg shadow-md max-h-[calc(100vh-280px)] custom-scrollbar border border-slate-gray/10"
       >
-        <table className="min-w-full divide-y divide-slate-gray/10">
+        <table className="data-table min-w-full divide-y divide-slate-gray/10">
           <thead className="bg-light-sky sticky top-0 z-10">
             {table.getHeaderGroups().map((headerGroup) => (
               <tr key={headerGroup.id}>
-                <th className="px-6 py-3.5 text-left text-xs font-medium text-deep-ocean uppercase tracking-wider">
+                <th className="px-3 py-2 text-left text-xs font-medium text-deep-ocean uppercase tracking-wider">
                   <div className="flex items-center">
                     <input
                       type="checkbox"
@@ -307,7 +337,7 @@ export function Table<T extends { id: string }>({
                 {headerGroup.headers.map((header) => (
                   <th
                     key={header.id}
-                    className="px-6 py-3.5 text-left text-xs font-medium text-deep-ocean uppercase tracking-wider"
+                    className="px-3 py-2 text-left text-xs font-medium text-deep-ocean uppercase tracking-wider"
                   >
                     {header.isPlaceholder ? null : (
                       <div className="flex flex-col">
@@ -363,43 +393,28 @@ export function Table<T extends { id: string }>({
                 </td>
               </tr>
             ) : (
-              <>
-                {paddingTop > 0 && (
-                  <tr>
-                    <td style={{ height: `${paddingTop}px` }} />
-                  </tr>
-                )}
-                {virtualRows.map((virtualRow) => {
-                  const row = rows[virtualRow.index]
-                  return (
-                    <tr
-                      key={row.id}
-                      className={`group ${
-                        row.getIsSelected() ? "bg-electric-blue/5 hover:bg-electric-blue/10" : "hover:bg-light-sky/30"
-                      } transition-colors`}
-                    >
-                      <td className="px-6 py-4 max-w-[15px]">
-                        <input
-                          type="checkbox"
-                          checked={row.getIsSelected()}
-                          onChange={row.getToggleSelectedHandler()}
-                          className="rounded border-slate-gray/30 text-electric-blue focus:ring-electric-blue/50"
-                        />
-                      </td>
-                      {row.getVisibleCells().map((cell) => (
-                        <td key={cell.id} className="px-6 py-4 text-slate-gray">
-                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                        </td>
-                      ))}
-                    </tr>
-                  )
-                })}
-                {paddingBottom > 0 && (
-                  <tr>
-                    <td style={{ height: `${paddingBottom}px` }} />
-                  </tr>
-                )}
-              </>
+              rows.map((row) => (
+                <tr
+                  key={row.id}
+                  className={`group ${
+                    row.getIsSelected() ? "bg-electric-blue/5 hover:bg-electric-blue/10" : "hover:bg-light-sky/30"
+                  }`}
+                >
+                  <td className="px-3 py-2 max-w-[15px]">
+                    <input
+                      type="checkbox"
+                      checked={row.getIsSelected()}
+                      onChange={row.getToggleSelectedHandler()}
+                      className="rounded border-slate-gray/30 text-electric-blue focus:ring-electric-blue/50"
+                    />
+                  </td>
+                  {row.getVisibleCells().map((cell) => (
+                    <td key={cell.id} className="px-3 py-2 text-sm text-slate-gray">
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </td>
+                  ))}
+                </tr>
+              ))
             )}
           </tbody>
         </table>

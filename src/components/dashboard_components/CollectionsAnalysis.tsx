@@ -40,11 +40,11 @@ export const CollectionsAnalysis: React.FC<CollectionsAnalysisProps> = ({ data }
   }
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-6">
+    <div className="bg-white rounded-xl border border-gray-200 p-4">
       <h3 className="text-xl font-bold text-gray-900 mb-2">Collections Analysis</h3>
-      <p className="text-gray-600 text-sm mb-6">Aging analysis and collection performance</p>
+      <p className="text-gray-600 text-sm mb-3">Aging analysis and collection performance</p>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Aging Analysis */}
         <div>
           <h4 className="text-lg font-semibold text-gray-800 mb-4">Aging Analysis</h4>

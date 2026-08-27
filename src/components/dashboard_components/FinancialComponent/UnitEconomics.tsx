@@ -41,9 +41,9 @@ export const UnitEconomics: React.FC<Props> = ({ data }) => {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.1 }}
-      className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm"
+      className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm"
     >
-      <div className="flex flex-col md:flex-row justify-between md:items-center mb-6">
+      <div className="flex flex-col md:flex-row justify-between md:items-center mb-3">
         <div>
           <h3 className="text-xl font-bold text-gray-900">Unit Economics</h3>
           <p className="text-sm text-gray-500">ARPU vs Cost Per User</p>

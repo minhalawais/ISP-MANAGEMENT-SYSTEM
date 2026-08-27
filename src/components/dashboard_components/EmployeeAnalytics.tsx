@@ -96,10 +96,10 @@ interface KPICardProps {
 }
 
 const KPICard: React.FC<KPICardProps> = ({ title, value, trend, isPositive, icon, color }) => (
-  <div className="bg-white rounded-xl border border-[#E5E1DA] p-4 hover:shadow-lg transition-all duration-300 group">
+  <div className="bg-white rounded-xl border border-[#E5E1DA] p-4 shadow-sm">
     <div className="flex items-start justify-between mb-2">
       <div 
-        className="w-9 h-9 rounded-lg flex items-center justify-center text-white group-hover:scale-110 transition-transform"
+        className="w-9 h-9 rounded-lg flex items-center justify-center text-white"
         style={{ backgroundColor: color }}
       >
         {icon}
@@ -120,14 +120,14 @@ const KPICard: React.FC<KPICardProps> = ({ title, value, trend, isPositive, icon
 
 // Loading Skeleton
 const LoadingSkeleton: React.FC = () => (
-  <div className="space-y-6 animate-pulse">
+  <div className="space-y-4 animate-pulse">
     <div className="h-14 bg-slate-200 rounded-xl" />
     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
       {[...Array(8)].map((_, i) => (
         <div key={i} className="h-24 bg-slate-200 rounded-xl" />
       ))}
     </div>
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
       <div className="h-72 bg-slate-200 rounded-xl" />
       <div className="h-72 bg-slate-200 rounded-xl" />
     </div>
@@ -227,7 +227,7 @@ export const EmployeeAnalytics: React.FC = () => {
 
   if (error) {
     return (
-      <div className="bg-white rounded-xl border border-red-200 p-6">
+      <div className="bg-white rounded-xl border border-red-200 p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center">
             <AlertCircle className="w-8 h-8 text-red-500 mr-4" />
@@ -253,15 +253,10 @@ export const EmployeeAnalytics: React.FC = () => {
   const { kpis, charts, tables, filters: filterOptions } = data
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <Users className="w-8 h-8" style={{ color: COLORS.primary }} />
-          <h1 className="text-2xl font-bold text-slate-800">Employee Analytics</h1>
-        </div>
-        
-        <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-end gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={() => setShowFilters(!showFilters)}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-colors ${
@@ -417,7 +412,7 @@ export const EmployeeAnalytics: React.FC = () => {
       </div>
 
       {/* Charts Row 1 */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Performance by Employee */}
         <div className="bg-white rounded-xl border border-slate-200 p-5">
           <h3 className="text-lg font-semibold text-slate-800 mb-4">Top Employees (Tasks)</h3>
@@ -448,7 +443,7 @@ export const EmployeeAnalytics: React.FC = () => {
       </div>
 
       {/* Charts Row 2 */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Role Distribution */}
         <div className="bg-white rounded-xl border border-slate-200 p-5">
           <h3 className="text-lg font-semibold text-slate-800 mb-4">Role Distribution</h3>
@@ -491,7 +486,7 @@ export const EmployeeAnalytics: React.FC = () => {
       </div>
 
       {/* Tables */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Top Performers */}
         <div className="bg-white rounded-xl border border-slate-200 p-5">
           <h3 className="text-lg font-semibold text-slate-800 mb-4">Performance Summary</h3>

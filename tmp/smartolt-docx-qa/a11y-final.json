@@ -1,0 +1,36 @@
+{
+  "file": "docs\\SmartOLT_API_Integration_Guide.docx",
+  "counts": {
+    "high": 0,
+    "medium": 1,
+    "low": 2
+  },
+  "findings": [
+    {
+      "severity": "medium",
+      "kind": "table_no_header_row",
+      "message": "Table first row is not marked as header (w:tblHeader missing)",
+      "context": {
+        "part": "word/document.xml"
+      }
+    },
+    {
+      "severity": "low",
+      "kind": "hyperlink_raw_url",
+      "message": "Hyperlink display text is a raw URL (often less accessible)",
+      "context": {
+        "part": "word/document.xml",
+        "text": "https://api.smartolt.com/"
+      }
+    },
+    {
+      "severity": "low",
+      "kind": "hyperlink_raw_url",
+      "message": "Hyperlink display text is a raw URL (often less accessible)",
+      "context": {
+        "part": "word/document.xml",
+        "text": "https://www.smartolt.com/"
+      }
+    }
+  ]
+}

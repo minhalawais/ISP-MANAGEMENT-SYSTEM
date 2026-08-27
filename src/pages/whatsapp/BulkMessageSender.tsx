@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Send, MessageCircle, Search, Filter, CheckCircle2, Eye } from 'lucide-react';
+import { Users, Send, MessageCircle, Search, CheckCircle2, Eye } from 'lucide-react';
 import axiosInstance from '../../utils/axiosConfig.ts';
-import { useCompany } from '../../context/CompanyContext.tsx';
 import { Sidebar } from '../../components/sideNavbar.tsx';
 import { Topbar } from '../../components/topNavbar.tsx';
+import { useOptionalAdminChrome } from '../../context/AdminLayoutContext.tsx';
 
 interface Customer {
     id: string;
@@ -30,14 +30,13 @@ const BulkMessageSender: React.FC = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [showPreview, setShowPreview] = useState(false);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-
-    const { setPageTitle } = useCompany();
+    const hasChrome = useOptionalAdminChrome();
 
     useEffect(() => {
-        setPageTitle('Bulk Message Sender');
+        document.title = 'Bulk Message Sender';
         fetchCustomers();
         fetchTemplates();
-    }, [setPageTitle]);
+    }, []);
 
     const toggleSidebar = () => {
         setIsSidebarOpen(!isSidebarOpen);
@@ -95,12 +94,14 @@ const BulkMessageSender: React.FC = () => {
 
         try {
             setSending(true);
-            await axiosInstance.post('/api/whatsapp/send-bulk', {
+            const response = await axiosInstance.post('/api/whatsapp/send-bulk', {
                 customer_ids: Array.from(selectedCustomers),
                 message,
                 priority,
             });
-            alert(`Successfully queued ${selectedCustomers.size} messages!`);
+            const queued = response.data.messages_queued || 0;
+            const skipped = response.data.messages_skipped || 0;
+            alert(`Queued ${queued} messages${skipped ? `; skipped ${skipped}` : ''}.`);
             setMessage('');
             setSelectedCustomers(new Set());
             setSending(false);
@@ -128,78 +129,81 @@ const BulkMessageSender: React.FC = () => {
     };
 
     return (
-        <div className="flex h-screen bg-[#F1F0E8] ml-20">
-            <Sidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} setIsOpen={setIsSidebarOpen} />
-            <div className="flex-1 flex flex-col overflow-hidden">
-                <Topbar toggleSidebar={toggleSidebar} />
-                <main className="flex-1 overflow-y-auto p-6 mt-14">
-                    <div className="mb-8">
-                        <h1 className="text-4xl font-bold text-[#2A5C8A] flex items-center gap-3">
-                            <div className="bg-gradient-to-br from-[#89A8B2] to-[#B3C8CF] p-3 rounded-2xl shadow-lg">
-                                <Send className="w-8 h-8 text-white" />
-                            </div>
-                            Bulk Message Sender
-                        </h1>
-                        <p className="text-[#656565] mt-2 text-lg">Send messages to multiple customers at once</p>
-                    </div>
+        <div className={hasChrome ? "flex-1 min-w-0 w-full" : "flex h-screen bg-slate-50 overflow-hidden"}>
+            {!hasChrome && (
+                <Sidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} setIsOpen={setIsSidebarOpen} />
+            )}
+            <div className={hasChrome ? "flex-1 min-w-0 w-full" : "flex-1 flex flex-col overflow-hidden"}>
+                {!hasChrome && <Topbar toggleSidebar={toggleSidebar} />}
+                <main className={
+                    hasChrome
+                        ? "px-0 pb-0 sm:px-6 sm:pb-6 py-4"
+                        : `flex-1 overflow-y-auto bg-slate-50 px-0 pb-0 sm:px-6 sm:pb-6 pt-20 transition-all duration-300 ${isSidebarOpen ? 'ml-64' : 'ml-0 lg:ml-20'}`
+                }>
+                    <div className="max-w-[1400px] mx-auto space-y-4">
+                        <div className="bg-white rounded-[10px] border border-slate-200 p-5">
+                            <h1 className="text-[15px] font-medium text-slate-900 flex items-center gap-2">
+                                <span className="w-8 h-8 bg-emerald-50 rounded-lg flex items-center justify-center">
+                                    <Send className="w-4 h-4 text-emerald-600" />
+                                </span>
+                                Bulk Message Sender
+                            </h1>
+                            <p className="text-[11px] text-slate-400 mt-1">Send messages to multiple customers at once</p>
+                        </div>
 
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        {/* Customer Selection Panel */}
-                        <div className="bg-white p-6 rounded-2xl shadow-xl border-2 border-[#F1F0E8]">
-                            <div className="flex items-center justify-between mb-6">
-                                <div className="flex items-center gap-3">
-                                    <div className="bg-gradient-to-br from-[#89A8B2] to-[#B3C8CF] p-3 rounded-xl shadow-lg">
-                                        <Users className="w-6 h-6 text-white" />
-                                    </div>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                        <div className="bg-white p-5 rounded-[10px] border border-slate-200">
+                            <div className="flex items-center justify-between mb-4">
+                                <div className="flex items-center gap-2.5">
+                                    <span className="w-8 h-8 bg-emerald-50 rounded-lg flex items-center justify-center">
+                                        <Users className="w-4 h-4 text-emerald-600" />
+                                    </span>
                                     <div>
-                                        <h2 className="text-2xl font-bold text-[#2A5C8A]">Select Recipients</h2>
-                                        <p className="text-sm text-[#656565]">{selectedCustomers.size} customers selected</p>
+                                        <h2 className="text-[13px] font-medium text-slate-900">Select Recipients</h2>
+                                        <p className="text-[11px] text-slate-400 mt-0.5">{selectedCustomers.size} customers selected</p>
                                     </div>
                                 </div>
                             </div>
 
-                            {/* Search */}
-                            <div className="relative mb-4">
-                                <Search className="absolute left-3 top-3.5 w-5 h-5 text-[#89A8B2]" />
+                            <div className="relative mb-3">
+                                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
                                 <input
                                     type="text"
                                     placeholder="Search customers..."
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="w-full pl-10 pr-4 py-3 border-2 border-[#E5E1DA] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#89A8B2] focus:border-transparent bg-[#F1F0E8] text-[#2A5C8A] placeholder-[#89A8B2]"
+                                    className="w-full h-9 pl-8 pr-3 border border-slate-200 rounded-md bg-white text-[13px] text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/[0.12] focus:border-emerald-600 hover:border-slate-300 transition-colors duration-150"
                                 />
                             </div>
 
-                            {/* Select All/None */}
-                            <div className="flex gap-3 mb-4">
+                            <div className="flex gap-2 mb-3">
                                 <button
                                     onClick={selectAll}
-                                    className="flex-1 px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#89A8B2] to-[#B3C8CF] text-white font-semibold hover:from-[#7A98A2] hover:to-[#A3B8BF] transition-all shadow-md"
+                                    className="h-8 px-3 text-[12px] font-medium bg-emerald-600 text-white rounded-md hover:bg-emerald-700 transition-colors duration-150"
                                 >
                                     Select All ({filteredCustomers.length})
                                 </button>
                                 <button
                                     onClick={deselectAll}
-                                    className="flex-1 px-4 py-2.5 rounded-xl bg-[#E5E1DA] text-[#656565] font-semibold hover:bg-[#D5D1CA] transition-all"
+                                    className="h-8 px-3 text-[12px] font-medium border border-slate-200 text-slate-600 rounded-md hover:border-slate-300 hover:bg-slate-50 transition-colors duration-150"
                                 >
                                     Deselect All
                                 </button>
                             </div>
 
-                            {/* Customer List */}
-                            <div className="space-y-2 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
+                            <div className="space-y-2 max-h-[500px] overflow-y-auto pr-1">
                                 {filteredCustomers.length === 0 ? (
-                                    <div className="text-center py-12 text-[#656565]">
-                                        <Users className="w-16 h-16 mx-auto mb-4 text-[#B3C8CF]" />
-                                        <p className="text-lg font-medium">No customers found</p>
+                                    <div className="text-center py-10 text-slate-500">
+                                        <Users className="w-12 h-12 mx-auto mb-2 text-slate-300" />
+                                        <p className="text-[13px] font-medium text-slate-600">No customers found</p>
                                     </div>
                                 ) : (
                                     filteredCustomers.map((customer) => (
                                         <div
                                             key={customer.id}
-                                            className={`flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 ${selectedCustomers.has(customer.id)
-                                                ? 'bg-gradient-to-r from-[#B3C8CF] to-[#89A8B2] border-[#89A8B2] shadow-lg scale-[1.02]'
-                                                : 'bg-[#F1F0E8] border-[#E5E1DA] hover:border-[#B3C8CF] hover:shadow-md'
+                                            className={`flex items-center gap-3 p-3 rounded-md border cursor-pointer transition-colors duration-150 ${selectedCustomers.has(customer.id)
+                                                ? 'bg-emerald-50 border-emerald-200'
+                                                : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50'
                                                 }`}
                                             onClick={() => toggleCustomer(customer.id)}
                                         >
@@ -207,40 +211,34 @@ const BulkMessageSender: React.FC = () => {
                                                 type="checkbox"
                                                 checked={selectedCustomers.has(customer.id)}
                                                 onChange={() => toggleCustomer(customer.id)}
-                                                className="w-5 h-5 rounded border-2 border-[#89A8B2] text-[#89A8B2] focus:ring-[#89A8B2]"
+                                                className="w-3.5 h-3.5 rounded border-slate-300 text-emerald-600 focus:ring-2 focus:ring-emerald-500/[0.12]"
                                             />
-                                            <div className="flex-1">
-                                                <p className={`font-semibold ${selectedCustomers.has(customer.id) ? 'text-white' : 'text-[#2A5C8A]'}`}>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-[13px] font-medium text-slate-700 truncate">
                                                     {customer.first_name} {customer.last_name}
                                                 </p>
-                                                <p className={`text-sm ${selectedCustomers.has(customer.id) ? 'text-white/90' : 'text-[#656565]'}`}>
-                                                    {customer.phone_1}
-                                                </p>
+                                                <p className="text-[11px] text-slate-400 truncate">{customer.phone_1}</p>
                                             </div>
-                                            {selectedCustomers.has(customer.id) && (
-                                                <CheckCircle2 className="w-5 h-5 text-white" />
-                                            )}
+                                            {selectedCustomers.has(customer.id) && <CheckCircle2 className="w-4 h-4 text-emerald-600" />}
                                         </div>
                                     ))
                                 )}
                             </div>
                         </div>
 
-                        {/* Message Composition Panel */}
-                        <div className="bg-white p-6 rounded-2xl shadow-xl border-2 border-[#F1F0E8]">
-                            <div className="flex items-center gap-3 mb-6">
-                                <div className="bg-gradient-to-br from-[#89A8B2] to-[#B3C8CF] p-3 rounded-xl shadow-lg">
-                                    <MessageCircle className="w-6 h-6 text-white" />
-                                </div>
+                        <div className="bg-white p-5 rounded-[10px] border border-slate-200">
+                            <div className="flex items-center gap-2.5 mb-4">
+                                <span className="w-8 h-8 bg-emerald-50 rounded-lg flex items-center justify-center">
+                                    <MessageCircle className="w-4 h-4 text-emerald-600" />
+                                </span>
                                 <div>
-                                    <h2 className="text-2xl font-bold text-[#2A5C8A]">Compose Message</h2>
-                                    <p className="text-sm text-[#656565]">Create your message content</p>
+                                    <h2 className="text-[13px] font-medium text-slate-900">Compose Message</h2>
+                                    <p className="text-[11px] text-slate-400 mt-0.5">Create your message content</p>
                                 </div>
                             </div>
 
-                            {/* Template Selector */}
-                            <div className="mb-6">
-                                <label className="block text-sm font-semibold text-[#2A5C8A] mb-2">Use Template (Optional)</label>
+                            <div className="mb-4">
+                                <label className="block text-[11px] font-medium text-slate-600 mb-1.5">Use Template (Optional)</label>
                                 <select
                                     onChange={(e) => {
                                         const template = templates.find(t => t.id === e.target.value);
@@ -249,7 +247,7 @@ const BulkMessageSender: React.FC = () => {
                                             setPriority(template.default_priority);
                                         }
                                     }}
-                                    className="w-full px-4 py-3 border-2 border-[#E5E1DA] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#89A8B2] focus:border-transparent bg-[#F1F0E8] text-[#2A5C8A]"
+                                    className="w-full h-9 px-3 border border-slate-200 rounded-md bg-white text-[13px] text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/[0.12] focus:border-emerald-600 hover:border-slate-300 transition-colors duration-150"
                                 >
                                     <option value="">Select a template...</option>
                                     {templates.map(template => (
@@ -260,54 +258,50 @@ const BulkMessageSender: React.FC = () => {
                                 </select>
                             </div>
 
-                            {/* Message Input */}
-                            <div className="mb-6">
-                                <label className="block text-sm font-semibold text-[#2A5C8A] mb-2">Message</label>
+                            <div className="mb-4">
+                                <label className="block text-[11px] font-medium text-slate-600 mb-1.5">Message</label>
                                 <textarea
                                     value={message}
                                     onChange={(e) => setMessage(e.target.value)}
-                                    placeholder="Type your message... Use {{customer_name}}, {{first_name}}, {{plan_name}} as placeholders"
+                                    placeholder="Type your message… Placeholders: {{customer_name}}, {{first_name}}, {{plan_name}}, {{company_name}}, {{company_domain}}, {{company_url}}, {{invoice_link}}"
                                     rows={8}
-                                    className="w-full px-4 py-3 border-2 border-[#E5E1DA] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#89A8B2] focus:border-transparent resize-none bg-[#F1F0E8] text-[#2A5C8A] placeholder-[#89A8B2]"
+                                    className="w-full px-3 py-2.5 border border-slate-200 rounded-md bg-white text-[13px] text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/[0.12] focus:border-emerald-600 hover:border-slate-300 transition-colors duration-150 resize-none"
                                 />
-                                <p className="text-sm text-[#656565] mt-2">{message.length} characters</p>
+                                <p className="text-[11px] text-slate-400 mt-1.5 tabular-nums">{message.length} characters</p>
                             </div>
 
-                            {/* Priority Selector */}
-                            <div className="mb-6">
-                                <label className="block text-sm font-semibold text-[#2A5C8A] mb-2">Priority</label>
-                                <div className="grid grid-cols-3 gap-3">
+                            <div className="mb-4">
+                                <label className="block text-[11px] font-medium text-slate-600 mb-1.5">Priority</label>
+                                <div className="grid grid-cols-3 gap-2">
                                     {[0, 10, 20].map(p => (
                                         <button
                                             key={p}
                                             onClick={() => setPriority(p)}
-                                            className={`px-4 py-3 rounded-xl font-semibold text-sm transition-all ${priority === p
-                                                ? 'bg-gradient-to-r from-[#89A8B2] to-[#B3C8CF] text-white shadow-lg scale-105'
-                                                : 'bg-[#E5E1DA] text-[#656565] hover:bg-[#D5D1CA]'
+                                            className={`h-9 px-3 rounded-md text-[12px] font-medium transition-colors duration-150 ${priority === p
+                                                ? 'bg-emerald-600 text-white'
+                                                : 'bg-white border border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50'
                                                 }`}
                                         >
                                             {p === 0 ? 'High' : p === 10 ? 'Medium' : 'Low'}
                                         </button>
                                     ))}
                                 </div>
-                                <p className="text-xs text-[#656565] mt-2">{getPriorityLabel(priority)}</p>
+                                <p className="text-[11px] text-slate-400 mt-1.5">{getPriorityLabel(priority)}</p>
                             </div>
 
-                            {/* Preview Button */}
                             <button
                                 onClick={() => setShowPreview(!showPreview)}
-                                className="w-full mb-4 px-4 py-3 rounded-xl bg-[#E5E1DA] text-[#2A5C8A] font-semibold hover:bg-[#D5D1CA] transition-all flex items-center justify-center gap-2"
+                                className="w-full mb-3 h-9 px-4 rounded-md border border-slate-200 text-[13px] font-medium text-slate-600 hover:border-slate-300 hover:bg-slate-50 transition-colors duration-150 flex items-center justify-center gap-1.5"
                             >
-                                <Eye className="w-5 h-5" />
+                                <Eye className="w-4 h-4" />
                                 {showPreview ? 'Hide' : 'Show'} Preview
                             </button>
 
-                            {/* Preview */}
                             {showPreview && selectedCustomers.size > 0 && (
-                                <div className="mb-6 p-4 bg-[#F1F0E8] border-2 border-[#E5E1DA] rounded-xl">
-                                    <h3 className="text-sm font-semibold text-[#2A5C8A] mb-3">Preview (First Customer):</h3>
-                                    <div className="bg-white p-4 rounded-lg border border-[#B3C8CF]">
-                                        <p className="text-[#656565] whitespace-pre-wrap">
+                                <div className="mb-4 p-4 bg-slate-50 border border-slate-200 rounded-[10px]">
+                                    <h3 className="text-[11px] font-medium text-slate-600 mb-2">Preview (First Customer)</h3>
+                                    <div className="bg-white p-3 rounded-md border border-slate-200">
+                                        <p className="text-[13px] text-slate-600 whitespace-pre-wrap">
                                             {replacePlaceholders(
                                                 message,
                                                 customers.find(c => c.id === Array.from(selectedCustomers)[0]) || customers[0]
@@ -317,43 +311,26 @@ const BulkMessageSender: React.FC = () => {
                                 </div>
                             )}
 
-                            {/* Send Button */}
                             <button
                                 onClick={handleSend}
                                 disabled={sending || selectedCustomers.size === 0 || !message.trim()}
-                                className="w-full px-6 py-4 rounded-xl bg-gradient-to-r from-[#89A8B2] to-[#B3C8CF] text-white font-bold text-lg hover:from-[#7A98A2] hover:to-[#A3B8BF] disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-xl hover:shadow-2xl flex items-center justify-center gap-2"
+                                className="w-full h-10 px-4 rounded-md bg-emerald-600 text-white text-[13px] font-medium hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150 flex items-center justify-center gap-2"
                             >
                                 {sending ? (
                                     <>
-                                        <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent" />
+                                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
                                         Sending...
                                     </>
                                 ) : (
                                     <>
-                                        <Send className="w-6 h-6" />
+                                        <Send className="w-4 h-4" />
                                         Queue {selectedCustomers.size} Message{selectedCustomers.size !== 1 ? 's' : ''}
                                     </>
                                 )}
                             </button>
                         </div>
                     </div>
-
-                    <style>{`
-                        .custom-scrollbar::-webkit-scrollbar {
-                            width: 8px;
-                        }
-                        .custom-scrollbar::-webkit-scrollbar-track {
-                            background: #F1F0E8;
-                            border-radius: 4px;
-                        }
-                        .custom-scrollbar::-webkit-scrollbar-thumb {
-                            background: #B3C8CF;
-                            border-radius: 4px;
-                        }
-                        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-                            background: #89A8B2;
-                        }
-                    `}</style>
+                    </div>
                 </main>
             </div>
         </div>

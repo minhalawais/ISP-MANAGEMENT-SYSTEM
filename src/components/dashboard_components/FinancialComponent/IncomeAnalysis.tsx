@@ -40,12 +40,12 @@ export const IncomeAnalysis: React.FC<Props> = ({ data }) => {
   const totalIncome = data?.total_income || 0
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-6 mt-6">
+    <div className="bg-white rounded-xl border border-gray-200 p-4 mt-6">
       <h3 className="text-xl font-bold text-gray-900 mb-2">Income Analysis</h3>
       <p className="text-gray-600 text-sm mb-4">Breakdown of incoming payments by method, bank account, and service plan source</p>
 
       {/* Totals */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-3">
         <div className="p-3 rounded-lg bg-green-50 border border-green-200">
           <div className="text-xs font-medium text-green-700">Total Income</div>
           <div className="text-lg font-bold text-green-800">{formatCurrency(totalIncome)}</div>
@@ -60,7 +60,7 @@ export const IncomeAnalysis: React.FC<Props> = ({ data }) => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Income by Method */}
         <div>
           <h4 className="text-lg font-semibold text-gray-800 mb-3">By Payment Method</h4>

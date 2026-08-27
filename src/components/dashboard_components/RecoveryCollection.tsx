@@ -145,11 +145,11 @@ const IconSearch: React.FC<{ className?: string }> = ({ className = "w-4 h-4" })
 
 // Production-grade loading skeleton
 const LoadingSkeleton: React.FC = () => (
-  <div className="space-y-6 animate-pulse" role="status" aria-label="Loading recovery and collections data">
+  <div className="space-y-4 animate-pulse" role="status" aria-label="Loading recovery and collections data">
     {/* KPI Cards Skeleton */}
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       {Array.from({ length: 4 }).map((_, index) => (
-        <div key={index} className="bg-white rounded-xl border border-[#E5E1DA] p-6">
+        <div key={index} className="bg-white rounded-xl border border-[#E5E1DA] p-4">
           <div className="flex items-start justify-between mb-4">
             <div className="w-12 h-12 bg-[#E5E1DA] rounded-lg"></div>
             <div className="w-12 h-4 bg-[#E5E1DA] rounded"></div>
@@ -163,10 +163,10 @@ const LoadingSkeleton: React.FC = () => (
     </div>
 
     {/* Charts Skeleton */}
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
       {Array.from({ length: 2 }).map((_, index) => (
-        <div key={index} className="bg-white rounded-xl border border-[#E5E1DA] p-6">
-          <div className="space-y-2 mb-6">
+        <div key={index} className="bg-white rounded-xl border border-[#E5E1DA] p-4">
+          <div className="space-y-2 mb-3">
             <div className="h-6 w-48 bg-[#E5E1DA] rounded"></div>
             <div className="h-4 w-64 bg-[#E5E1DA] rounded"></div>
           </div>
@@ -176,8 +176,8 @@ const LoadingSkeleton: React.FC = () => (
     </div>
 
     {/* Outstanding Analysis Skeleton */}
-    <div className="bg-white rounded-xl border border-[#E5E1DA] p-6">
-      <div className="flex justify-between items-center mb-6">
+    <div className="bg-white rounded-xl border border-[#E5E1DA] p-4">
+      <div className="flex justify-between items-center mb-3">
         <div className="space-y-2">
           <div className="h-6 w-48 bg-[#E5E1DA] rounded"></div>
           <div className="h-4 w-64 bg-[#E5E1DA] rounded"></div>
@@ -217,10 +217,10 @@ const KPICard: React.FC<KPICardProps> = ({ title, value, trend, iconType, classN
   const IconComponent = iconComponents[iconType]
 
   return (
-    <div className={`bg-white rounded-xl border border-[#E5E1DA] p-6 hover:shadow-lg transition-all duration-300 group ${className}`}>
+    <div className={`bg-white rounded-xl border border-[#E5E1DA] p-4 shadow-sm ${className}`}>
       <div className="flex items-start justify-between mb-4">
         <div 
-          className="w-12 h-12 rounded-lg flex items-center justify-center text-white group-hover:scale-110 transition-transform duration-300"
+          className="w-9 h-9 rounded-lg flex items-center justify-center text-white"
           style={{ backgroundColor: color }}
         >
           <IconComponent className="w-6 h-6" />
@@ -238,7 +238,7 @@ const KPICard: React.FC<KPICardProps> = ({ title, value, trend, iconType, classN
       </div>
       <div>
         <h3 className="text-sm font-medium text-[#6B7280] mb-2 leading-tight">{title}</h3>
-        <p className="text-2xl font-bold text-[#1F2937] leading-none">{value}</p>
+        <p className="text-xl font-semibold text-[#1F2937] leading-none">{value}</p>
       </div>
     </div>
   )
@@ -302,10 +302,10 @@ const OutstandingAnalysisChart: React.FC<{ data: OutstandingByAgeData[] }> = ({ 
   }
 
   return (
-    <div className="bg-white rounded-xl border border-[#E5E1DA] p-6">
-      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-6">
+    <div className="bg-white rounded-xl border border-[#E5E1DA] p-4">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-3">
         <div className="mb-4 sm:mb-0">
-          <h3 className="text-xl font-bold text-[#1F2937] mb-2">Outstanding by Age Analysis</h3>
+          <h3 className="text-sm font-semibold text-[#1F2937] mb-2">Outstanding by Age Analysis</h3>
           <p className="text-sm text-[#6B7280]">Outstanding amounts categorized by aging periods ({data.length} categories)</p>
         </div>
         <div className="flex flex-col sm:flex-row gap-3">
@@ -334,7 +334,7 @@ const OutstandingAnalysisChart: React.FC<{ data: OutstandingByAgeData[] }> = ({ 
               className="flex items-center space-x-4 p-4 rounded-lg hover:bg-[#F1F0E8] transition-colors duration-200 group"
             >
               <div 
-                className="flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center text-sm font-bold text-white shadow-sm group-hover:scale-105 transition-transform duration-200" 
+                className="flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center text-sm font-bold text-white shadow-sm group-hover:scale-105 transition-transform duration-200" 
                 style={{ backgroundColor: color }}
               >
                 {index + 1}
@@ -443,10 +443,10 @@ export const RecoveryCollections: React.FC = () => {
 
   if (error) {
     return (
-      <div className="bg-white rounded-xl border border-[#EF4444]/20 p-6">
+      <div className="bg-white rounded-xl border border-[#EF4444]/20 p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center">
-            <div className="w-12 h-12 rounded-lg bg-[#EF4444]/10 flex items-center justify-center mr-4">
+            <div className="w-9 h-9 rounded-lg bg-[#EF4444]/10 flex items-center justify-center mr-4">
               <svg className="w-6 h-6 text-[#EF4444]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
               </svg>
@@ -473,15 +473,7 @@ export const RecoveryCollections: React.FC = () => {
   if (!recoveryData) return null
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="flex items-center">
-        <IconCollections className="w-8 h-8 mr-3" style={{ color: COLORS.primary }} />
-        <h2 className="text-3xl font-bold" style={{ color: COLORS.gray[800] }}>
-          Recovery & Collections
-        </h2>
-      </div>
-
+    <div className="space-y-4">
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {kpiData.map((kpi, index) => (
@@ -490,11 +482,11 @@ export const RecoveryCollections: React.FC = () => {
       </div>
 
       {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Recovery Performance */}
-        <div className="bg-white rounded-xl border border-[#E5E1DA] p-6">
-          <div className="mb-6">
-            <h3 className="text-xl font-bold text-[#1F2937] mb-2">Recovery Performance</h3>
+        <div className="bg-white rounded-xl border border-[#E5E1DA] p-4">
+          <div className="mb-3">
+            <h3 className="text-sm font-semibold text-[#1F2937] mb-2">Recovery Performance</h3>
             <p className="text-sm text-[#6B7280]">Monthly comparison of recovered vs outstanding amounts</p>
           </div>
           <ResponsiveContainer width="100%" height={350}>
@@ -552,9 +544,9 @@ export const RecoveryCollections: React.FC = () => {
         </div>
 
         {/* Daily Recovery Activity (Real-time) */}
-        <div className="bg-white rounded-xl border border-[#E5E1DA] p-6">
-          <div className="mb-6">
-            <h3 className="text-xl font-bold text-[#1F2937] mb-2">Daily Recovery Activity</h3>
+        <div className="bg-white rounded-xl border border-[#E5E1DA] p-4">
+          <div className="mb-3">
+            <h3 className="text-sm font-semibold text-[#1F2937] mb-2">Daily Recovery Activity</h3>
             <p className="text-sm text-[#6B7280]">Real-time daily collection trend (Last 30 Days)</p>
           </div>
           <ResponsiveContainer width="100%" height={350}>

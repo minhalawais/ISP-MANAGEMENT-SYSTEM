@@ -228,7 +228,7 @@ const IconTrendDown: React.FC<{ className?: string }> = ({ className = "w-4 h-4"
 
 // Professional loading skeleton
 const LoadingSkeleton: React.FC = () => (
-  <div className="space-y-8 animate-pulse" role="status" aria-label="Loading analytics data">
+  <div className="space-y-4 animate-pulse" role="status" aria-label="Loading analytics data">
     {/* Header skeleton */}
     <div className="flex justify-between items-start">
       <div className="space-y-2">
@@ -243,9 +243,9 @@ const LoadingSkeleton: React.FC = () => (
     </div>
 
     {/* KPI cards skeleton */}
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       {Array.from({ length: 4 }).map((_, index) => (
-        <div key={index} className="bg-white rounded-xl border border-[#E5E1DA] p-6">
+        <div key={index} className="bg-white rounded-xl border border-[#E5E1DA] p-4">
           <div className="flex items-start justify-between mb-4">
             <div className="w-12 h-12 bg-[#E5E1DA] rounded-lg"></div>
             <div className="w-16 h-4 bg-[#E5E1DA] rounded"></div>
@@ -259,10 +259,10 @@ const LoadingSkeleton: React.FC = () => (
     </div>
 
     {/* Charts skeleton */}
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
       {Array.from({ length: 4 }).map((_, index) => (
-        <div key={index} className="bg-white rounded-xl border border-[#E5E1DA] p-6">
-          <div className="space-y-2 mb-6">
+        <div key={index} className="bg-white rounded-xl border border-[#E5E1DA] p-4">
+          <div className="space-y-2 mb-3">
             <div className="h-6 w-48 bg-[#E5E1DA] rounded"></div>
             <div className="h-4 w-64 bg-[#E5E1DA] rounded"></div>
           </div>
@@ -285,10 +285,10 @@ const KPICard: React.FC<KPICardProps> = ({ title, value, trend, iconType, classN
   const IconComponent = iconComponents[iconType]
 
   return (
-    <div className={`bg-white rounded-xl border border-[#E5E1DA] p-6 hover:shadow-lg transition-all duration-300 group ${className}`}>
+    <div className={`bg-white rounded-xl border border-[#E5E1DA] p-4 shadow-sm ${className}`}>
       <div className="flex items-start justify-between mb-4">
         <div 
-          className="w-12 h-12 rounded-lg flex items-center justify-center text-white group-hover:scale-110 transition-transform duration-300"
+          className="w-9 h-9 rounded-lg flex items-center justify-center text-white"
           style={{ backgroundColor: color }}
         >
           <IconComponent className="w-6 h-6" />
@@ -306,7 +306,7 @@ const KPICard: React.FC<KPICardProps> = ({ title, value, trend, iconType, classN
       </div>
       <div>
         <h3 className="text-sm font-medium text-[#6B7280] mb-2 leading-tight">{title}</h3>
-        <p className="text-2xl font-bold text-[#1F2937] leading-none">{value}</p>
+        <p className="text-xl font-semibold text-[#1F2937] leading-none">{value}</p>
       </div>
     </div>
   )
@@ -350,7 +350,7 @@ interface FilterPanelProps {
 }
 
 const FilterPanel: React.FC<FilterPanelProps> = ({ filters, bankAccounts, onFilterChange }) => (
-  <div className="bg-white rounded-xl border border-[#E5E1DA] p-6">
+  <div className="bg-white rounded-xl border border-[#E5E1DA] p-4">
     <div className="flex items-center mb-4">
       <IconFilter className="w-5 h-5 text-[#89A8B2] mr-2" />
       <h3 className="text-lg font-semibold text-[#1F2937]">Filters</h3>
@@ -569,10 +569,10 @@ export const BankAccountAnalysis: React.FC<BankAccountAnalysisProps> = ({ filter
 
   if (error) {
     return (
-      <div className="bg-white rounded-xl border border-[#EF4444]/20 p-6">
+      <div className="bg-white rounded-xl border border-[#EF4444]/20 p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center">
-            <div className="w-12 h-12 rounded-lg bg-[#EF4444]/10 flex items-center justify-center mr-4">
+            <div className="w-9 h-9 rounded-lg bg-[#EF4444]/10 flex items-center justify-center mr-4">
               <svg className="w-6 h-6 text-[#EF4444]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
               </svg>
@@ -599,11 +599,11 @@ export const BankAccountAnalysis: React.FC<BankAccountAnalysisProps> = ({ filter
   if (!safeData || !calculatedMetrics) return null
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4">
       {/* Header Section */}
-      <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
+      <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-bold text-[#1F2937] mb-2">Bank Account Analysis</h2>
+          <h2 className="text-xl font-semibold text-[#1F2937] mb-2">Bank Account Analysis</h2>
           <p className="text-[#6B7280]">Comprehensive analysis of payment flows, collections, and account performance</p>
         </div>
         
@@ -637,11 +637,11 @@ export const BankAccountAnalysis: React.FC<BankAccountAnalysisProps> = ({ filter
       </div>
 
       {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Payment Trends Chart */}
-        <div className="bg-white rounded-xl border border-[#E5E1DA] p-6">
-          <div className="mb-6">
-            <h3 className="text-xl font-bold text-[#1F2937] mb-2">Payment Trends Over Time</h3>
+        <div className="bg-white rounded-xl border border-[#E5E1DA] p-4">
+          <div className="mb-3">
+            <h3 className="text-sm font-semibold text-[#1F2937] mb-2">Payment Trends Over Time</h3>
             <p className="text-sm text-[#6B7280]">Monthly payment volume and transaction patterns</p>
           </div>
           {safeData.paymentTrends.length > 0 ? (
@@ -693,9 +693,9 @@ export const BankAccountAnalysis: React.FC<BankAccountAnalysisProps> = ({ filter
         </div>
 
         {/* Account Performance Chart */}
-        <div className="bg-white rounded-xl border border-[#E5E1DA] p-6">
-          <div className="mb-6">
-            <h3 className="text-xl font-bold text-[#1F2937] mb-2">Collections vs Outstanding</h3>
+        <div className="bg-white rounded-xl border border-[#E5E1DA] p-4">
+          <div className="mb-3">
+            <h3 className="text-sm font-semibold text-[#1F2937] mb-2">Collections vs Outstanding</h3>
             <p className="text-sm text-[#6B7280]">Account-wise collection performance comparison</p>
           </div>
           {safeData.accountPerformance.length > 0 ? (
@@ -756,9 +756,9 @@ export const BankAccountAnalysis: React.FC<BankAccountAnalysisProps> = ({ filter
         </div>
 
         {/* Payment Method Distribution */}
-        <div className="bg-white rounded-xl border border-[#E5E1DA] p-6">
-          <div className="mb-6">
-            <h3 className="text-xl font-bold text-[#1F2937] mb-2">Payment Method Breakdown</h3>
+        <div className="bg-white rounded-xl border border-[#E5E1DA] p-4">
+          <div className="mb-3">
+            <h3 className="text-sm font-semibold text-[#1F2937] mb-2">Payment Method Breakdown</h3>
             <p className="text-sm text-[#6B7280]">Distribution of payments by method type</p>
           </div>
           {safeData.paymentMethodDistribution.length > 0 ? (
@@ -809,9 +809,9 @@ export const BankAccountAnalysis: React.FC<BankAccountAnalysisProps> = ({ filter
         </div>
 
         {/* Collection Ratios */}
-        <div className="bg-white rounded-xl border border-[#E5E1DA] p-6">
-          <div className="mb-6">
-            <h3 className="text-xl font-bold text-[#1F2937] mb-2">Collection Performance</h3>
+        <div className="bg-white rounded-xl border border-[#E5E1DA] p-4">
+          <div className="mb-3">
+            <h3 className="text-sm font-semibold text-[#1F2937] mb-2">Collection Performance</h3>
             <p className="text-sm text-[#6B7280]">Collection ratios by bank account</p>
           </div>
           {safeData.collectionMetrics.length > 0 ? (
@@ -860,9 +860,9 @@ export const BankAccountAnalysis: React.FC<BankAccountAnalysisProps> = ({ filter
       </div>
 
       {/* Top Customers Table */}
-      <div className="bg-white rounded-xl border border-[#E5E1DA] p-6">
-        <div className="mb-6">
-          <h3 className="text-xl font-bold text-[#1F2937] mb-2">Top Paying Customers</h3>
+      <div className="bg-white rounded-xl border border-[#E5E1DA] p-4">
+        <div className="mb-3">
+          <h3 className="text-sm font-semibold text-[#1F2937] mb-2">Top Paying Customers</h3>
           <p className="text-sm text-[#6B7280]">Customers with highest payment volumes in the selected period</p>
         </div>
         {safeData.topCustomers.length > 0 ? (
@@ -939,15 +939,15 @@ export const BankAccountAnalysis: React.FC<BankAccountAnalysisProps> = ({ filter
       </div>
 
       {/* Transaction Metrics */}
-      <div className="bg-white rounded-xl border border-[#E5E1DA] p-6">
-        <div className="mb-6">
-          <h3 className="text-xl font-bold text-[#1F2937] mb-2">Transaction Metrics by Account</h3>
+      <div className="bg-white rounded-xl border border-[#E5E1DA] p-4">
+        <div className="mb-3">
+          <h3 className="text-sm font-semibold text-[#1F2937] mb-2">Transaction Metrics by Account</h3>
           <p className="text-sm text-[#6B7280]">Detailed transaction statistics for each bank account</p>
         </div>
         {safeData.transactionMetrics.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {safeData.transactionMetrics.map((metric, index) => (
-              <div key={index} className="bg-[#F1F0E8] p-6 rounded-xl border border-[#E5E1DA] hover:shadow-md transition-shadow duration-200">
+              <div key={index} className="bg-[#F1F0E8] p-4 rounded-xl border border-[#E5E1DA] hover:shadow-md transition-shadow duration-200">
                 <div className="flex items-center justify-between mb-4">
                   <h4 className="font-semibold text-[#1F2937] truncate">{metric?.bank_account || 'Unknown Account'}</h4>
                   <div className="w-10 h-10 bg-[#89A8B2] rounded-lg flex items-center justify-center">

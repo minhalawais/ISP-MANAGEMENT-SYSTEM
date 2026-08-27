@@ -29,6 +29,7 @@ yarn-error.log*
 # backups
 *.tar.gz
 *.sql
+!scripts/*.sql
 db_backup_*
 ISP-MANAGEMENT-SYSTEM_backup_*
 MBA-NET-BACKED_backup_*

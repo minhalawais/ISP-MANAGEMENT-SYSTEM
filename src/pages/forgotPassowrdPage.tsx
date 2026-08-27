@@ -3,6 +3,7 @@ import { useState } from "react"
 import { Link } from "react-router-dom"
 import { Mail } from "lucide-react"
 import axiosInstance from "../utils/axiosConfig.ts"
+import { LOGIN_ROUTE } from "../utils/authRedirects.ts"
 
 const ForgotPasswordPage: React.FC = () => {
   const [email, setEmail] = useState("")
@@ -67,7 +68,7 @@ const ForgotPasswordPage: React.FC = () => {
             </button>
           </form>
           <div className="mt-6 text-center">
-            <Link to="/login" className="text-sm text-gray-600 hover:text-purple-600 transition-colors duration-200">
+            <Link to={LOGIN_ROUTE} className="text-sm text-gray-600 hover:text-purple-600 transition-colors duration-200">
               Back to Login
             </Link>
           </div>

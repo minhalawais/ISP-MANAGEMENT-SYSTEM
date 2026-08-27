@@ -8,16 +8,19 @@ import { CRUDPage } from "../../components/invoiceCrudPage.tsx"
 import { InvoiceForm } from "../../components/forms/invoiceForm.tsx"
 import { BulkInvoiceModal } from "../../components/modals/BulkInvoiceModal.tsx"
 import { Modal } from "../../components/modal.tsx"
+import { MODAL_CANCEL_BTN, MODAL_FOOTER, MODAL_PRIMARY_BTN } from "../../components/ui/modalStyles.ts"
 import { PaymentForm } from "../../components/forms/paymentForm.tsx"
 import { getToken } from "../../utils/auth.ts"
 import { useCompany } from "../../context/CompanyContext.tsx"
 import axiosInstance from "../../utils/axiosConfig.ts"
-import { toast } from "react-toastify"
+import { toast } from "../../utils/notify.ts";
 import {
   FileText,
   Plus,
   Check
 } from "lucide-react"
+import { formatShortDisplayDate } from "../../utils/formatShortDisplayDate.ts"
+
 interface Invoice {
   id: string
   invoice_number: string
@@ -31,6 +34,7 @@ interface Invoice {
   discount_percentage: string | number
   total_amount: string | number
   invoice_type: string
+  charge_types?: string[]
   notes: string
   status: string
   is_active: boolean
@@ -94,18 +98,14 @@ const InvoiceManagement: React.FC = () => {
         })
       }
 
-      toast.success("Payment added successfully", {
-        style: { background: "#D1FAE5", color: "#10B981" },
-      })
+      toast.success("Payment added successfully")
 
       setShowPaymentModal(false)
       setPaymentFormData({})
       setRefreshTrigger(prev => prev + 1)
     } catch (error) {
       console.error("Failed to add payment", error)
-      toast.error("Failed to add payment", {
-        style: { background: "#FEE2E2", color: "#EF4444" },
-      })
+      toast.error("Failed to add payment")
     } finally {
       setIsPaymentLoading(false)
     }
@@ -118,27 +118,43 @@ const InvoiceManagement: React.FC = () => {
   const columns = React.useMemo<ColumnDef<Invoice>[]>(
     () => [
       {
-        header: "Invoice Number",
-        accessorKey: "invoice_number",
-      },
-      {
-        header: "Internet ID",
-        accessorKey: "internet_id",
-      },
-      {
         header: "Billing Start",
         accessorKey: "billing_start_date",
-        cell: (info) => new Date(info.getValue<string>()).toLocaleDateString(),
+        cell: (info) => (
+          <span className="whitespace-nowrap text-sm">
+            {formatShortDisplayDate(info.getValue<string>())}
+          </span>
+        ),
       },
       {
         header: "Billing End",
         accessorKey: "billing_end_date",
-        cell: (info) => new Date(info.getValue<string>()).toLocaleDateString(),
+        cell: (info) => (
+          <span className="whitespace-nowrap text-sm">
+            {formatShortDisplayDate(info.getValue<string>())}
+          </span>
+        ),
       },
       {
         header: "Due Date",
         accessorKey: "due_date",
         cell: (info) => new Date(info.getValue<string>()).toLocaleDateString(),
+      },
+      {
+        header: "Type",
+        accessorKey: "invoice_type",
+        cell: (info) => {
+          const invoice = info.row.original
+          const label =
+            invoice.invoice_type === "mixed" && invoice.charge_types?.length
+              ? invoice.charge_types.join(" + ")
+              : (info.getValue<string>() || "—")
+          return (
+            <span className="text-xs font-medium capitalize text-slate-700 whitespace-nowrap">
+              {label.replace(/_/g, " ")}
+            </span>
+          )
+        },
       },
       {
         header: "Subtotal",
@@ -203,11 +219,11 @@ const InvoiceManagement: React.FC = () => {
               onClick={isPending ? () => handlePendingClick(invoice) : undefined}
               disabled={!isPending}
               className={`
-                px-4 py-2 text-xs font-semibold border uppercase
+                px-2 py-0.5 text-xs font-medium border uppercase rounded
                 ${bgColor} ${textColor} ${borderColor}
-                transition-all duration-200 ease-out
+                transition-colors duration-150
                 ${isPending
-                  ? 'cursor-pointer shadow-sm hover:shadow-md hover:scale-105 active:scale-95'
+                  ? 'cursor-pointer hover:opacity-90'
                   : 'cursor-not-allowed opacity-60'
                 }
               `}
@@ -223,32 +239,26 @@ const InvoiceManagement: React.FC = () => {
   )
 
   const handleSubmit = async (formData: any, isEditing: boolean) => {
-    const dateFields = ["billing_start_date", "billing_end_date", "due_date"]
-    const numberFields = ["subtotal", "discount_percentage", "total_amount"]
     const formattedData = { ...formData }
-
-    dateFields.forEach((field) => {
-      if (formattedData[field]) {
-        formattedData[field] = new Date(formattedData[field]).toISOString().split("T")[0]
-      }
-    })
-
-    numberFields.forEach((field) => {
-      if (formattedData[field]) {
-        formattedData[field] = Number.parseFloat(formattedData[field])
-      }
-    })
-
-    // Parse inventory_items JSON for equipment invoices
-    if (formattedData.inventory_items && typeof formattedData.inventory_items === 'string') {
-      try {
-        formattedData.inventory_items = JSON.parse(formattedData.inventory_items)
-      } catch (e) {
-        console.error("Failed to parse inventory_items", e)
-        formattedData.inventory_items = []
-      }
+    if (formattedData.due_date) {
+      formattedData.due_date = new Date(formattedData.due_date).toISOString().split("T")[0]
     }
-
+    if (Array.isArray(formattedData.lines)) {
+      formattedData.lines = formattedData.lines.map((l: any) => ({
+        ...l,
+        quantity: Number(l.quantity) || 1,
+        unit_price: Number(l.unit_price) || 0,
+        discount_amount: Number(l.discount_amount) || 0,
+        billing_start_date: l.billing_start_date
+          ? new Date(l.billing_start_date).toISOString().split("T")[0]
+          : undefined,
+        billing_end_date: l.billing_end_date
+          ? new Date(l.billing_end_date).toISOString().split("T")[0]
+          : undefined,
+      }))
+    }
+    // Prefer lines-driven create; drop legacy-only fields that confuse totals
+    delete formattedData.inventory_items
     return formattedData
   }
 
@@ -261,12 +271,29 @@ const InvoiceManagement: React.FC = () => {
         columns={columns}
         FormComponent={InvoiceForm}
         onSubmit={handleSubmit}
+        validateBeforeSubmit={(formData) => {
+          if (!formData.customer_id) return "Customer is required"
+          if (!formData.due_date) return "Due date is required"
+          const lines = (formData as any).lines
+          if (!Array.isArray(lines) || lines.length === 0) return "Add at least one charge line"
+          for (let i = 0; i < lines.length; i++) {
+            const line = lines[i]
+            if (!line.charge_type) return `Line ${i + 1}: charge type is required`
+            if (line.charge_type === "subscription" && (!line.billing_start_date || !line.billing_end_date)) {
+              return `Line ${i + 1}: subscription requires billing dates`
+            }
+            if (line.charge_type === "equipment" && !line.inventory_item_id) {
+              return `Line ${i + 1}: equipment requires an inventory item`
+            }
+          }
+          return null
+        }}
         customHeaderButton={
           <button
             onClick={() => setShowBulkModal(true)}
-            className="bg-emerald-green text-white px-4 py-2.5 rounded-lg hover:bg-emerald-green/90 transition-colors flex items-center justify-center gap-2 shadow-sm"
+            className="h-9 bg-emerald-green text-white px-3 text-sm rounded-lg hover:bg-emerald-green/90 transition-colors inline-flex items-center justify-center gap-1.5"
           >
-            <FileText className="h-5 w-5" />
+            <FileText className="h-4 w-4" />
             Generate Monthly Invoices
           </button>
         }
@@ -284,24 +311,24 @@ const InvoiceManagement: React.FC = () => {
         title="Add Payment"
         isLoading={isPaymentLoading}
       >
-        <form onSubmit={handlePaymentSubmit} className="bg-white">
+        <form onSubmit={handlePaymentSubmit}>
           <PaymentForm
             formData={paymentFormData}
             handleInputChange={handlePaymentInputChange}
             isEditing={false}
           />
-          <div className="mt-6 flex justify-end gap-3">
+          <div className={MODAL_FOOTER}>
             <button
               type="button"
               onClick={handlePaymentCancel}
-              className="px-4 py-2.5 border border-slate-gray/20 text-slate-gray rounded-lg hover:bg-light-sky/50 transition-colors"
+              className={MODAL_CANCEL_BTN}
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isPaymentLoading}
-              className="px-4 py-2.5 bg-electric-blue text-white rounded-lg hover:bg-btn-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-electric-blue disabled:opacity-50 transition-colors flex items-center gap-2"
+              className={MODAL_PRIMARY_BTN}
             >
               {isPaymentLoading ? (
                 <>

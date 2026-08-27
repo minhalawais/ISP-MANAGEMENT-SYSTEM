@@ -3,10 +3,11 @@
 import type React from "react"
 import { useEffect, useState, Fragment, useCallback } from "react"
 import { Combobox, Transition } from "@headlessui/react"
-import { Search, Check, Paperclip, Calendar, User, X, Loader2, MessageSquare, ChevronDown, MapPin, Phone, Globe } from 'lucide-react'
+import { Search, Check, Paperclip, User, X, Loader2, ChevronDown, MapPin, Phone, Globe } from "lucide-react"
 import axiosInstance from "../../utils/axiosConfig.ts"
 import { getToken } from "../../utils/auth.ts"
 import { motion } from "framer-motion"
+import { ComplaintFilePreview } from "../complaint/ComplaintFilePreview.tsx"
 
 interface ComplaintFormProps {
   formData: any
@@ -16,6 +17,7 @@ interface ComplaintFormProps {
   isEditing: boolean
   handleCustomerSearch?: (searchTerm: string) => Promise<any>
   ticketNumber?: string | null
+  hideSubmitButton?: boolean
 }
 
 interface Customer {
@@ -35,6 +37,26 @@ interface Employee {
   last_name: string
 }
 
+function CustomerField({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: React.ElementType
+  label: string
+  value?: string | null
+}) {
+  return (
+    <div className="min-w-0">
+      <p className="flex items-center gap-1.5 text-xs text-slate-gray">
+        <Icon className="h-3.5 w-3.5 shrink-0" />
+        {label}
+      </p>
+      <p className="mt-0.5 break-words text-sm font-medium text-deep-ocean">{value?.trim() || "—"}</p>
+    </div>
+  )
+}
+
 export function ComplaintForm({
   formData,
   handleInputChange,
@@ -43,6 +65,7 @@ export function ComplaintForm({
   isEditing,
   handleCustomerSearch,
   ticketNumber,
+  hideSubmitButton = false,
 }: ComplaintFormProps) {
   const [employees, setEmployees] = useState<Employee[]>([])
   const [customerSearchTerm, setCustomerSearchTerm] = useState("")
@@ -67,13 +90,45 @@ export function ComplaintForm({
     fetchEmployees()
   }, [])
 
+  useEffect(() => {
+    if (!formData?.customer_id && !formData?.customer_name && !formData?.internet_id) return
+
+    const fullName = String(formData.customer_name || "").trim()
+    const [firstName, ...rest] = fullName.split(/\s+/)
+    setSelectedCustomer({
+      id: formData.customer_id || "",
+      first_name: firstName || fullName || "—",
+      last_name: rest.join(" "),
+      internet_id: formData.internet_id || "",
+      phone_1: formData.phone_number || formData.phone_1 || "",
+      phone_2: formData.phone_2 || null,
+      installation_address: formData.installation_address || "",
+      gps_coordinates: formData.gps_coordinates || null,
+    })
+    setCustomerFound(true)
+    setCustomerSearchTerm(formData.internet_id || formData.phone_number || "")
+  }, [formData?.id])
+
+  useEffect(() => {
+    if (!employees.length) return
+    const assignedId = formData?.assigned_to
+    const assignedName = String(formData?.assigned_to_name || "").trim().toLowerCase()
+    const match = employees.find((employee) => {
+      if (assignedId && employee.id === assignedId) return true
+      if (!assignedName) return false
+      return `${employee.first_name} ${employee.last_name}`.toLowerCase() === assignedName
+    })
+    setSelectedEmployee(match || null)
+  }, [employees, formData?.id, formData?.assigned_to, formData?.assigned_to_name])
+
   const handleCustomerSearchChange = async (value: string) => {
     const numericValue = value.replace(/\D/g, "")
-    setCustomerSearchTerm(numericValue)
-    if (numericValue.length >= 3) {
+    setCustomerSearchTerm(value)
+    if (!handleCustomerSearch) return
+    if (numericValue.length >= 3 || value.trim().length >= 3) {
       setIsSearching(true)
       setCustomerFound(null)
-      const customer = await handleCustomerSearch(numericValue)
+      const customer = await handleCustomerSearch(value.trim())
       setIsSearching(false)
       if (customer) {
         setSelectedCustomer(customer)
@@ -91,6 +146,13 @@ export function ComplaintForm({
     }
   }
 
+  const currentAttachmentName =
+    formData?.attachment instanceof File
+      ? formData.attachment.name
+      : formData?.attachment_path
+        ? String(formData.attachment_path).split(/[\\/]/).pop()
+        : null
+
   const handleEmployeeChange = (employee: Employee | null) => {
     setSelectedEmployee(employee)
     handleInputChange({
@@ -100,7 +162,7 @@ export function ComplaintForm({
 
   const memoizedHandleFileChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
-      handleFileChange(e)
+      handleFileChange?.(e)
     },
     [handleFileChange],
   )
@@ -116,8 +178,8 @@ export function ComplaintForm({
           )
         })
 
-  return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+  const fields = (
+    <>
       {ticketNumber && (
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -153,80 +215,50 @@ export function ComplaintForm({
             {!isSearching && customerFound === false && <X className="h-5 w-5 text-coral-red" />}
           </div>
         </div>
-        <p className="text-xs text-slate-gray">When the user searches, the form below will auto-fill</p>
+        <p className="text-xs text-slate-gray">Search fills the customer details below.</p>
       </div>
 
-      {/* Customer Details Table - Matching the image layout */}
       {selectedCustomer && (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="border border-slate-gray/30 rounded-lg overflow-hidden"
-        >
-          <table className="w-full border-collapse">
-            <tbody>
-              {/* Row 1: User Name | Internet ID */}
-              <tr className="border-b border-slate-gray/20">
-                <td className="px-4 py-3 bg-slate-50 font-medium text-sm text-deep-ocean border-r border-slate-gray/20 w-1/4">
-                  <div className="flex items-center gap-2">
-                    <User className="h-4 w-4 text-slate-gray" />
-                    User Name
-                  </div>
-                </td>
-                <td className="px-4 py-3 text-sm text-deep-ocean border-r border-slate-gray/20 w-1/4 bg-white">
-                  {`${selectedCustomer.first_name} ${selectedCustomer.last_name}`}
-                </td>
-                <td className="px-4 py-3 bg-slate-50 font-medium text-sm text-deep-ocean border-r border-slate-gray/20 w-1/4">
-                  <div className="flex items-center gap-2">
-                    <Globe className="h-4 w-4 text-slate-gray" />
-                    Internet ID
-                  </div>
-                </td>
-                <td className="px-4 py-3 text-sm text-deep-ocean w-1/4 bg-white">
-                  {selectedCustomer.internet_id}
-                </td>
-              </tr>
-              
-              {/* Row 2: Phone # | Installation Address */}
-              <tr className="border-b border-slate-gray/20">
-                <td className="px-4 py-3 bg-slate-50 font-medium text-sm text-deep-ocean border-r border-slate-gray/20">
-                  <div className="flex items-center gap-2">
-                    <Phone className="h-4 w-4 text-slate-gray" />
-                    Phone #
-                  </div>
-                </td>
-                <td className="px-4 py-3 text-sm text-deep-ocean border-r border-slate-gray/20 bg-white">
-                  {selectedCustomer.phone_1}
-                </td>
-                <td className="px-4 py-3 bg-slate-50 font-medium text-sm text-deep-ocean border-r border-slate-gray/20">
-                  <div className="flex items-center gap-2">
-                    <MapPin className="h-4 w-4 text-slate-gray" />
-                    Installation Address
-                  </div>
-                </td>
-                <td className="px-4 py-3 text-sm text-deep-ocean bg-white">
-                  {selectedCustomer.installation_address}
-                </td>
-              </tr>
-              
-              {/* Row 3: GPS Coordinates (full width) */}
-              <tr>
-                <td className="px-4 py-3 bg-slate-50 font-medium text-sm text-deep-ocean border-r border-slate-gray/20">
-                  <div className="flex items-center gap-2">
-                    <MapPin className="h-4 w-4 text-slate-gray" />
-                    GPS Coordinates
-                  </div>
-                </td>
-                <td colSpan={3} className="px-4 py-3 text-sm text-deep-ocean bg-white">
-                  {selectedCustomer.gps_coordinates || "N/A"}
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </motion.div>
+        <div className="rounded-lg border border-slate-gray/15 bg-light-sky/40 p-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <CustomerField
+              icon={User}
+              label="Customer"
+              value={`${selectedCustomer.first_name} ${selectedCustomer.last_name}`.trim()}
+            />
+            <CustomerField icon={Globe} label="Internet ID" value={selectedCustomer.internet_id} />
+            <CustomerField icon={Phone} label="Phone" value={selectedCustomer.phone_1} />
+            <CustomerField icon={MapPin} label="Installation address" value={selectedCustomer.installation_address} />
+            <div className="sm:col-span-2">
+              <CustomerField icon={MapPin} label="GPS coordinates" value={selectedCustomer.gps_coordinates} />
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Complaint Details */}
+      <div className="space-y-2">
+        <label htmlFor="category" className="block text-sm font-medium text-deep-ocean">
+          Category
+        </label>
+        <select
+          id="category"
+          name="category"
+          value={formData.category || ""}
+          onChange={handleInputChange}
+          className="w-full h-10 px-3 text-sm border border-slate-gray/20 rounded-lg bg-white text-deep-ocean focus:outline-none focus:ring-2 focus:ring-electric-blue/30 focus:border-transparent"
+          required
+        >
+          <option value="">Select a category</option>
+          <option value="no_internet">No Internet / Connectivity</option>
+          <option value="slow_speed">Slow Speed</option>
+          <option value="billing">Billing / Invoice</option>
+          <option value="installation">Installation / Relocation</option>
+          <option value="hardware">Hardware / Equipment</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+
       <div className="space-y-2">
         <label htmlFor="description" className="block text-sm font-medium text-deep-ocean">
           Complaint Details
@@ -263,25 +295,26 @@ export function ComplaintForm({
             <p className="mt-2 text-xs text-slate-gray">PNG, JPG, JPEG, or PDF up to 10MB</p>
           </div>
         </div>
-        {formData.attachment_path && (
-          <div className="mt-2">
-            <a
-              href={`/complaints/attachment/${formData.id}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center text-sm text-electric-blue hover:text-btn-hover transition-colors"
-            >
-              <Paperclip className="mr-2 h-4 w-4" />
-              View current attachment
-            </a>
+        {currentAttachmentName && formData.id && formData.attachment_path && !(formData.attachment instanceof File) ? (
+          <ComplaintFilePreview
+            label={currentAttachmentName}
+            filePath={String(formData.attachment_path)}
+            fetchUrl={`/complaints/attachment/${formData.id}`}
+            actionClassName="text-electric-blue"
+          />
+        ) : currentAttachmentName ? (
+          <div className="mt-2 rounded-lg border border-electric-blue/20 bg-electric-blue/5 px-3 py-2.5">
+            <p className="text-xs text-slate-gray">
+              {formData.attachment instanceof File ? "New file selected" : "Current attachment"}
+            </p>
+            <p className="truncate text-sm font-medium text-deep-ocean">{currentAttachmentName}</p>
           </div>
-        )}
+        ) : null}
       </div>
 
       {/* Assign To Employee Dropdown */}
       <div className="space-y-2">
         <label className="block text-sm font-medium text-deep-ocean">Assign To</label>
-        <p className="text-xs text-slate-gray mb-1">Drop Down (Show all employee's name here)</p>
         <Combobox value={selectedEmployee} onChange={handleEmployeeChange}>
           <div className="relative">
             <div className="relative">
@@ -346,15 +379,26 @@ export function ComplaintForm({
         </Combobox>
       </div>
 
-      {/* Submit Button */}
-      <div className="flex justify-end pt-4">
-        <button
-          type="submit"
-          className="inline-flex items-center px-6 py-2.5 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-electric-blue hover:bg-electric-blue/80 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-electric-blue/50 transition-all duration-200"
-        >
-          {isEditing ? "Update Complaint" : "Create Complaint"}
-        </button>
-      </div>
-    </form>
+      {!hideSubmitButton && handleSubmit && (
+        <div className="flex justify-end pt-4">
+          <button
+            type="submit"
+            className="inline-flex items-center px-6 py-2.5 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-electric-blue hover:bg-electric-blue/80 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-electric-blue/50 transition-all duration-200"
+          >
+            {isEditing ? "Update Complaint" : "Create Complaint"}
+          </button>
+        </div>
+      )}
+    </>
   )
+
+  if (handleSubmit && !hideSubmitButton) {
+    return (
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {fields}
+      </form>
+    )
+  }
+
+  return <div className="space-y-6">{fields}</div>
 }

@@ -1,22 +1,117 @@
+/* FOS toast system — compact, brand-aligned, no pastel fills */
+
+.Toastify__toast-container {
+  width: min(380px, calc(100vw - 24px));
+  padding: 0;
+  z-index: 9999;
+}
+
 .Toastify__toast {
-  border-radius: 8px;
-  font-family: "Arial", sans-serif;
+  min-height: 0;
+  margin-bottom: 10px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  color: #1e293b;
+  box-shadow:
+    0 10px 15px -3px rgba(15, 23, 42, 0.08),
+    0 4px 6px -4px rgba(15, 23, 42, 0.06);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.4;
+  overflow: hidden;
 }
 
-.Toastify__toast--success {
-  border-left: 4px solid #89a8b2;
+.Toastify__toast-body {
+  margin: 0;
+  padding: 0;
+  align-items: flex-start;
+  gap: 10px;
+  color: inherit;
 }
 
-.Toastify__toast--error {
-  border-left: 4px solid #b3c8cf;
+.Toastify__toast-icon {
+  width: 18px;
+  margin-inline-end: 0;
+  flex-shrink: 0;
+}
+
+.Toastify__close-button {
+  align-self: flex-start;
+  opacity: 0.45;
+  color: #64748b;
+}
+
+.Toastify__close-button:hover,
+.Toastify__close-button:focus {
+  opacity: 0.85;
 }
 
 .Toastify__progress-bar {
-  background: #89a8b2;
+  height: 2px;
+  opacity: 1;
 }
 
+/* Type accents — left rail + icon/progress color, keep white body */
+.Toastify__toast--success {
+  border-left: 3px solid #10b981;
+}
 
-/* Custom scrollbar for dropdown */
+.Toastify__toast--success .Toastify__toast-icon svg {
+  fill: #10b981;
+}
+
+.Toastify__toast--success .Toastify__progress-bar {
+  background: #10b981;
+}
+
+.Toastify__toast--error {
+  border-left: 3px solid #ef4444;
+}
+
+.Toastify__toast--error .Toastify__toast-icon svg {
+  fill: #ef4444;
+}
+
+.Toastify__toast--error .Toastify__progress-bar {
+  background: #ef4444;
+}
+
+.Toastify__toast--warning {
+  border-left: 3px solid #f59e0b;
+}
+
+.Toastify__toast--warning .Toastify__toast-icon svg {
+  fill: #f59e0b;
+}
+
+.Toastify__toast--warning .Toastify__progress-bar {
+  background: #f59e0b;
+}
+
+.Toastify__toast--info {
+  border-left: 3px solid #3a86ff;
+}
+
+.Toastify__toast--info .Toastify__toast-icon svg {
+  fill: #3a86ff;
+}
+
+.Toastify__toast--info .Toastify__progress-bar {
+  background: #3a86ff;
+}
+
+.Toastify__toast--default {
+  border-left: 3px solid #2a5c8a;
+}
+
+.Toastify__toast--default .Toastify__progress-bar {
+  background: #2a5c8a;
+}
+
+/* Keep custom scrollbar utilities that lived in this file */
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;
 }
@@ -35,7 +130,6 @@
   background: #94a3b8;
 }
 
-/* Smooth animations */
 @keyframes slideDown {
   from {
     opacity: 0;

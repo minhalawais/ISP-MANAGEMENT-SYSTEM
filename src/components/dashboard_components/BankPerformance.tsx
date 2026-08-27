@@ -73,7 +73,7 @@ export const BankPerformance: React.FC<BankPerformanceProps> = ({ data, cashPaym
   }
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-6">
+    <div className="bg-white rounded-xl border border-gray-200 p-4">
       <h3 className="text-xl font-bold text-gray-900 mb-2">Bank & Cash Performance</h3>
       <p className="text-gray-600 text-sm mb-4">Collections, payments, and net cash flow by account including expenses and cash transactions</p>
 

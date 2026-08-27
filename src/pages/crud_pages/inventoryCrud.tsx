@@ -195,6 +195,7 @@ const InventoryManagement: React.FC = () => {
       <CRUDPage<InventoryItem>
         title="Inventory"
         endpoint="inventory"
+        filterModuleKey="inventory"
         columns={columns}
         FormComponent={(props) => <InventoryForm {...props} suppliers={suppliers} />}
         validateBeforeSubmit={validateBeforeSubmit}

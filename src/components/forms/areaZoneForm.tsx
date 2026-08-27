@@ -5,7 +5,7 @@ import { Map, ClipboardList } from "lucide-react"
 
 interface AreaZoneFormProps {
   formData: any
-  handleInputChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void
+  handleInputChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void
   isEditing: boolean
 }
 
@@ -51,6 +51,15 @@ export function AreaZoneForm({ formData, handleInputChange, isEditing }: AreaZon
             required
           />
         </div>
+      </div>
+
+      <div className="space-y-2">
+        <label className={labelClasses}>Public website coverage</label>
+        <select name="is_public" value={String(formData.is_public === true || formData.is_public === "true")} onChange={handleInputChange} className={inputClasses}>
+          <option value="false">Private operational area</option>
+          <option value="true">Publish on website</option>
+        </select>
+        <p className="text-xs text-slate-500">Only publish customer-facing localities. Test areas and infrastructure labels must remain private.</p>
       </div>
 
       {/* Description */}

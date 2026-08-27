@@ -41,12 +41,12 @@ export const RevenueExpenseComparison: React.FC<RevenueExpenseComparisonProps> =
   }
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-6">
+    <div className="bg-white rounded-xl border border-gray-200 p-4">
       <h3 className="text-xl font-bold text-gray-900 mb-2">Revenue vs Expenses</h3>
-      <p className="text-gray-600 text-sm mb-6">Monthly comparison of revenue generated versus operational costs</p>
+      <p className="text-gray-600 text-sm mb-3">Monthly comparison of revenue generated versus operational costs</p>
 
       {/* Summary Stats */}
-      <div className="grid grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-4 gap-4 mb-3">
         <div className="text-center p-4 bg-green-50 rounded-lg">
           <p className="text-sm text-green-700 font-medium">Total Revenue</p>
           <p className="text-lg font-bold text-green-800">PKR {data.total_revenue.toLocaleString()}</p>
@@ -74,7 +74,7 @@ export const RevenueExpenseComparison: React.FC<RevenueExpenseComparisonProps> =
       </div>
 
       {/* Chart */}
-      <div className="mb-6">
+      <div className="mb-3">
         <ResponsiveContainer width="100%" height={400}>
           <ComposedChart data={data.monthly_comparison}>
             <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />

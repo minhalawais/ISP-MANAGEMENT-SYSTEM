@@ -1,15 +1,18 @@
 "use client"
 
 import type React from "react"
-import { X, Receipt, Calendar, CreditCard, DollarSign } from "lucide-react"
+import { X, Receipt, CreditCard, DollarSign } from "lucide-react"
 
 interface LineItem {
   id: string
-  item_type: string
+  item_type?: string
+  charge_type?: string
   description: string
   quantity: number
   unit_price: number
   line_total: number
+  billing_start_date?: string | null
+  billing_end_date?: string | null
 }
 
 interface PaymentSummary {
@@ -32,6 +35,7 @@ interface InvoiceData {
   total_paid: number
   remaining: number
   invoice_type: string
+  charge_types?: string[]
   status: string
   notes?: string
   line_items: LineItem[]
@@ -43,29 +47,37 @@ interface Props {
   onClose: () => void
 }
 
+function formatCharge(value?: string) {
+  return (value || "—").replace(/_/g, " ")
+}
+
 export const InvoiceDetailModal: React.FC<Props> = ({ invoice, onClose }) => {
+  const lines = Array.isArray(invoice.line_items) ? invoice.line_items : []
+  const payments = Array.isArray(invoice.payments) ? invoice.payments : []
+  const typeLabel =
+    invoice.invoice_type === "mixed" && invoice.charge_types?.length
+      ? invoice.charge_types.map(formatCharge).join(" + ")
+      : formatCharge(invoice.invoice_type)
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden" onClick={e => e.stopPropagation()}>
-        {/* Header */}
-        <div className="flex items-center justify-between p-5 border-b" style={{ backgroundColor: '#89A8B2' }}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 backdrop-blur-[2px] p-4" onClick={onClose}>
+      <div className="bg-white rounded-xl shadow-2xl border border-slate-300/70 w-full max-w-2xl max-h-[90vh] overflow-hidden" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between p-5 border-b" style={{ backgroundColor: '#2A5C8A' }}>
           <div className="flex items-center gap-3">
             <Receipt className="w-5 h-5 text-white" />
-            <h3 className="text-lg font-semibold text-white">Invoice Details</h3>
+            <h3 className="text-base font-semibold text-white tracking-tight">Invoice Details</h3>
           </div>
           <button onClick={onClose} className="p-1.5 hover:bg-white/20 rounded-lg transition-colors">
             <X className="w-5 h-5 text-white" />
           </button>
         </div>
 
-        {/* Body */}
         <div className="p-0 overflow-y-auto max-h-[calc(90vh-140px)]">
-          {/* Status Banner */}
           <div className="bg-gray-50 px-6 py-4 border-b flex justify-between items-center">
             <div>
               <p className="text-sm text-gray-500 uppercase tracking-wider font-semibold">Invoice #{invoice.invoice_number}</p>
               <div className="flex gap-2 text-xs text-gray-500 mt-1">
-                <span>Issued: {new Date(invoice.billing_start_date).toLocaleDateString()}</span>
+                <span className="capitalize">{typeLabel}</span>
                 <span>•</span>
                 <span>Due: {new Date(invoice.due_date).toLocaleDateString()}</span>
               </div>
@@ -77,13 +89,13 @@ export const InvoiceDetailModal: React.FC<Props> = ({ invoice, onClose }) => {
             </div>
           </div>
 
-          {/* Line Items */}
           <div className="p-6">
-            <h4 className="text-sm font-semibold text-gray-900 mb-4 uppercase tracking-wide">Usage & Charges</h4>
+            <h4 className="text-sm font-semibold text-gray-900 mb-4 uppercase tracking-wide">Charges</h4>
             <div className="border rounded-lg overflow-hidden">
               <table className="w-full text-sm">
                 <thead className="bg-[#E5E1DA]/30">
                   <tr className="text-left">
+                    <th className="py-3 px-4 font-semibold text-gray-700">Charge</th>
                     <th className="py-3 px-4 font-semibold text-gray-700">Description</th>
                     <th className="py-3 px-4 font-semibold text-gray-700 text-right">Qty</th>
                     <th className="py-3 px-4 font-semibold text-gray-700 text-right">Rate</th>
@@ -91,35 +103,48 @@ export const InvoiceDetailModal: React.FC<Props> = ({ invoice, onClose }) => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#E5E1DA]/50">
-                  {invoice.line_items.map((item) => (
-                    <tr key={item.id}>
-                      <td className="py-3 px-4 text-gray-800">
-                        <div className="font-medium">{item.item_type}</div>
-                        <div className="text-xs text-gray-500">{item.description}</div>
-                      </td>
-                      <td className="py-3 px-4 text-right text-gray-600">{item.quantity}</td>
-                      <td className="py-3 px-4 text-right text-gray-600">{item.unit_price.toFixed(2)}</td>
-                      <td className="py-3 px-4 text-right font-medium text-gray-900">{item.line_total.toFixed(2)}</td>
+                  {lines.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="py-6 px-4 text-center text-gray-500">No line items</td>
                     </tr>
-                  ))}
+                  ) : (
+                    lines.map((item) => (
+                      <tr key={item.id}>
+                        <td className="py-3 px-4 text-gray-600 capitalize whitespace-nowrap">
+                          {formatCharge(item.charge_type || item.item_type)}
+                        </td>
+                        <td className="py-3 px-4 text-gray-800">
+                          <div className="font-medium">{item.description}</div>
+                          {item.billing_start_date && item.billing_end_date && (
+                            <div className="text-xs text-gray-500 mt-0.5">
+                              {new Date(item.billing_start_date).toLocaleDateString()} – {new Date(item.billing_end_date).toLocaleDateString()}
+                            </div>
+                          )}
+                        </td>
+                        <td className="py-3 px-4 text-right text-gray-600">{item.quantity}</td>
+                        <td className="py-3 px-4 text-right text-gray-600">{Number(item.unit_price || 0).toFixed(2)}</td>
+                        <td className="py-3 px-4 text-right font-medium text-gray-900">{Number(item.line_total || 0).toFixed(2)}</td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
                 <tfoot className="bg-gray-50">
                   <tr>
-                    <td colSpan={3} className="py-2 px-4 text-right text-gray-600">Subtotal</td>
-                    <td className="py-2 px-4 text-right font-medium">{invoice.subtotal.toFixed(2)}</td>
+                    <td colSpan={4} className="py-2 px-4 text-right text-gray-600">Subtotal</td>
+                    <td className="py-2 px-4 text-right font-medium">{Number(invoice.subtotal || 0).toFixed(2)}</td>
                   </tr>
                   {invoice.discount_percentage > 0 && (
                      <tr>
-                      <td colSpan={3} className="py-2 px-4 text-right text-emerald-600">Discount ({invoice.discount_percentage}%)</td>
+                      <td colSpan={4} className="py-2 px-4 text-right text-emerald-600">Discount ({invoice.discount_percentage}%)</td>
                       <td className="py-2 px-4 text-right font-medium text-emerald-600">
                         -{((invoice.subtotal * invoice.discount_percentage) / 100).toFixed(2)}
                       </td>
                     </tr>
                   )}
                   <tr className="border-t border-gray-200">
-                    <td colSpan={3} className="py-3 px-4 text-right font-bold text-gray-900">Total Due</td>
+                    <td colSpan={4} className="py-3 px-4 text-right font-bold text-gray-900">Total Due</td>
                     <td className="py-3 px-4 text-right font-bold text-[#2A5C8A] text-lg">
-                      PKR {invoice.total_amount.toFixed(0)}
+                      PKR {Number(invoice.total_amount || 0).toFixed(0)}
                     </td>
                   </tr>
                 </tfoot>
@@ -127,12 +152,11 @@ export const InvoiceDetailModal: React.FC<Props> = ({ invoice, onClose }) => {
             </div>
           </div>
 
-          {/* Payment History */}
-          {invoice.payments.length > 0 && (
+          {payments.length > 0 && (
             <div className="px-6 pb-6">
               <h4 className="text-sm font-semibold text-gray-900 mb-3 uppercase tracking-wide">Payment History</h4>
               <div className="space-y-2">
-                {invoice.payments.map(payment => (
+                {payments.map(payment => (
                   <div key={payment.id} className="flex justify-between items-center p-3 bg-emerald-50 rounded-lg border border-emerald-100">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
@@ -143,7 +167,7 @@ export const InvoiceDetailModal: React.FC<Props> = ({ invoice, onClose }) => {
                         <p className="text-xs text-emerald-600">{new Date(payment.payment_date).toLocaleString()}</p>
                       </div>
                     </div>
-                    <span className="font-bold text-emerald-700">PKR {payment.amount.toFixed(0)}</span>
+                    <span className="font-bold text-emerald-700">PKR {Number(payment.amount || 0).toFixed(0)}</span>
                   </div>
                 ))}
                 
@@ -155,7 +179,7 @@ export const InvoiceDetailModal: React.FC<Props> = ({ invoice, onClose }) => {
                       </div>
                       <span className="text-sm font-medium text-red-900">Remaining Balance</span>
                     </div>
-                    <span className="font-bold text-red-700">PKR {invoice.remaining.toFixed(0)}</span>
+                    <span className="font-bold text-red-700">PKR {Number(invoice.remaining || 0).toFixed(0)}</span>
                   </div>
                 )}
               </div>
@@ -170,14 +194,10 @@ export const InvoiceDetailModal: React.FC<Props> = ({ invoice, onClose }) => {
           )}
         </div>
 
-        {/* Footer */}
         <div className="px-5 py-4 border-t bg-gray-50 flex justify-end gap-2">
           <button onClick={onClose} className="px-6 py-2 rounded-lg text-gray-600 hover:bg-gray-100 font-medium transition-colors">
             Close
           </button>
-           <button className="px-6 py-2 rounded-lg text-white font-medium hover:opacity-90 transition-colors flex items-center gap-2" style={{ backgroundColor: '#2A5C8A' }}>
-             Download PDF
-           </button>
         </div>
       </div>
     </div>

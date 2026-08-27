@@ -1,8 +1,16 @@
-import type React from "react"
-import { BrowserRouter as Router, Route, Routes, Navigate } from "react-router-dom"
+import React, { Suspense } from "react"
+import { BrowserRouter as Router, Route, Routes, Navigate, Outlet } from "react-router-dom"
 import { ToastContainer } from "react-toastify"
 import "react-toastify/dist/ReactToastify.css"
 import { CompanyProvider } from "./context/CompanyContext.tsx"
+import { resolveMarketingHost } from "./marketing/resolveMarketingHost.ts"
+import { getRole, getToken } from "./utils/auth.ts"
+import {
+  ADMIN_PORTAL_ROLES,
+  EMPLOYEE_PORTAL_ROLES,
+  getAuthenticatedHomeRoute,
+  LOGIN_ROUTE,
+} from "./utils/authRedirects.ts"
 import ForgotPasswordPage from "./pages/forgotPassowrdPage.tsx"
 import ResetPasswordPage from "./pages/resetPasswordPage.tsx"
 import EmployeeManagement from "./pages/crud_pages/employeeCrud.tsx"
@@ -23,6 +31,7 @@ import InvoiceManagement from "./pages/crud_pages/invoiceCrud.tsx"
 import InvoiceGeneration from "./pages/invoiceGeneration.tsx"
 import CustomerDetailPage from "./pages/customerDetailPage.tsx"
 import EmployeeDetailPage from "./pages/employeeDetailPage.tsx"
+import EmployeePortalAccessPage from "./pages/EmployeePortalAccessPage.tsx"
 import ComplaintDetailPage from "./pages/complaint-detail-page.tsx"
 import ReportingPage from "./components/dashboard_components/ReportingPage.tsx"
 import MessageManagement from "./pages/crud_pages/messageCrud.tsx"
@@ -44,17 +53,80 @@ import WhatsAppQueueDashboard from "./pages/whatsapp/WhatsAppQueueDashboard.tsx"
 import BulkMessageSender from "./pages/whatsapp/BulkMessageSender.tsx"
 import WhatsAppSettings from "./pages/whatsapp/WhatsAppSettings.tsx"
 import EmployeePortal from "./pages/EmployeePortal.tsx"
+import EmployeeCustomerDetailPage from "./pages/EmployeeCustomerDetailPage.tsx"
 import CustomerPortalPage from "./pages/CustomerPortalPage.tsx"
+import NotificationsPage from "./pages/NotificationsPage.tsx"
+import AdminPortalLayout, { StaffAwareAdminLayout } from "./layouts/AdminPortalLayout.tsx"
 
+// Code-split so the marketing theme/CSS and components never ship in the
+// admin app's bundle unless a vendor domain actually renders them.
+const MarketingSiteRouter = React.lazy(() => import("./marketing/MarketingSiteRouter.tsx"))
 
 const PrivateRoute: React.FC<{ element: React.ReactElement }> = ({ element }) => {
-  const isAuthenticated = !!localStorage.getItem("token")
-  return isAuthenticated ? element : <Navigate to="/login" />
+  const isAuthenticated = !!getToken()
+  return isAuthenticated ? element : <Navigate to={LOGIN_ROUTE} replace />
+}
+
+/** Requires auth + an allowed role. Unauthorized roles are sent to their home portal. */
+const RoleRoute: React.FC<{ element: React.ReactElement; allowedRoles: Set<string> }> = ({
+  element,
+  allowedRoles,
+}) => {
+  if (!getToken()) {
+    return <Navigate to={LOGIN_ROUTE} replace />
+  }
+  const role = getRole()
+  if (!role || !allowedRoles.has(role)) {
+    return <Navigate to={getAuthenticatedHomeRoute() ?? LOGIN_ROUTE} replace />
+  }
+  return element
+}
+
+const AdminRoute: React.FC<{ element: React.ReactElement }> = ({ element }) => (
+  <RoleRoute element={element} allowedRoles={ADMIN_PORTAL_ROLES} />
+)
+
+const EmployeeRoute: React.FC<{ element: React.ReactElement }> = ({ element }) => (
+  <RoleRoute element={element} allowedRoles={EMPLOYEE_PORTAL_ROLES} />
+)
+
+const StaffRoute: React.FC<{ element: React.ReactElement }> = ({ element }) => (
+  <RoleRoute
+    element={element}
+    allowedRoles={new Set([...ADMIN_PORTAL_ROLES, ...EMPLOYEE_PORTAL_ROLES])}
+  />
+)
+
+const GuestRoute: React.FC<{ element: React.ReactElement }> = ({ element }) => {
+  const homeRoute = getAuthenticatedHomeRoute()
+  return homeRoute ? <Navigate to={homeRoute} replace /> : element
+}
+
+const RootRedirect: React.FC = () => {
+  const homeRoute = getAuthenticatedHomeRoute()
+  return <Navigate to={homeRoute ?? LOGIN_ROUTE} replace />
 }
 
 const App: React.FC = () => {
   const hostname = window.location.hostname
+  const pathname = window.location.pathname
   const isCustomerPortal = hostname.includes("customer.")
+  const isPortalPath = pathname === "/admin" || pathname.startsWith("/admin/") || pathname.startsWith("/customer-portal") || pathname.startsWith("/public/invoice/")
+  const marketingSiteHost = !isCustomerPortal && !isPortalPath
+    ? resolveMarketingHost(hostname, window.location.search)
+    : null
+
+  if (!isCustomerPortal && marketingSiteHost) {
+    return (
+      <Suspense
+        fallback={
+          <div style={{ minHeight: "100vh", background: "#f8f8f6" }} />
+        }
+      >
+        <MarketingSiteRouter siteHost={marketingSiteHost} />
+      </Suspense>
+    )
+  }
 
   if (isCustomerPortal) {
     return (
@@ -66,15 +138,18 @@ const App: React.FC = () => {
           </Routes>
           <ToastContainer
             position="top-right"
-            autoClose={5000}
+            autoClose={4000}
             hideProgressBar={false}
-            newestOnTop={false}
+            newestOnTop
             closeOnClick
             rtl={false}
             pauseOnFocusLoss
-            draggable
+            draggable={false}
             pauseOnHover
             theme="light"
+            limit={4}
+            toastClassName="fos-toast"
+            bodyClassName="fos-toast-body"
           />
         </Router>
       </CompanyProvider>
@@ -85,74 +160,85 @@ const App: React.FC = () => {
     <CompanyProvider>
       <Router>
         <Routes>
-        <Route path="/" element={<Navigate to="/login" />} />
-        <Route path="/login" element={<Login />} />
+        <Route path="/" element={<RootRedirect />} />
+        <Route path="/admin" element={<GuestRoute element={<Login />} />} />
+        <Route path="/login" element={<Navigate to={LOGIN_ROUTE} replace />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
-        <Route path="/employee-management" element={<EmployeeManagement />} />
 
-        <Route path="/employees/:id" element={<PrivateRoute element={<EmployeeDetailPage />} />} />
-        <Route path="/customer-management" element={<PrivateRoute element={<CustomerManagement />} />} />
-        <Route path="/service-plan-management" element={<PrivateRoute element={<ServicePlanManagement />} />} />
-        <Route path="/complaint-management" element={<PrivateRoute element={<ComplaintManagement />} />} />
-        <Route path="/complaints/new" element={<PrivateRoute element={<NewComplaintPage />} />} />
-        <Route path="/complaints/:id" element={<PrivateRoute element={<ComplaintDetailPage />} />} />
-        <Route path="/complaints/ticket/:ticketNumber" element={<PrivateRoute element={<TicketDisplayPage />} />} />
-        <Route path="/inventory-management" element={<PrivateRoute element={<InventoryManagement />} />} />
-        <Route path="/supplier-management" element={<PrivateRoute element={<SupplierManagement />} />} />
-        <Route path="/area-zone-management" element={<PrivateRoute element={<AreaZoneManagement />} />} />
-        <Route path="/areas" element={<PrivateRoute element={<AreaZoneManagement />} />} />
-        <Route path="/areas/:areaId/sub-zones" element={<PrivateRoute element={<SubZoneManagement />} />} />
-        <Route path="/recovery-task-management" element={<PrivateRoute element={<RecoveryTaskManagement />} />} />
-        <Route path="/task-management" element={<PrivateRoute element={<TaskManagement />} />} />
-        <Route path="/bank-management" element={<PrivateRoute element={<BankAccountManagement />} />} />
-        <Route path="/payment-management" element={<PrivateRoute element={<PaymentManagement />} />} />
-        <Route path="/isp-payment-management" element={<PrivateRoute element={<ISPPaymentManagement />} />} />
-        <Route path="/billing-invoices" element={<PrivateRoute element={<InvoiceManagement />} />} />
-        <Route path="/invoices/:id" element={<PrivateRoute element={<InvoiceGeneration />} />} />
-        <Route path="/customers/:id" element={<PrivateRoute element={<CustomerDetailPage />} />} />
-
-        {/* Reporting & Analytics Routes */}
-        <Route path="/reporting/:section" element={<PrivateRoute element={<ReportingPage />} />} />
-        <Route path="/reporting-analytics" element={<Navigate to="/reporting/executive" />} />
-        <Route path="/message-management" element={<PrivateRoute element={<MessageManagement />} />} />
-        <Route path="/profile" element={<PrivateRoute element={<UserProfile />} />} />
-        <Route path="/logs-management" element={<PrivateRoute element={<LogManagement />} />} />
-
-        <Route path="/isp-management" element={<PrivateRoute element={<ISPManagement />} />} />
-        <Route path="/vendor-management" element={<PrivateRoute element={<VendorManagement />} />} />
-        <Route path="/vendors/:vendorId/dashboard" element={<PrivateRoute element={<VendorDashboardPage />} />} />
-        <Route path="/expense-management" element={<PrivateRoute element={<ExpenseManagement />} />} />
-        <Route path="/extra-income-management" element={<PrivateRoute element={<ExtraIncomeManagement />} />} />
+        {/* Admin + shared staff shell — one layout instance so sidebar state survives */}
+        <Route element={<StaffAwareAdminLayout />}>
+          <Route element={<AdminRoute element={<Outlet />} />}>
+            <Route path="/employee-management" element={<EmployeeManagement />} />
+            <Route path="/employees/:id" element={<EmployeeDetailPage />} />
+            <Route path="/employees/:id/portal-access" element={<EmployeePortalAccessPage />} />
+            <Route path="/customer-management" element={<CustomerManagement />} />
+            <Route path="/service-plan-management" element={<ServicePlanManagement />} />
+            <Route path="/complaint-management" element={<ComplaintManagement />} />
+            <Route path="/complaints/new" element={<NewComplaintPage />} />
+            <Route path="/complaints/:id" element={<ComplaintDetailPage />} />
+            <Route path="/complaints/ticket/:ticketNumber" element={<TicketDisplayPage />} />
+            <Route path="/inventory-management" element={<InventoryManagement />} />
+            <Route path="/supplier-management" element={<SupplierManagement />} />
+            <Route path="/area-zone-management" element={<AreaZoneManagement />} />
+            <Route path="/areas" element={<AreaZoneManagement />} />
+            <Route path="/areas/:areaId/sub-zones" element={<SubZoneManagement />} />
+            <Route path="/recovery-task-management" element={<RecoveryTaskManagement />} />
+            <Route path="/task-management" element={<TaskManagement />} />
+            <Route path="/bank-management" element={<BankAccountManagement />} />
+            <Route path="/payment-management" element={<PaymentManagement />} />
+            <Route path="/isp-payment-management" element={<ISPPaymentManagement />} />
+            <Route path="/billing-invoices" element={<InvoiceManagement />} />
+            <Route path="/customers/:id" element={<CustomerDetailPage />} />
+            <Route path="/reporting/:section" element={<ReportingPage />} />
+            <Route path="/reporting-analytics" element={<Navigate to="/reporting/executive" replace />} />
+            <Route path="/message-management" element={<MessageManagement />} />
+            <Route path="/logs-management" element={<LogManagement />} />
+            <Route path="/isp-management" element={<ISPManagement />} />
+            <Route path="/vendor-management" element={<VendorManagement />} />
+            <Route path="/vendors/:vendorId/dashboard" element={<VendorDashboardPage />} />
+            <Route path="/expense-management" element={<ExpenseManagement />} />
+            <Route path="/extra-income-management" element={<ExtraIncomeManagement />} />
+            <Route path="/whatsapp/queue" element={<WhatsAppQueueDashboard />} />
+            <Route path="/whatsapp/bulk-sender" element={<BulkMessageSender />} />
+            <Route path="/whatsapp/settings" element={<WhatsAppSettings />} />
+            <Route path="/profile" element={<UserProfile />} />
+          </Route>
+          <Route element={<StaffRoute element={<Outlet />} />}>
+            <Route path="/notifications" element={<NotificationsPage />} />
+            <Route path="/invoices/:id" element={<InvoiceGeneration />} />
+          </Route>
+        </Route>
 
         <Route path="/public/invoice/:id" element={<PublicInvoicePage />} />
 
         {/* Customer Self-Service Portal (Public - No Auth) */}
-        {/* Kept here for backward compatibility or direct access via main domain if needed */}
         <Route path="/customer-portal" element={<CustomerPortalPage />} />
 
-        {/* WhatsApp Messaging Routes */}
-        <Route path="/whatsapp/queue" element={<PrivateRoute element={<WhatsAppQueueDashboard />} />} />
-        <Route path="/whatsapp/bulk-sender" element={<PrivateRoute element={<BulkMessageSender />} />} />
-        <Route path="/whatsapp/settings" element={<PrivateRoute element={<WhatsAppSettings />} />} />
-
         {/* Employee Self-Service Portal */}
-        <Route path="/employee-portal" element={<PrivateRoute element={<EmployeePortal />} />} />
+        <Route path="/employee-portal" element={<EmployeeRoute element={<EmployeePortal />} />} />
+        <Route
+          path="/employee-portal/customers/:id"
+          element={<EmployeeRoute element={<EmployeeCustomerDetailPage />} />}
+        />
 
 
 
         </Routes>
         <ToastContainer
           position="top-right"
-          autoClose={5000}
+          autoClose={4000}
           hideProgressBar={false}
-          newestOnTop={false}
+          newestOnTop
           closeOnClick
           rtl={false}
           pauseOnFocusLoss
-          draggable
+          draggable={false}
           pauseOnHover
           theme="light"
+          limit={4}
+          toastClassName="fos-toast"
+          bodyClassName="fos-toast-body"
         />
       </Router>
     </CompanyProvider>

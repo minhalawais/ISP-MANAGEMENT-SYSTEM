@@ -13,6 +13,7 @@ import { OperationalMetrics } from "./OperationaMetrices.tsx"
 import { BankAccountAnalysis } from "./BankAccountAnalysis.tsx"
 import { Sidebar } from "../sideNavbar.tsx"
 import { Topbar } from "../topNavbar.tsx"
+import { useOptionalAdminChrome } from "../../context/AdminLayoutContext.tsx"
 import { UnifiedDashboard } from "./UnifiedFinancialDashboard.tsx"
 
 const sections = [
@@ -94,6 +95,7 @@ const Dashboard = () => {
     customerStatus: "all",
   })
 
+  const hasChrome = useOptionalAdminChrome()
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [activeTab, setActiveTab] = useState("executive")
 
@@ -105,23 +107,29 @@ const Dashboard = () => {
   const activeSection = sections.find(section => section.id === activeTab)
 
   return (
-    <div className="flex h-screen bg-[#F1F0E8]">
-      <Sidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} setIsOpen={setIsSidebarOpen} />
+    <div className={hasChrome ? "flex-1 min-w-0 w-full" : "flex h-screen bg-[#F1F0E8]"}>
+      {!hasChrome && (
+        <Sidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} setIsOpen={setIsSidebarOpen} />
+      )}
 
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <Topbar toggleSidebar={toggleSidebar} />
+      <div className={hasChrome ? "flex-1 min-w-0 w-full" : "flex-1 flex flex-col overflow-hidden"}>
+        {!hasChrome && <Topbar toggleSidebar={toggleSidebar} />}
 
-        <div className="flex flex-col min-h-screen">
+        <div className={hasChrome ? "flex flex-col" : "flex flex-col min-h-screen"}>
         <main
-          className={`flex-1 overflow-x-hidden overflow-y-auto bg-[#F1F0E8] p-0 sm:p-6 pt-20 transition-all duration-300 ${
+          className={
+            hasChrome
+              ? "px-0 pb-0 sm:px-6 sm:pb-6 py-4"
+              : `flex-1 overflow-x-hidden overflow-y-auto bg-[#F1F0E8] px-0 pb-0 sm:px-6 sm:pb-6 pt-20 transition-all duration-300 ${
               isSidebarOpen ? "ml-72" : "ml-0 lg:ml-20"
-            }`}
+            }`
+          }
           >
 
             {/* Header Section */}
-            <div className="bg-white shadow-sm border-b border-[#E5E1DA] px-8 pt-20 pb-0">
+            <div className="bg-white shadow-sm border-b border-[#E5E1DA] px-8 pt-4 pb-0">
               <div className="max-w-[1800px] mx-auto">
-                <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center justify-between mb-3">
                   <div>
                     <h1 className="text-2xl font-semibold text-gray-900 mb-1">Business Intelligence</h1>
                     <p className="text-gray-600 text-sm">Comprehensive analytics and reporting dashboard</p>
@@ -216,7 +224,7 @@ const Dashboard = () => {
             <footer className="bg-white border-t border-[#E5E1DA] px-8 py-4">
               <div className="max-w-[1800px] mx-auto">
                 <div className="flex justify-between items-center text-xs text-gray-500">
-                  <div className="flex items-center gap-6">
+                  <div className="flex items-center gap-4">
                     <span>© {new Date().getFullYear()} {company?.name || 'MBA NET'}</span>
                     <span>Business Intelligence Platform</span>
                     <span>Version 2.1.0</span>

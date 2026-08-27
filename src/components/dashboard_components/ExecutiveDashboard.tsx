@@ -132,10 +132,10 @@ const KPICard: React.FC<KPICardProps> = ({ title, value, trend, isPositive, icon
   const displayPositive = invertTrend ? !isPositive : isPositive
   
   return (
-    <div className="bg-white rounded-xl border border-[#E5E1DA] p-5 hover:shadow-lg transition-all duration-300 group">
+    <div className="bg-white rounded-xl border border-[#E5E1DA] p-4 shadow-sm">
       <div className="flex items-start justify-between mb-3">
         <div 
-          className="w-10 h-10 rounded-lg flex items-center justify-center text-white group-hover:scale-110 transition-transform"
+          className="w-9 h-9 rounded-lg flex items-center justify-center text-white"
           style={{ backgroundColor: color }}
         >
           {icon}
@@ -157,14 +157,14 @@ const KPICard: React.FC<KPICardProps> = ({ title, value, trend, isPositive, icon
 
 // Loading Skeleton
 const LoadingSkeleton: React.FC = () => (
-  <div className="space-y-6 animate-pulse">
+  <div className="space-y-4 animate-pulse">
     <div className="h-16 bg-slate-200 rounded-xl" />
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
       {[...Array(8)].map((_, i) => (
         <div key={i} className="h-28 bg-slate-200 rounded-xl" />
       ))}
     </div>
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
       <div className="h-80 bg-slate-200 rounded-xl" />
       <div className="h-80 bg-slate-200 rounded-xl" />
     </div>
@@ -277,7 +277,7 @@ export const ExecutiveDashboard: React.FC = () => {
 
   if (error) {
     return (
-      <div className="bg-white rounded-xl border border-red-200 p-6">
+      <div className="bg-white rounded-xl border border-red-200 p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center">
             <AlertCircle className="w-8 h-8 text-red-500 mr-4" />
@@ -303,15 +303,10 @@ export const ExecutiveDashboard: React.FC = () => {
   const { kpis, charts, tables, filters: filterOptions } = data
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Header with Tabs */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <BarChart3 className="w-8 h-8" style={{ color: COLORS.primary }} />
-          <h1 className="text-2xl font-bold text-slate-800">Executive Dashboard</h1>
-        </div>
-        
-        <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-end gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {/* Tab Toggle */}
           <div className="flex bg-slate-100 rounded-lg p-1">
             <button
@@ -583,9 +578,9 @@ export const ExecutiveDashboard: React.FC = () => {
           </div>
 
           {/* Charts Row 1 */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {/* Revenue Collection Trend */}
-            <div className="bg-white rounded-xl border border-slate-200 p-6">
+            <div className="bg-white rounded-xl border border-slate-200 p-4">
               <h3 className="text-lg font-semibold text-slate-800 mb-4">Revenue vs Collection Trend</h3>
               <ResponsiveContainer width="100%" height={300}>
                 <AreaChart data={charts.revenue_trend}>
@@ -611,7 +606,7 @@ export const ExecutiveDashboard: React.FC = () => {
             </div>
 
             {/* Customer Growth */}
-            <div className="bg-white rounded-xl border border-slate-200 p-6">
+            <div className="bg-white rounded-xl border border-slate-200 p-4">
               <h3 className="text-lg font-semibold text-slate-800 mb-4">Customer Growth</h3>
               <ResponsiveContainer width="100%" height={300}>
                 <ComposedChart data={charts.customer_growth}>
@@ -630,9 +625,9 @@ export const ExecutiveDashboard: React.FC = () => {
           </div>
 
           {/* Charts Row 2 */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             {/* Payment Methods */}
-            <div className="bg-white rounded-xl border border-slate-200 p-6">
+            <div className="bg-white rounded-xl border border-slate-200 p-4">
               <h3 className="text-lg font-semibold text-slate-800 mb-4">Payment Methods</h3>
               <ResponsiveContainer width="100%" height={250}>
                 <PieChart>
@@ -658,7 +653,7 @@ export const ExecutiveDashboard: React.FC = () => {
             </div>
 
             {/* Top Areas */}
-            <div className="bg-white rounded-xl border border-slate-200 p-6">
+            <div className="bg-white rounded-xl border border-slate-200 p-4">
               <h3 className="text-lg font-semibold text-slate-800 mb-4">Top Areas by Revenue</h3>
               <ResponsiveContainer width="100%" height={250}>
                 <BarChart data={charts.top_areas} layout="vertical">
@@ -672,7 +667,7 @@ export const ExecutiveDashboard: React.FC = () => {
             </div>
 
             {/* ISP Analysis */}
-            <div className="bg-white rounded-xl border border-slate-200 p-6">
+            <div className="bg-white rounded-xl border border-slate-200 p-4">
               <h3 className="text-lg font-semibold text-slate-800 mb-4">ISP Revenue vs Cost</h3>
               <ResponsiveContainer width="100%" height={250}>
                 <BarChart data={charts.isp_analysis}>
@@ -689,9 +684,9 @@ export const ExecutiveDashboard: React.FC = () => {
           </div>
 
           {/* Tables Section */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {/* Top Service Plans */}
-            <div className="bg-white rounded-xl border border-slate-200 p-6">
+            <div className="bg-white rounded-xl border border-slate-200 p-4">
               <h3 className="text-lg font-semibold text-slate-800 mb-4">Top Service Plans</h3>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
@@ -727,7 +722,7 @@ export const ExecutiveDashboard: React.FC = () => {
             </div>
 
             {/* Overdue Invoices */}
-            <div className="bg-white rounded-xl border border-slate-200 p-6">
+            <div className="bg-white rounded-xl border border-slate-200 p-4">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold text-slate-800">Overdue Invoices</h3>
                 <span className="px-2 py-1 bg-red-100 text-red-600 text-xs font-medium rounded-full">

@@ -4,9 +4,7 @@ import { useEffect, useState } from "react"
 import { AlertCircle, CheckCircle2, Clock } from "lucide-react"
 import { getToken } from "../../utils/auth.ts"
 import axiosInstance from "../../utils/axiosConfig.ts"
-import { toast } from "react-toastify"
-
-interface NetworkAlert {
+import { toast } from "../../utils/notify.ts";interface NetworkAlert {
   id: string
   alert_type: string
   severity: string
@@ -39,9 +37,7 @@ export default function NetworkAlerts() {
       setAlerts(response.data)
     } catch (error) {
       console.error("Failed to fetch alerts", error)
-      toast.error("Failed to fetch alerts", {
-        style: { background: "#FEE2E2", color: "#EF4444" },
-      })
+      toast.error("Failed to fetch alerts")
     } finally {
       setIsLoading(false)
     }
@@ -59,15 +55,11 @@ export default function NetworkAlerts() {
           headers: { Authorization: `Bearer ${token}` },
         },
       )
-      toast.success("Alert resolved successfully", {
-        style: { background: "#D1FAE5", color: "#10B981" },
-      })
+      toast.success("Alert resolved successfully")
       fetchAlerts()
     } catch (error) {
       console.error("Failed to resolve alert", error)
-      toast.error("Failed to resolve alert", {
-        style: { background: "#FEE2E2", color: "#EF4444" },
-      })
+      toast.error("Failed to resolve alert")
     }
   }
 

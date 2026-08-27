@@ -31,6 +31,18 @@ import {
   CheckCircle2,
 } from "lucide-react"
 import { FileUploadField } from "./FileUploadField.tsx"
+import {
+  addPackageRow,
+  removePackageRow,
+  updatePackageDiscount,
+  packagesFromApi,
+  addTechnicianRow,
+  removeTechnicianRow,
+  updateTechnicianCommission,
+  techniciansFromApi,
+  type CustomerPackageRow,
+  type CustomerTechnicianRow,
+} from "../../utils/customerPackages.ts"
 
 interface CustomerFormProps {
   formData: Partial<Customer>
@@ -55,7 +67,9 @@ interface Customer {
   area_id: string
   sub_zone_id?: string
   service_plan_id: string
-  service_plan_ids?: string[]  // Multi-package support
+  service_plan_ids?: string[]
+  packages?: CustomerPackageRow[] | any[]
+  technicians?: CustomerTechnicianRow[] | any[]
   isp_id: string
   technician_id?: string
   connection_type: string
@@ -66,9 +80,7 @@ interface Customer {
   router_id?: string
   router_serial_number?: string
   patch_cord_ownership?: string
-  patch_cord_count?: string
   patch_cord_ethernet_ownership?: string
-  patch_cord_ethernet_count?: string
   splicing_box_ownership?: string
   splicing_box_serial_number?: string
   tv_cable_connection_type?: string
@@ -107,13 +119,48 @@ interface ISP {
 
 interface InventoryItem {
   id: string
-  name: string
-  serial_number: string
-  is_splitter: boolean
+  name?: string
+  serial_number?: string
+  is_splitter?: boolean
   splitter_number?: string
   item_type: string
   quantity: number
   unit_price?: number
+  /** Device-specific fields from inventory API (serial_number, mac_address, model, type, …) */
+  attributes?: {
+    serial_number?: string
+    mac_address?: string
+    model?: string
+    type?: string
+    [key: string]: unknown
+  }
+}
+
+function inventorySerial(item: InventoryItem): string {
+  return (
+    item.attributes?.serial_number ||
+    item.serial_number ||
+    ""
+  ).toString().trim()
+}
+
+function inventoryMac(item: InventoryItem): string {
+  return (item.attributes?.mac_address || "").toString().trim()
+}
+
+function routerOptionLabel(item: InventoryItem): string {
+  const serial = inventorySerial(item)
+  const model = (item.attributes?.model || "").toString().trim()
+  if (serial && model) return `${item.item_type} - ${serial} (${model})`
+  if (serial) return `${item.item_type} - ${serial}`
+  return `${item.item_type} - No Serial`
+}
+
+function dishOptionLabel(item: InventoryItem): string {
+  const mac = inventoryMac(item)
+  const type = (item.attributes?.type || item.name || item.item_type || "Dish").toString().trim()
+  if (mac) return `${type} - ${mac}`
+  return `${type} - No MAC`
 }
 
 interface InputFieldProps {
@@ -322,10 +369,19 @@ export function CustomerForm({
     message: string
   }>({ checking: false, available: null, message: "" })
   const [submitErrors, setSubmitErrors] = useState<Record<string, string>>({})
+  const [pendingTechnicianId, setPendingTechnicianId] = useState("")
+  const [pendingTechnicianCommission, setPendingTechnicianCommission] = useState("")
+  const [packagesInitialized, setPackagesInitialized] = useState(false)
+  const [techniciansInitialized, setTechniciansInitialized] = useState(false)
   const mapRef = useRef(null)
   const internetIdCheckTimeout = useRef<NodeJS.Timeout | null>(null)
   const cnicCheckTimeout = useRef<NodeJS.Timeout | null>(null)
   console.log("formData:", formData)
+
+  useEffect(() => {
+    setPackagesInitialized(false)
+    setTechniciansInitialized(false)
+  }, [isEditing, (formData as any).id])
 
   useEffect(() => {
     const fetchData = async () => {
@@ -382,52 +438,51 @@ export function CustomerForm({
     }
   }, [validationErrors])
 
-  // Initialize service_plan_ids from packages array when editing
+  const setField = useCallback((name: string, value: any) => {
+    handleInputChange({
+      target: { name, value },
+    } as any)
+  }, [handleInputChange])
+
+  const packageRows: CustomerPackageRow[] = Array.isArray(formData.packages)
+    ? (formData.packages as CustomerPackageRow[]).filter((row) => row && row.service_plan_id)
+    : []
+  const technicianRows: CustomerTechnicianRow[] = Array.isArray(formData.technicians)
+    ? (formData.technicians as CustomerTechnicianRow[]).filter((row) => row && row.technician_id)
+    : []
+
+  // Initialize packages and technicians when editing
   useEffect(() => {
-    if (isEditing) {
-      let planIds: string[] = [];
-
-      // Try to extract from packages array
-      if (formData.packages) {
-        let packagesData = formData.packages;
-
-        // Handle case where packages is a stringified array
-        if (typeof packagesData === 'string') {
-          try {
-            packagesData = JSON.parse(packagesData);
-          } catch {
-            // If it's '[object Object]' or invalid JSON, skip
-            packagesData = null;
-          }
-        }
-
-        if (Array.isArray(packagesData) && packagesData.length > 0) {
-          planIds = packagesData.map((pkg: any) => pkg.service_plan_id).filter(Boolean);
-        }
-      }
-
-      // Fallback: if no planIds extracted but we have existing service_plan_ids
-      if (planIds.length === 0 && formData.service_plan_ids) {
-        if (Array.isArray(formData.service_plan_ids)) {
-          planIds = formData.service_plan_ids;
-        } else if (typeof formData.service_plan_ids === 'string') {
-          planIds = [formData.service_plan_ids];
-        }
-      }
-
-      // Fallback: try legacy service_plan_id
-      if (planIds.length === 0 && formData.service_plan_id) {
-        planIds = [formData.service_plan_id as string];
-      }
-
-      // Update service_plan_ids if we found any
-      if (planIds.length > 0 && (!formData.service_plan_ids || formData.service_plan_ids.length === 0)) {
-        handleInputChange({
-          target: { name: 'service_plan_ids', value: planIds }
-        } as any);
-      }
+    if (packagesInitialized) return
+    const fromApi = packagesFromApi(Array.isArray(formData.packages) ? formData.packages : [])
+    if (fromApi.length > 0 && fromApi[0].service_plan_id) {
+      setField("packages", fromApi)
+      setPackagesInitialized(true)
+      return
     }
-  }, [isEditing, formData.packages])
+    const ids = formData.service_plan_ids || (formData.service_plan_id ? [formData.service_plan_id] : [])
+    if (Array.isArray(ids) && ids.length > 0) {
+      setField("packages", ids.filter(Boolean).map((planId: string) => addPackageRow([], planId)[0]))
+      setPackagesInitialized(true)
+    } else if (!isEditing) {
+      setPackagesInitialized(true)
+    }
+  }, [formData.packages, formData.service_plan_ids, formData.service_plan_id, isEditing, packagesInitialized, setField])
+
+  useEffect(() => {
+    if (techniciansInitialized) return
+    const fromApi = techniciansFromApi(
+      formData.technicians as any[],
+      formData.technician_id,
+      Number(formData.connection_commission_amount) || 0,
+    )
+    if (fromApi.length > 0 || !isEditing) {
+      if (fromApi.length > 0) {
+        setField("technicians", fromApi)
+      }
+      setTechniciansInitialized(true)
+    }
+  }, [formData.technicians, formData.technician_id, formData.connection_commission_amount, isEditing, techniciansInitialized, setField])
 
   const formatPhoneNumber = (value: string) => {
     const cleaned = value.replace(/\D/g, "")
@@ -550,6 +605,25 @@ export function CustomerForm({
         },
       } as React.ChangeEvent<HTMLInputElement | HTMLSelectElement>)
 
+      // Company router/dish selects: also persist serial/MAC for equipment invoice lines
+      if (name === "router_id") {
+        const selected = inventoryItems.find((item) => item.id === formattedValue)
+        handleInputChange({
+          target: {
+            name: "router_serial_number",
+            value: selected ? inventorySerial(selected) : "",
+          },
+        } as React.ChangeEvent<HTMLInputElement | HTMLSelectElement>)
+      } else if (name === "dish_id") {
+        const selected = inventoryItems.find((item) => item.id === formattedValue)
+        handleInputChange({
+          target: {
+            name: "dish_mac_address",
+            value: selected ? inventoryMac(selected) : "",
+          },
+        } as React.ChangeEvent<HTMLInputElement | HTMLSelectElement>)
+      }
+
       if (name === "internet_id") {
         checkInternetIdAvailability(formattedValue)
       }
@@ -570,7 +644,14 @@ export function CustomerForm({
         // This will be handled by the parent component
       }
     },
-    [handleInputChange, checkInternetIdAvailability, checkCnicAvailability, submitErrors, validationErrors],
+    [
+      handleInputChange,
+      checkInternetIdAvailability,
+      checkCnicAvailability,
+      submitErrors,
+      validationErrors,
+      inventoryItems,
+    ],
   )
 
   const memoizedHandleFileChange = useCallback(
@@ -830,29 +911,6 @@ export function CustomerForm({
             {...inputFieldProps}
           />
           <InputField
-            label="Assigned Technician"
-            name="technician_id"
-            type="select"
-            value={formData.technician_id || ""}
-            onChange={memoizedHandleInputChange}
-            options={[
-              { value: "", label: "-- Select Technician --" },
-              ...employees.map((emp) => ({ value: emp.id, label: `${emp.first_name} ${emp.last_name}` }))
-            ]}
-            icon={<User className="h-5 w-5 text-slate-gray/70" />}
-            {...inputFieldProps}
-          />
-          <InputField
-            label="Connection Commission (PKR)"
-            name="connection_commission_amount"
-            type="number"
-            value={formData.connection_commission_amount || ""}
-            onChange={memoizedHandleInputChange}
-            placeholder="e.g., 100 per month"
-            icon={<DollarSign className="h-5 w-5 text-emerald-500/70" />}
-            {...inputFieldProps}
-          />
-          <InputField
             label="Connection Type"
             name="connection_type"
             type="select"
@@ -867,6 +925,108 @@ export function CustomerForm({
             icon={<Wifi className="h-5 w-5 text-slate-gray/70" />}
             {...inputFieldProps}
           />
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-slate-gray mb-1">Assigned Technicians</label>
+            {technicianRows.length > 0 && (
+              <div className="mb-3 divide-y divide-slate-gray/10 border border-slate-gray/30 rounded-lg bg-white">
+                {technicianRows.map((row) => {
+                  const emp = employees.find((e) => e.id === row.technician_id)
+                  const name = emp ? `${emp.first_name} ${emp.last_name}` : row.technician_id
+                  return (
+                    <div key={row.technician_id} className="flex items-center gap-3 px-3 py-2.5">
+                      <User className="h-4 w-4 text-slate-gray/70 shrink-0" />
+                      <span className="text-sm text-slate-gray flex-1 min-w-0 truncate">{name}</span>
+                      <div className="relative w-36 shrink-0">
+                        <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none">
+                          <DollarSign className="h-4 w-4 text-slate-gray/70" />
+                        </div>
+                        <input
+                          type="number"
+                          min="0"
+                          aria-label={`Commission for ${name}`}
+                          className="w-full pl-8 pr-2 py-1.5 border border-slate-gray/30 rounded-lg shadow-sm text-sm text-slate-gray focus:ring-2 focus:ring-electric-blue focus:border-transparent"
+                          value={row.commission_amount}
+                          onChange={(e) => setField("technicians", updateTechnicianCommission(technicianRows, row.technician_id, Number(e.target.value)))}
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        aria-label={`Remove ${name}`}
+                        onClick={() => setField("technicians", removeTechnicianRow(technicianRows, row.technician_id))}
+                        className="p-1 text-slate-gray/50 hover:text-coral-red shrink-0"
+                      >
+                        <XCircle className="h-4 w-4" />
+                      </button>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+            <div className="grid grid-cols-1 md:grid-cols-[1fr_11rem_auto] gap-3 items-end">
+              <div>
+                <label htmlFor="pending_technician_id" className="block text-xs font-medium text-slate-gray mb-1">Technician</label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <User className="h-5 w-5 text-slate-gray/70" />
+                  </div>
+                  <select
+                    id="pending_technician_id"
+                    className="w-full pl-10 pr-10 py-2.5 border border-slate-gray/30 rounded-lg shadow-sm focus:ring-2 focus:ring-electric-blue focus:border-transparent bg-white text-slate-gray appearance-none"
+                    value={pendingTechnicianId}
+                    onChange={(e) => setPendingTechnicianId(e.target.value)}
+                  >
+                    <option value="">Select technician</option>
+                    {employees
+                      .filter((emp) => !technicianRows.some((row) => row.technician_id === emp.id))
+                      .map((emp) => (
+                        <option key={emp.id} value={emp.id}>
+                          {emp.first_name} {emp.last_name}
+                        </option>
+                      ))}
+                  </select>
+                  <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                    <svg className="h-5 w-5 text-slate-gray/70" viewBox="0 0 20 20" fill="currentColor">
+                      <path
+                        fillRule="evenodd"
+                        d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+              <div>
+                <label htmlFor="pending_technician_commission" className="block text-xs font-medium text-slate-gray mb-1">Commission PKR</label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <DollarSign className="h-5 w-5 text-slate-gray/70" />
+                  </div>
+                  <input
+                    id="pending_technician_commission"
+                    type="number"
+                    min="0"
+                    placeholder="0"
+                    className="w-full pl-10 pr-4 py-2.5 border border-slate-gray/30 rounded-lg shadow-sm focus:ring-2 focus:ring-electric-blue focus:border-transparent bg-white text-slate-gray placeholder-slate-gray/50"
+                    value={pendingTechnicianCommission}
+                    onChange={(e) => setPendingTechnicianCommission(e.target.value)}
+                  />
+                </div>
+              </div>
+              <button
+                type="button"
+                className="h-[42px] px-4 rounded-lg bg-electric-blue text-white text-sm font-medium hover:bg-electric-blue/90 disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={!pendingTechnicianId}
+                onClick={() => {
+                  if (!pendingTechnicianId) return
+                  setField("technicians", addTechnicianRow(technicianRows, pendingTechnicianId, Number(pendingTechnicianCommission) || 0))
+                  setPendingTechnicianId("")
+                  setPendingTechnicianCommission("")
+                }}
+              >
+                Add
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -941,7 +1101,7 @@ export function CustomerForm({
                       .filter((item) => item.item_type === "Router")
                       .map((item) => ({
                         value: item.id,
-                        label: `${item.item_type} - ${item.serial_number || "No Serial"}`,
+                        label: routerOptionLabel(item),
                       }))}
                     icon={<Router className="h-5 w-5 text-slate-gray/70" />}
                     {...inputFieldProps}
@@ -973,19 +1133,6 @@ export function CustomerForm({
                   icon={<User className="h-5 w-5 text-slate-gray/70" />}
                   {...inputFieldProps}
                 />
-                {formData.patch_cord_ownership === "company" && (
-                  <InputField
-                    label="Number of Patch Cords"
-                    name="patch_cord_count"
-                    type="number"
-                    value={formData.patch_cord_count || ""}
-                    onChange={memoizedHandleInputChange}
-                    placeholder="Enter number of patch cords"
-                    required
-                    icon={<Hash className="h-5 w-5 text-slate-gray/70" />}
-                    {...inputFieldProps}
-                  />
-                )}
                 <InputField
                   label="Patch Cord Ethernet Ownership"
                   name="patch_cord_ethernet_ownership"
@@ -1000,19 +1147,6 @@ export function CustomerForm({
                   icon={<User className="h-5 w-5 text-slate-gray/70" />}
                   {...inputFieldProps}
                 />
-                {formData.patch_cord_ethernet_ownership === "company" && (
-                  <InputField
-                    label="Number of Patch Cord Ethernet"
-                    name="patch_cord_ethernet_count"
-                    type="number"
-                    value={formData.patch_cord_ethernet_count || ""}
-                    onChange={memoizedHandleInputChange}
-                    placeholder="Enter number of patch cord ethernet"
-                    required
-                    icon={<Hash className="h-5 w-5 text-slate-gray/70" />}
-                    {...inputFieldProps}
-                  />
-                )}
                 <InputField
                   label="Splicing Box Ownership"
                   name="splicing_box_ownership"
@@ -1092,7 +1226,10 @@ export function CustomerForm({
                     required
                     options={inventoryItems
                       .filter((item) => item.item_type === "Dish")
-                      .map((item) => ({ value: item.id, label: `${item.name} - ${item.serial_number}` }))}
+                      .map((item) => ({
+                        value: item.id,
+                        label: dishOptionLabel(item),
+                      }))}
                     icon={<Package className="h-5 w-5 text-slate-gray/70" />}
                     {...inputFieldProps}
                   />
@@ -1180,83 +1317,65 @@ export function CustomerForm({
           Billing Information
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Multi-Package Selection */}
           <div className="col-span-2">
-            <label className="block text-sm font-medium text-slate-gray mb-2">
+            <label className="block text-sm font-medium text-slate-gray mb-1">
               Packages <span className="text-coral-red">*</span>
             </label>
-
-            {/* Selected Packages Display */}
-            <div className="flex flex-wrap gap-2 mb-3">
-              {(formData.service_plan_ids || (formData.service_plan_id ? [formData.service_plan_id] : [])).map((planId: string) => {
-                const plan = servicePlans.find((p: ServicePlan) => p.id === planId);
-                return plan ? (
-                  <div
-                    key={planId}
-                    className="inline-flex items-center gap-2 px-3 py-1.5 bg-electric-blue/10 border border-electric-blue/30 rounded-full text-sm text-deep-ocean"
-                  >
-                    <Package className="h-4 w-4 text-electric-blue" />
-                    <span>{plan.name}</span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const currentIds = formData.service_plan_ids || (formData.service_plan_id ? [formData.service_plan_id] : []);
-                        const newIds = currentIds.filter((id: string) => id !== planId);
-                        handleInputChange({
-                          target: { name: 'service_plan_ids', value: newIds }
-                        } as any);
-                        // Also update legacy field for backward compatibility
-                        if (newIds.length > 0) {
-                          handleInputChange({
-                            target: { name: 'service_plan_id', value: newIds[0] }
-                          } as any);
-                        }
-                      }}
-                      className="text-slate-gray/60 hover:text-coral-red transition-colors"
-                    >
-                      <XCircle className="h-4 w-4" />
-                    </button>
-                  </div>
-                ) : null;
-              })}
-            </div>
-
-            {/* Add Package Dropdown */}
+            {packageRows.length > 0 && (
+              <div className="mb-3 divide-y divide-slate-gray/10 border border-slate-gray/30 rounded-lg bg-white">
+                {packageRows.map((row) => {
+                  const plan = servicePlans.find((p: ServicePlan) => p.id === row.service_plan_id)
+                  const planName = plan?.name || row.service_plan_id
+                  return (
+                    <div key={row.key} className="flex items-center gap-3 px-3 py-2.5">
+                      <Package className="h-4 w-4 text-slate-gray/70 shrink-0" />
+                      <span className="text-sm text-slate-gray flex-1 min-w-0 truncate">{planName}</span>
+                      <div className="relative w-36 shrink-0">
+                        <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none">
+                          <DollarSign className="h-4 w-4 text-slate-gray/70" />
+                        </div>
+                        <input
+                          type="number"
+                          min="0"
+                          aria-label={`Discount for ${planName}`}
+                          className="w-full pl-8 pr-2 py-1.5 border border-slate-gray/30 rounded-lg shadow-sm text-sm text-slate-gray focus:ring-2 focus:ring-electric-blue focus:border-transparent"
+                          value={row.discount_amount}
+                          onChange={(e) => setField("packages", updatePackageDiscount(packageRows, row.key, Number(e.target.value)))}
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        aria-label={`Remove ${planName}`}
+                        onClick={() => setField("packages", removePackageRow(packageRows, row.key))}
+                        className="p-1 text-slate-gray/50 hover:text-coral-red shrink-0"
+                      >
+                        <XCircle className="h-4 w-4" />
+                      </button>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <Package className="h-5 w-5 text-slate-gray/70" />
               </div>
               <select
-                className="w-full pl-10 pr-4 py-2.5 border border-slate-gray/30 rounded-lg shadow-sm focus:ring-2 focus:ring-electric-blue focus:border-transparent bg-white text-slate-gray appearance-none"
+                className="w-full pl-10 pr-10 py-2.5 border border-slate-gray/30 rounded-lg shadow-sm focus:ring-2 focus:ring-electric-blue focus:border-transparent bg-white text-slate-gray appearance-none"
                 value=""
                 onChange={(e) => {
-                  const selectedPlanId = e.target.value;
+                  const selectedPlanId = e.target.value
                   if (selectedPlanId) {
-                    const currentIds = formData.service_plan_ids || (formData.service_plan_id ? [formData.service_plan_id] : []);
-                    if (!currentIds.includes(selectedPlanId)) {
-                      const newIds = [...currentIds, selectedPlanId];
-                      handleInputChange({
-                        target: { name: 'service_plan_ids', value: newIds }
-                      } as any);
-                      // Also update legacy field for backward compatibility
-                      handleInputChange({
-                        target: { name: 'service_plan_id', value: newIds[0] }
-                      } as any);
-                    }
+                    setField("packages", addPackageRow(packageRows, selectedPlanId))
                   }
                 }}
               >
-                <option value="">+ Add Package</option>
-                {servicePlans
-                  .filter((plan: ServicePlan) => {
-                    const currentIds = formData.service_plan_ids || (formData.service_plan_id ? [formData.service_plan_id] : []);
-                    return !currentIds.includes(plan.id);
-                  })
-                  .map((plan: ServicePlan) => (
-                    <option key={plan.id} value={plan.id}>
-                      {plan.name}
-                    </option>
-                  ))}
+                <option value="">Select package</option>
+                {servicePlans.map((plan: ServicePlan) => (
+                  <option key={plan.id} value={plan.id}>
+                    {plan.name}
+                  </option>
+                ))}
               </select>
               <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
                 <svg className="h-5 w-5 text-slate-gray/70" viewBox="0 0 20 20" fill="currentColor">
@@ -1268,8 +1387,6 @@ export function CustomerForm({
                 </svg>
               </div>
             </div>
-
-            {/* Validation message */}
             {(validationErrors?.service_plan_id || validationErrors?.service_plan_ids) && (
               <p className="text-coral-red text-sm mt-1 flex items-center gap-1">
                 <XCircle className="h-4 w-4" />
@@ -1277,16 +1394,6 @@ export function CustomerForm({
               </p>
             )}
           </div>
-          <InputField
-            label="Discount Amount"
-            name="discount_amount"
-            type="number"
-            value={formData.discount_amount || ""}
-            onChange={memoizedHandleInputChange}
-            placeholder="Enter discount amount"
-            icon={<DollarSign className="h-5 w-5 text-slate-gray/70" />}
-            {...inputFieldProps}
-          />
           <InputField
             label="Installation Date"
             name="installation_date"

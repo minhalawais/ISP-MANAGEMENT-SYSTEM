@@ -77,26 +77,25 @@ input[type="checkbox"]:focus {
   transform: translateX(2px);
 }
 
-/* Table layout fixes to prevent column width changes during scroll */
-table {
+/* Table layout fixes — scoped to .data-table (CRUD grids with checkbox column).
+   Do not apply to portal/detail tables; first-col 60px crushes invoice numbers. */
+.data-table {
   width: 100%;
 }
 
-table th,
-table td {
-  min-width: 100px;
+.data-table th,
+.data-table td {
+  min-width: 72px;
 }
 
-/* Ensure checkbox column has consistent width */
-table th:first-child,
-table td:first-child {
+.data-table th:first-child,
+.data-table td:first-child {
   width: 60px;
   min-width: 60px;
   max-width: 60px;
 }
 
-/* Actions column styling */
-table th:last-child,
-table td:last-child {
+.data-table th:last-child,
+.data-table td:last-child {
   width: auto;
 }

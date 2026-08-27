@@ -88,13 +88,13 @@ export const BankPerformance: React.FC<BankPerformanceProps> = ({ data, cashPaym
 
   return (
     <motion.div
-      className="bg-white rounded-2xl border border-gray-200 p-4 md:p-6 shadow-sm hover:shadow-md transition-all duration-300 ease-in-out"
+      className="bg-white rounded-xl border border-gray-200 p-4 md:p-6 shadow-sm hover:shadow-md transition-all duration-300 ease-in-out"
       variants={containerVariants}
       initial="hidden"
       animate="visible"
     >
-      <motion.div variants={itemVariants} className="mb-6">
-        <h3 className="text-xl md:text-2xl font-bold text-gray-900 mb-2">Bank & Cash Performance</h3>
+      <motion.div variants={itemVariants} className="mb-3">
+        <h3 className="text-xl md:text-xl font-semibold text-gray-900 mb-2">Bank & Cash Performance</h3>
         <p className="text-sm text-gray-600">
           Collections, payments, and net cash flow by account including expenses and cash transactions
         </p>
@@ -103,7 +103,7 @@ export const BankPerformance: React.FC<BankPerformanceProps> = ({ data, cashPaym
       {/* Summary Cards */}
       <motion.div
         variants={itemVariants}
-        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 md:gap-4 mb-6"
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 md:gap-4 mb-3"
       >
         {[
           { label: "Total Collections", value: overallTotals.collections, color: "blue", positive: true },
@@ -115,7 +115,7 @@ export const BankPerformance: React.FC<BankPerformanceProps> = ({ data, cashPaym
           <motion.div
             key={card.label}
             variants={cardVariants}
-            className={`p-4 rounded-xl bg-${card.color}-50 border border-${card.color}-200 backdrop-blur-sm bg-white/90 hover:shadow-lg transition-all duration-300`}
+            className={`p-4 rounded-xl bg-${card.color}-50 border border-${card.color}-200  shadow-sm`}
           >
             <div className={`text-xs md:text-sm font-semibold text-${card.color}-700 mb-1`}>{card.label}</div>
             <div className={`text-lg md:text-xl font-bold text-${card.color}-800`}>

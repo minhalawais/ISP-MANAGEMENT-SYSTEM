@@ -6,18 +6,9 @@ import { Users, AlertCircle, ClipboardList } from "lucide-react"
 import { SearchableSelect } from "../SearchableSelect.tsx"
 import axiosInstance from "../../utils/axiosConfig.ts"
 import { getToken } from "../../utils/auth.ts"
+import { useInvoiceDropdown } from "../../hooks/useInvoiceDropdown.ts"
 
-interface Invoice {
-  id: string
-  invoice_number: string
-  customer_name: string
-  customer_internet_id: string
-  total_amount: number
-  due_date: string
-  status: string
-  billing_start_date: string
-  billing_end_date: string
-}
+const OPEN_INVOICE_STATUSES = ["pending", "Pending", "partially_paid", "Partially Paid"]
 
 interface Employee {
   id: string
@@ -36,50 +27,20 @@ export function RecoveryTaskForm({
   handleInputChange,
   isEditing,
 }: RecoveryTaskFormProps) {
-  const [invoices, setInvoices] = useState<Invoice[]>([])
+  const [invoiceSearch, setInvoiceSearch] = useState("")
+  // New recovery tasks only make sense against invoices still owed; editing
+  // keeps the currently-linked invoice visible regardless of status.
+  const { invoices, isLoading: isLoadingInvoices } = useInvoiceDropdown(
+    invoiceSearch,
+    isEditing ? undefined : OPEN_INVOICE_STATUSES,
+    50,
+    isEditing ? formData.invoice_id : undefined
+  )
   const [employees, setEmployees] = useState<Employee[]>([])
-  const [isLoadingInvoices, setIsLoadingInvoices] = useState(false)
 
   useEffect(() => {
-    fetchInvoices()
     fetchEmployees()
   }, [])
-
-  const fetchInvoices = async () => {
-    try {
-      setIsLoadingInvoices(true)
-      const token = getToken()
-      const response = await axiosInstance.get("/invoices/list", {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      
-      // Filter to show only pending/partially paid invoices for new recovery tasks
-      const filteredInvoices = isEditing
-        ? response.data
-        : response.data.filter((invoice: any) =>
-          invoice.status === 'pending' || invoice.status === 'Pending' || 
-          invoice.status === 'partially_paid' || invoice.status === 'Partially Paid'
-        )
-
-      setInvoices(
-        filteredInvoices.map((invoice: any) => ({
-          id: invoice.id,
-          invoice_number: invoice.invoice_number,
-          customer_name: invoice.customer_name,
-          customer_internet_id: invoice.customer_internet_id || "N/A",
-          total_amount: invoice.total_amount,
-          due_date: invoice.due_date,
-          status: invoice.status,
-          billing_end_date: invoice.billing_end_date,
-          billing_start_date: invoice.billing_start_date,
-        }))
-      )
-    } catch (error) {
-      console.error("Failed to fetch invoices", error)
-    } finally {
-      setIsLoadingInvoices(false)
-    }
-  }
 
   const fetchEmployees = async () => {
     try {
@@ -120,7 +81,7 @@ export function RecoveryTaskForm({
       {/* Invoice Selection with SearchableSelect */}
       <div className="space-y-2">
         <label className={labelClasses}>Invoice *</label>
-        {isLoadingInvoices ? (
+        {invoices.length === 0 && isLoadingInvoices && !invoiceSearch ? (
           <div className="w-full pl-10 pr-10 py-2.5 border border-slate-gray/20 rounded-lg bg-light-sky/30 text-deep-ocean">
             <div className="flex items-center justify-center">
               <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-electric-blue"></div>
@@ -132,6 +93,8 @@ export function RecoveryTaskForm({
             options={invoices}
             value={formData.invoice_id || ""}
             onChange={handleInputChange}
+            onSearchChange={setInvoiceSearch}
+            isLoading={isLoadingInvoices}
             placeholder="Search and select invoice for recovery"
           />
         )}

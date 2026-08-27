@@ -10,9 +10,7 @@ import { ExtraIncomeForm } from "../forms/ExtraIncomeForm.tsx"
 import { InternalTransferForm } from "../forms/InternalTransferForm.tsx"
 import { getToken } from "../../utils/auth.ts"
 import axiosInstance from "../../utils/axiosConfig.ts"
-import { toast } from "react-toastify"
-
-interface UnifiedPaymentModalProps {
+import { toast } from "../../utils/notify.ts";interface UnifiedPaymentModalProps {
     isOpen: boolean
     onClose: () => void
     onPaymentAdded: () => void
@@ -183,15 +181,11 @@ export function UnifiedPaymentModal({ isOpen, onClose, onPaymentAdded }: Unified
             onPaymentAdded()
 
             // Show toast notification
-            toast.success(currentTab.successMessage, {
-                style: { background: "#D1FAE5", color: "#10B981" },
-            })
+            toast.success(currentTab.successMessage)
         } catch (error: any) {
             console.error("Payment submission failed", error)
             const errorMessage = error.response?.data?.message || "Failed to add payment. Please try again."
-            toast.error(errorMessage, {
-                style: { background: "#FEE2E2", color: "#EF4444" },
-            })
+            toast.error(errorMessage)
         } finally {
             setIsSubmitting(false)
         }
@@ -219,23 +213,22 @@ export function UnifiedPaymentModal({ isOpen, onClose, onPaymentAdded }: Unified
     if (!isOpen) return null
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
-                {/* Header */}
-                <div className="flex items-center justify-between p-6 border-b border-slate-gray/10">
-                    <h2 className="text-2xl font-bold text-deep-ocean">Add Payment</h2>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="fixed inset-0 bg-black/45 backdrop-blur-[2px]" onClick={handleClose} aria-hidden="true" />
+            <div className="relative bg-slate-100 rounded-xl shadow-2xl border border-slate-300/70 w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+                <div className="flex items-center justify-between px-5 sm:px-6 py-3.5 border-b bg-[#2A5C8A] border-[#1e4568]">
+                    <h2 className="text-base sm:text-lg font-semibold text-white tracking-tight">Add Payment</h2>
                     <button
                         onClick={handleClose}
-                        className="p-2 hover:bg-light-sky/50 rounded-lg transition-colors"
+                        className="p-1.5 hover:bg-white/10 rounded-md transition-colors"
                         aria-label="Close modal"
                     >
-                        <X className="h-6 w-6 text-slate-gray" />
+                        <X className="h-5 w-5 text-white/80" />
                     </button>
                 </div>
 
-                {/* Tabs - Apple-inspired Design */}
-                <div className="px-6 py-4 bg-gradient-to-b from-light-sky/40 to-light-sky/20 border-b border-slate-gray/10">
-                    <div className="flex gap-2 bg-slate-gray/5 p-1.5 rounded-2xl backdrop-blur-sm">
+                <div className="px-5 py-3 bg-slate-100 border-b border-slate-200">
+                    <div className="flex gap-1 bg-white p-1 rounded-md border border-slate-200">
                         {tabs.map((tab) => {
                             const Icon = tab.icon
                             const isActive = activeTab === tab.id
@@ -243,50 +236,44 @@ export function UnifiedPaymentModal({ isOpen, onClose, onPaymentAdded }: Unified
                                 <button
                                     key={tab.id}
                                     onClick={() => handleTabSwitch(tab.id)}
-                                    className={`flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-medium transition-all duration-300 ease-out flex-1 relative overflow-hidden ${isActive
-                                        ? "bg-white text-electric-blue shadow-lg shadow-electric-blue/10 scale-[1.02]"
-                                        : "text-slate-gray hover:text-electric-blue hover:bg-white/50"
+                                    className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-xs sm:text-sm font-medium transition-colors flex-1 ${isActive
+                                        ? "bg-[#E8EEF1] text-[#2A5C8A]"
+                                        : "text-slate-500 hover:text-slate-700 hover:bg-slate-50"
                                         }`}
                                 >
-                                    {isActive && (
-                                        <div className="absolute inset-0 bg-gradient-to-br from-electric-blue/5 to-transparent rounded-xl" />
-                                    )}
-                                    <Icon className={`h-4 w-4 transition-all duration-300 relative z-10 ${isActive ? "scale-110" : ""}`} />
-                                    <span className="text-sm relative z-10 whitespace-nowrap">{tab.label}</span>
+                                    <Icon className="h-3.5 w-3.5" />
+                                    <span className="whitespace-nowrap hidden sm:inline">{tab.label}</span>
                                 </button>
                             )
                         })}
                     </div>
                 </div>
 
-                {/* Content */}
-                <div className="flex-1 overflow-y-auto p-6">
+                <div className="flex-1 overflow-y-auto p-5 bg-slate-100">
                     {showSuccess ? (
-                        // Success Screen
-                        <div className="flex flex-col items-center justify-center py-12">
-                            <div className="w-20 h-20 bg-emerald-green/10 rounded-full flex items-center justify-center mb-6">
-                                <Check className="h-10 w-10 text-emerald-green" />
+                        <div className="flex flex-col items-center justify-center py-12 bg-white rounded-lg border border-slate-200 shadow-sm">
+                            <div className="w-14 h-14 bg-emerald-50 rounded-full flex items-center justify-center mb-4">
+                                <Check className="h-7 w-7 text-emerald-600" />
                             </div>
-                            <h3 className="text-2xl font-bold text-deep-ocean mb-2">Success!</h3>
-                            <p className="text-slate-gray mb-8">{successMessage}</p>
-                            <div className="flex gap-4">
+                            <h3 className="text-lg font-semibold text-slate-800 mb-1">Success</h3>
+                            <p className="text-sm text-slate-500 mb-6">{successMessage}</p>
+                            <div className="flex gap-2">
                                 <button
                                     onClick={handleAddAnother}
-                                    className="px-6 py-3 bg-electric-blue text-white rounded-lg hover:bg-btn-hover transition-colors font-medium"
+                                    className="h-9 px-4 text-sm font-medium bg-[#2A5C8A] text-white rounded-md shadow-sm hover:bg-[#1e4568]"
                                 >
                                     Add Another
                                 </button>
                                 <button
                                     onClick={handleClose}
-                                    className="px-6 py-3 border border-slate-gray/20 text-slate-gray rounded-lg hover:bg-light-sky/50 transition-colors font-medium"
+                                    className="h-9 px-4 text-sm font-medium border border-slate-300 text-slate-700 bg-white rounded-md shadow-sm hover:bg-slate-100"
                                 >
                                     Close
                                 </button>
                             </div>
                         </div>
                     ) : (
-                        // Form Content
-                        <form onSubmit={handleSubmit}>
+                        <form onSubmit={handleSubmit} className="bg-white rounded-lg border border-slate-200 shadow-sm p-4">
                             {activeTab === "payment" && (
                                 <PaymentForm
                                     formData={paymentFormData}
@@ -325,24 +312,23 @@ export function UnifiedPaymentModal({ isOpen, onClose, onPaymentAdded }: Unified
                                 />
                             )}
 
-                            {/* Submit Button */}
-                            <div className="mt-8 flex justify-end gap-3 pt-6 border-t border-slate-gray/10">
+                            <div className="mt-5 pt-4 border-t border-slate-200/80 flex justify-end gap-2">
                                 <button
                                     type="button"
                                     onClick={handleClose}
-                                    className="px-6 py-2.5 border border-slate-gray/20 text-slate-gray rounded-lg hover:bg-light-sky/50 transition-colors"
+                                    className="h-9 px-4 text-sm font-medium border border-slate-300 text-slate-700 bg-white rounded-md shadow-sm hover:bg-slate-100"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     type="submit"
                                     disabled={isSubmitting}
-                                    className="px-6 py-2.5 bg-electric-blue text-white rounded-lg hover:bg-btn-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-electric-blue disabled:opacity-50 transition-colors flex items-center gap-2"
+                                    className="h-9 px-4 text-sm font-medium bg-[#2A5C8A] text-white rounded-md shadow-sm hover:bg-[#1e4568] disabled:opacity-50 inline-flex items-center gap-1.5"
                                 >
                                     {isSubmitting ? (
                                         <>
                                             <svg
-                                                className="animate-spin h-5 w-5 text-white"
+                                                className="animate-spin h-4 w-4 text-white"
                                                 xmlns="http://www.w3.org/2000/svg"
                                                 fill="none"
                                                 viewBox="0 0 24 24"
@@ -361,11 +347,11 @@ export function UnifiedPaymentModal({ isOpen, onClose, onPaymentAdded }: Unified
                                                     d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                                                 ></path>
                                             </svg>
-                                            Processing...
+                                            Saving…
                                         </>
                                     ) : (
                                         <>
-                                            <Check className="h-5 w-5" />
+                                            <Check className="h-4 w-4" />
                                             Submit
                                         </>
                                     )}

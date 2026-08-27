@@ -248,11 +248,11 @@ export const UnifiedFinancialDashboard: React.FC = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 p-0 sm:p-6">
+      <div className="space-y-4">
         <div className="bg-white rounded-xl border border-red-200  p-0 sm:p-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center">
-              <div className="w-12 h-12 rounded-lg bg-red-100 flex items-center justify-center mr-4">
+              <div className="w-9 h-9 rounded-lg bg-red-100 flex items-center justify-center mr-4">
                 <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     strokeLinecap="round"
@@ -288,7 +288,7 @@ export const UnifiedFinancialDashboard: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-0 sm:p-6">
+    <div className="space-y-4">
       {/* Header */}
 
       {/* Filters */}
@@ -307,7 +307,7 @@ export const UnifiedFinancialDashboard: React.FC = () => {
       
       {/* ISP Financial Insights Section - Promoted to top visibility */}
       {/* Bank Performance Section */}
-      <div className="grid grid-cols-1 xl:grid-cols-1 gap-6 mb-6">
+      <div className="grid grid-cols-1 xl:grid-cols-1 gap-4 mb-3">
         {/* Bank Performance */}
         {financialData?.bank_performance && (
           <BankPerformance data={financialData.bank_performance} cashPayments={financialData.cash_payments} />
@@ -322,37 +322,37 @@ export const UnifiedFinancialDashboard: React.FC = () => {
 
       {/* Expense Summary Section */}
       {financialData?.kpis && (
-        <div className="bg-white rounded-xl border border-gray-200 p-6 mt-6">
+        <div className="bg-white rounded-xl border border-gray-200 p-4 mt-6">
           <h3 className="text-xl font-bold text-gray-900 mb-4">Expense Summary</h3>
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             <div className="text-center p-4 bg-red-50 rounded-lg border border-red-200">
               <p className="text-sm text-red-700 font-medium">Total Business Expenses</p>
-              <p className="text-2xl font-bold text-red-800">
+              <p className="text-xl font-semibold text-red-800">
                 PKR {financialData.kpis.total_expenses?.toLocaleString() || "0"}
               </p>
             </div>
             <div className="text-center p-4 bg-orange-50 rounded-lg border border-orange-200">
               <p className="text-sm text-orange-700 font-medium">Total ISP Expenses</p>
-              <p className="text-2xl font-bold text-orange-800">
+              <p className="text-xl font-semibold text-orange-800">
                 PKR {financialData.kpis.total_isp_payments?.toLocaleString() || "0"}
               </p>
             </div>
             <div className="text-center p-4 bg-purple-50 rounded-lg border border-purple-200">
               <p className="text-sm text-purple-700 font-medium">Total Expenses</p>
-              <p className="text-2xl font-bold text-purple-800">
+              <p className="text-xl font-semibold text-purple-800">
                 PKR{" "}
                 {(financialData.kpis.total_expenses + financialData.kpis.total_isp_payments)?.toLocaleString() || "0"}
               </p>
             </div>
             <div className="text-center p-4 bg-green-50 rounded-lg border border-green-200">
               <p className="text-sm text-green-700 font-medium">Expense to Revenue Ratio</p>
-              <p className="text-2xl font-bold text-green-800">
+              <p className="text-xl font-semibold text-green-800">
                 {financialData.revenue_expense?.average_ratio?.toFixed(1) || "0"}%
               </p>
             </div>
             <div className="text-center p-4 bg-teal-50 rounded-lg border border-teal-200">
               <p className="text-sm text-teal-700 font-medium">Total Extra Income</p>
-              <p className="text-2xl font-bold text-teal-800">
+              <p className="text-xl font-semibold text-teal-800">
                 PKR {financialData.kpis.total_extra_income?.toLocaleString() || "0"}
               </p>
             </div>
@@ -361,7 +361,7 @@ export const UnifiedFinancialDashboard: React.FC = () => {
       )}
 
       {/* Cash Reality Section - Waterfall & Trend (Moved to Bottom) */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mt-6">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 mt-6">
         {/* Financial Waterfall */}
         <div className="xl:col-span-1 h-full">
              {financialData?.financial_waterfall && <FinancialWaterfall data={financialData.financial_waterfall} />}
@@ -391,7 +391,7 @@ export const UnifiedFinancialDashboard: React.FC = () => {
 // Loading Skeleton Component
 const DashboardLoadingSkeleton: React.FC = () => {
   return (
-    <div className="min-h-screen bg-gray-50 p-0 sm:p-6 space-y-6 animate-pulse">
+    <div className="min-h-screen bg-gray-50 p-0 sm:p-6 space-y-4 animate-pulse">
       {/* Header Skeleton */}
       <div className="flex justify-between items-start">
         <div className="space-y-2">
@@ -405,7 +405,7 @@ const DashboardLoadingSkeleton: React.FC = () => {
       </div>
 
       {/* Filters Skeleton */}
-      <div className="bg-white rounded-xl p-6">
+      <div className="bg-white rounded-xl p-4">
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
           {Array.from({ length: 7 }).map((_, i) => (
             <div key={i} className="h-12 bg-gray-300 rounded-lg"></div>
@@ -416,7 +416,7 @@ const DashboardLoadingSkeleton: React.FC = () => {
       {/* KPI Cards Skeleton */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
         {Array.from({ length: 9 }).map((_, i) => (
-          <div key={i} className="bg-white rounded-xl p-6">
+          <div key={i} className="bg-white rounded-xl p-4">
             <div className="flex items-start justify-between mb-4">
               <div className="w-12 h-12 bg-gray-300 rounded-lg"></div>
               <div className="w-16 h-4 bg-gray-300 rounded"></div>
@@ -430,10 +430,10 @@ const DashboardLoadingSkeleton: React.FC = () => {
       </div>
 
       {/* Charts Skeleton */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
         {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="bg-white rounded-xl p-6">
-            <div className="space-y-2 mb-6">
+          <div key={i} className="bg-white rounded-xl p-4">
+            <div className="space-y-2 mb-3">
               <div className="h-6 w-48 bg-gray-300 rounded"></div>
               <div className="h-4 w-64 bg-gray-300 rounded"></div>
             </div>
@@ -443,7 +443,7 @@ const DashboardLoadingSkeleton: React.FC = () => {
       </div>
 
       {/* Expense Summary Skeleton */}
-      <div className="bg-white rounded-xl p-6">
+      <div className="bg-white rounded-xl p-4">
         <div className="h-6 w-48 bg-gray-300 rounded mb-4"></div>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           {Array.from({ length: 5 }).map((_, i) => (

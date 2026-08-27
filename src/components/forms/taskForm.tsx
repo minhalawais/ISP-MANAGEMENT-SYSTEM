@@ -6,17 +6,12 @@ import { Calendar, AlertCircle, Tag, Clock, Users } from "lucide-react"
 import axiosInstance from "../../utils/axiosConfig.ts"
 import { getToken } from "../../utils/auth.ts"
 import { SearchableCustomerSelect } from "../SearchableCustomerSelect.tsx"
+import { useCustomerDropdown } from "../../hooks/useCustomerDropdown.ts"
 
 interface Employee {
   id: string
   first_name: string
   last_name: string
-}
-
-interface Customer {
-  id: string
-  name: string
-  internetId: string
 }
 
 interface TaskFormProps {
@@ -27,15 +22,17 @@ interface TaskFormProps {
 
 export function TaskForm({ formData, handleInputChange, isEditing }: TaskFormProps) {
   const [employees, setEmployees] = useState<Employee[]>([])
-  const [customers, setCustomers] = useState<Customer[]>([])
+  const [customerSearch, setCustomerSearch] = useState("")
+  const { customers, isLoading: isLoadingCustomers } = useCustomerDropdown(
+    customerSearch,
+    50,
+    isEditing ? formData.customer_id : undefined
+  )
   const [selectedEmployees, setSelectedEmployees] = useState<string[]>([])
-  const [isLoadingCustomers, setIsLoadingCustomers] = useState(false)
 
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchEmployees = async () => {
       const token = getToken()
-      
-      // Fetch employees
       try {
         const response = await axiosInstance.get('/employees/list', {
           headers: { Authorization: `Bearer ${token}` }
@@ -44,28 +41,9 @@ export function TaskForm({ formData, handleInputChange, isEditing }: TaskFormPro
       } catch (error) {
         console.error('Failed to fetch employees', error)
       }
-
-      // Fetch customers
-      try {
-        setIsLoadingCustomers(true)
-        const response = await axiosInstance.get('/customers/list', {
-          headers: { Authorization: `Bearer ${token}` }
-        })
-        setCustomers(
-          response.data.map((customer: any) => ({
-            id: customer.id,
-            name: `${customer.first_name} ${customer.last_name}`,
-            internetId: customer.internet_id,
-          }))
-        )
-      } catch (error) {
-        console.error('Failed to fetch customers', error)
-      } finally {
-        setIsLoadingCustomers(false)
-      }
     }
-    
-    fetchData()
+
+    fetchEmployees()
   }, [])
 
   useEffect(() => {
@@ -144,7 +122,7 @@ export function TaskForm({ formData, handleInputChange, isEditing }: TaskFormPro
             <option value="installation">Installation</option>
             <option value="maintenance">Maintenance</option>
             <option value="complaint">Complaint</option>
-            <option value="recovery">Recovery</option>
+            <option value="inspection">Inspection</option>
           </select>
         </div>
       </div>
@@ -152,7 +130,7 @@ export function TaskForm({ formData, handleInputChange, isEditing }: TaskFormPro
       {/* Customer Search (Optional) */}
       <div>
         <label className={labelClasses}>Customer (Optional)</label>
-        {isLoadingCustomers ? (
+        {customers.length === 0 && isLoadingCustomers && !customerSearch ? (
           <div className="w-full pl-10 pr-10 py-2.5 border border-slate-gray/20 rounded-lg bg-light-sky/30 text-deep-ocean">
             <div className="flex items-center justify-center">
               <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-electric-blue"></div>
@@ -165,6 +143,8 @@ export function TaskForm({ formData, handleInputChange, isEditing }: TaskFormPro
             value={formData.customer_id || ""}
             onChange={(e) => handleInputChange(e)}
             onCustomerSelect={handleCustomerSelect}
+            onSearchChange={setCustomerSearch}
+            isLoading={isLoadingCustomers}
             placeholder="Search and select customer (optional)"
           />
         )}

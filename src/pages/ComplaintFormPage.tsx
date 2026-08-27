@@ -6,7 +6,7 @@ import { useNavigate } from "react-router-dom"
 import { ComplaintForm } from "../components/forms/complaintForm.tsx"
 import { getToken } from "../utils/auth.ts"
 import axiosInstance from "../utils/axiosConfig.ts"
-import { toast } from "react-toastify"
+import { toast } from "../utils/notify.ts";
 import { FaArrowLeft } from "react-icons/fa"
 
 const NewComplaintPage: React.FC = () => {
@@ -50,15 +50,11 @@ const NewComplaintPage: React.FC = () => {
           "Content-Type": "multipart/form-data",
         },
       })
-      toast.success("Complaint added successfully", {
-        style: { background: "#D1FAE5", color: "#10B981" },
-      })
+      toast.success("Complaint added successfully")
       navigate(`/complaints/ticket/${response.data.ticket_number}`)
     } catch (error) {
       console.error("Failed to add complaint", error)
-      toast.error("Failed to add complaint", {
-        style: { background: "#FEE2E2", color: "#EF4444" },
-      })
+      toast.error("Failed to add complaint")
     } finally {
       setIsLoading(false)
     }
@@ -76,9 +72,7 @@ const NewComplaintPage: React.FC = () => {
       return response.data
     } catch (error) {
       console.error("Failed to search customer", error)
-      toast.error("Failed to search customer", {
-        style: { background: "#FEE2E2", color: "#EF4444" },
-      })
+      toast.error("Failed to search customer")
       return null
     }
   }

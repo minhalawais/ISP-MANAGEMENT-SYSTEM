@@ -4,7 +4,7 @@ import { useState } from "react"
 import { Plus, Edit2, Trash2, Play, AlertCircle, CheckCircle2 } from "lucide-react"
 import { getToken } from "../../utils/auth.ts"
 import axiosInstance from "../../utils/axiosConfig.ts"
-import { toast } from "react-toastify"
+import { toast } from "../../utils/notify.ts";
 import APIConnectionForm from "../../components/forms/APIConnectionForm.tsx"
 import { Modal } from "../../components/modal.tsx"
 
@@ -51,15 +51,11 @@ export default function APIConnectionList({ connections, onRefresh }: APIConnect
       await axiosInstance.delete(`/api-connections/delete/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       })
-      toast.success("API connection deleted successfully", {
-        style: { background: "#D1FAE5", color: "#10B981" },
-      })
+      toast.success("API connection deleted successfully")
       onRefresh()
     } catch (error) {
       console.error("Failed to delete connection", error)
-      toast.error("Failed to delete API connection", {
-        style: { background: "#FEE2E2", color: "#EF4444" },
-      })
+      toast.error("Failed to delete API connection")
     } finally {
       setIsLoading(false)
     }
@@ -76,15 +72,11 @@ export default function APIConnectionList({ connections, onRefresh }: APIConnect
           headers: { Authorization: `Bearer ${token}` },
         },
       )
-      toast.success("Sync completed successfully", {
-        style: { background: "#D1FAE5", color: "#10B981" },
-      })
+      toast.success("Sync completed successfully")
       onRefresh()
     } catch (error) {
       console.error("Failed to sync connection", error)
-      toast.error("Failed to sync API connection", {
-        style: { background: "#FEE2E2", color: "#EF4444" },
-      })
+      toast.error("Failed to sync API connection")
     } finally {
       setIsLoading(false)
     }

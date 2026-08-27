@@ -4,9 +4,7 @@ import { useState, useEffect } from "react"
 import { Calendar, Users, CheckCircle, Loader, AlertCircle, X, FileText } from "lucide-react"
 import { getToken } from "../../utils/auth.ts"
 import axiosInstance from "../../utils/axiosConfig.ts"
-import { toast } from "react-toastify"
-
-interface CustomerPreview {
+import { toast } from "../../utils/notify.ts";interface CustomerPreview {
   id: string
   name: string
   internet_id: string
@@ -67,9 +65,7 @@ export function BulkInvoiceModal({ isVisible, onClose, onSuccess }: BulkInvoiceM
 
   const getMonthPreview = async () => {
     if (!selectedMonth) {
-      toast.error("Please select a month", {
-        style: { background: "#FEE2E2", color: "#EF4444" },
-      })
+      toast.error("Please select a month")
       return
     }
 
@@ -96,9 +92,7 @@ export function BulkInvoiceModal({ isVisible, onClose, onSuccess }: BulkInvoiceM
       setStep("preview")
     } catch (error) {
       console.error("Failed to get monthly preview", error)
-      toast.error("Failed to load customers for selected month", {
-        style: { background: "#FEE2E2", color: "#EF4444" },
-      })
+      toast.error("Failed to load customers for selected month")
     } finally {
       setIsLoading(false)
     }
@@ -122,9 +116,7 @@ export function BulkInvoiceModal({ isVisible, onClose, onSuccess }: BulkInvoiceM
 
   const generateInvoices = async () => {
     if (selectedCustomers.length === 0) {
-      toast.error("Please select at least one customer", {
-        style: { background: "#FEE2E2", color: "#EF4444" },
-      })
+      toast.error("Please select at least one customer")
       return
     }
 
@@ -148,22 +140,16 @@ export function BulkInvoiceModal({ isVisible, onClose, onSuccess }: BulkInvoiceM
       setStep("results")
 
       if (response.data.total_generated > 0) {
-        toast.success(`Generated ${response.data.total_generated} invoices successfully`, {
-          style: { background: "#D1FAE5", color: "#10B981" },
-        })
+        toast.success(`Generated ${response.data.total_generated} invoices successfully`)
         onSuccess()
       }
 
       if (response.data.total_failed > 0) {
-        toast.warning(`${response.data.total_failed} invoices failed to generate`, {
-          style: { background: "#FEF3C7", color: "#D97706" },
-        })
+        toast.warning(`${response.data.total_failed} invoices failed to generate`)
       }
     } catch (error) {
       console.error("Failed to generate invoices", error)
-      toast.error("Failed to generate invoices", {
-        style: { background: "#FEE2E2", color: "#EF4444" },
-      })
+      toast.error("Failed to generate invoices")
       setStep("preview")
     } finally {
       setIsLoading(false)
@@ -173,11 +159,11 @@ export function BulkInvoiceModal({ isVisible, onClose, onSuccess }: BulkInvoiceM
   if (!isVisible) return null
 
   return (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-300">
-        <div className="flex items-center justify-between p-6 sm:p-8 bg-gradient-to-r from-[#89A8B2] to-[#B3C8CF] border-b border-[#B3C8CF]/20">
+    <div className="fixed inset-0 bg-black/45 backdrop-blur-[2px] flex items-center justify-center z-50 p-4">
+      <div className="bg-slate-100 rounded-xl shadow-2xl border border-slate-300/70 w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-300">
+        <div className="flex items-center justify-between px-5 sm:px-6 py-3.5 bg-[#2A5C8A] border-b border-[#1e4568]">
           <div>
-            <h2 className="text-2xl sm:text-3xl font-bold text-white">Generate Monthly Invoices</h2>
+            <h2 className="text-base sm:text-lg font-semibold text-white tracking-tight">Generate Monthly Invoices</h2>
             <p className="text-white/80 text-sm mt-1">Bulk invoice generation with customer preview</p>
           </div>
           <button
@@ -441,7 +427,7 @@ export function BulkInvoiceModal({ isVisible, onClose, onSuccess }: BulkInvoiceM
               <button
                 onClick={getMonthPreview}
                 disabled={!selectedMonth || isLoading}
-                className="px-6 py-3 bg-gradient-to-r from-[#89A8B2] to-[#7A96A3] text-white rounded-lg hover:shadow-lg hover:shadow-[#89A8B2]/30 transition-all duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-[#89A8B2]/50 flex items-center justify-center gap-2"
+                className="px-6 py-3 bg-[#2A5C8A] text-white rounded-md shadow-sm hover:bg-[#1e4568] transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-[#89A8B2]/50 flex items-center justify-center gap-2"
               >
                 {isLoading ? <Loader className="animate-spin h-5 w-5" /> : <Users className="h-5 w-5" />}
                 Continue to Preview
@@ -467,7 +453,7 @@ export function BulkInvoiceModal({ isVisible, onClose, onSuccess }: BulkInvoiceM
                 <button
                   onClick={generateInvoices}
                   disabled={selectedCustomers.length === 0 || isLoading}
-                  className="px-6 py-3 bg-gradient-to-r from-[#89A8B2] to-[#7A96A3] text-white rounded-lg hover:shadow-lg hover:shadow-[#89A8B2]/30 transition-all duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-[#89A8B2]/50 flex items-center justify-center gap-2"
+                  className="px-6 py-3 bg-[#2A5C8A] text-white rounded-md shadow-sm hover:bg-[#1e4568] transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-[#89A8B2]/50 flex items-center justify-center gap-2"
                 >
                   {isLoading ? <Loader className="animate-spin h-5 w-5" /> : <FileText className="h-5 w-5" />}
                   Generate {selectedCustomers.length} Invoices
@@ -486,7 +472,7 @@ export function BulkInvoiceModal({ isVisible, onClose, onSuccess }: BulkInvoiceM
               </button>
               <button
                 onClick={onClose}
-                className="px-6 py-3 bg-gradient-to-r from-[#89A8B2] to-[#7A96A3] text-white rounded-lg hover:shadow-lg hover:shadow-[#89A8B2]/30 transition-all duration-200 font-medium focus:outline-none focus:ring-2 focus:ring-[#89A8B2]/50"
+                className="px-6 py-3 bg-[#2A5C8A] text-white rounded-md shadow-sm hover:bg-[#1e4568] transition-colors font-medium focus:outline-none focus:ring-2 focus:ring-[#89A8B2]/50"
               >
                 Close
               </button>

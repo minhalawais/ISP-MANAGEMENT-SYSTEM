@@ -225,19 +225,19 @@ const CustomModal: React.FC<{
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 w-full max-w-2xl bg-white rounded-2xl shadow-2xl max-h-[90vh] overflow-y-auto">
-        <div className="sticky top-0 bg-white border-b border-[#E5E1DA] px-6 py-4 flex items-center justify-between rounded-t-2xl">
-          <h2 className="text-xl font-bold text-[#1F2937]">{title}</h2>
+      <div className="fixed inset-0 bg-black/45 backdrop-blur-[2px]" onClick={onClose} />
+      <div className="relative z-10 w-full max-w-2xl bg-slate-100 rounded-xl shadow-2xl border border-slate-300/70 max-h-[90vh] overflow-y-auto">
+        <div className="sticky top-0 bg-[#2A5C8A] border-b border-[#1e4568] px-5 py-3.5 flex items-center justify-between rounded-t-xl">
+          <h2 className="text-base font-semibold text-white tracking-tight">{title}</h2>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-[#F1F0E8] rounded-lg transition-colors"
+            className="p-1.5 hover:bg-white/10 rounded-md transition-colors"
             aria-label="Close"
           >
-            <X className="w-5 h-5 text-[#6B7280]" />
+            <X className="w-5 h-5 text-white/80" />
           </button>
         </div>
-        <div className="p-6">{children}</div>
+        <div className="p-5">{children}</div>
       </div>
     </div>
   )
@@ -375,7 +375,7 @@ const onQuickFilter = (timeRange: string) => {
   }))
 }
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Filters */}
       <AdvancedFilters
         filters={filters}
@@ -509,23 +509,23 @@ const onQuickFilter = (timeRange: string) => {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="p-4 rounded-xl border border-[#E5E1DA] bg-white shadow-sm">
               <div className="text-xs font-medium text-[#6B7280] uppercase tracking-wide mb-1">Total Credits</div>
-              <div className="text-2xl font-bold text-emerald-700">
+              <div className="text-xl font-semibold text-emerald-700">
                 PKR {Math.round(totals.credits).toLocaleString()}
               </div>
             </div>
             <div className="p-4 rounded-xl border border-[#E5E1DA] bg-white shadow-sm">
               <div className="text-xs font-medium text-[#6B7280] uppercase tracking-wide mb-1">Total Debits</div>
-              <div className="text-2xl font-bold text-red-700">PKR {Math.round(totals.debits).toLocaleString()}</div>
+              <div className="text-xl font-semibold text-red-700">PKR {Math.round(totals.debits).toLocaleString()}</div>
             </div>
             <div className="p-4 rounded-xl border border-[#E5E1DA] bg-white shadow-sm">
               <div className="text-xs font-medium text-[#6B7280] uppercase tracking-wide mb-1">Net</div>
-              <div className={`text-2xl font-bold ${totals.net >= 0 ? "text-emerald-800" : "text-red-800"}`}>
+              <div className={`text-xl font-semibold ${totals.net >= 0 ? "text-emerald-800" : "text-red-800"}`}>
                 PKR {Math.round(totals.net).toLocaleString()}
               </div>
             </div>
             <div className="p-4 rounded-xl border border-[#E5E1DA] bg-white shadow-sm">
               <div className="text-xs font-medium text-[#6B7280] uppercase tracking-wide mb-1">Transactions</div>
-              <div className="text-2xl font-bold text-[#1F2937]">{totals.count}</div>
+              <div className="text-xl font-semibold text-[#1F2937]">{totals.count}</div>
             </div>
           </div>
         </div>
@@ -533,7 +533,7 @@ const onQuickFilter = (timeRange: string) => {
 
       {/* Detail Modal */}
       <CustomModal isOpen={detailOpen} onClose={() => setDetailOpen(false)} title="Transaction Details">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <div className="text-xs font-medium text-[#6B7280] uppercase tracking-wide mb-1">Type</div>
             <div className="text-base font-semibold text-[#1F2937] capitalize">
@@ -565,7 +565,7 @@ const onQuickFilter = (timeRange: string) => {
           <div className="md:col-span-2">
             <div className="text-xs font-medium text-[#6B7280] uppercase tracking-wide mb-1">Amount</div>
             <div
-              className={`text-3xl font-bold ${
+              className={`text-xl font-semibold ${
                 selected?.direction === "credit" ? "text-emerald-700" : "text-red-700"
               }`}
             >

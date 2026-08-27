@@ -7,6 +7,7 @@ import { useCompany } from "../context/CompanyContext.tsx"
 import axiosInstance from "../utils/axiosConfig.ts"
 import { Sidebar } from "../components/sideNavbar.tsx"
 import { Topbar } from "../components/topNavbar.tsx"
+import { useOptionalAdminChrome } from "../context/AdminLayoutContext.tsx"
 import {
   AlertCircle,
   Calendar,
@@ -24,9 +25,7 @@ import {
   Save,
   X,
 } from "lucide-react"
-import { toast } from "react-toastify"
-
-interface Complaint {
+import { toast } from "../utils/notify.ts";interface Complaint {
   id: string
   customer_id: string
   customer_name: string
@@ -55,6 +54,7 @@ const ComplaintDetailPage = () => {
   const [complaint, setComplaint] = useState<Complaint | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const hasChrome = useOptionalAdminChrome()
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [isEditingRemarks, setIsEditingRemarks] = useState(false)
   const [remarks, setRemarks] = useState<string>("")
@@ -153,14 +153,10 @@ const ComplaintDetailPage = () => {
       }
 
       setIsEditingRemarks(false)
-      toast.success("Remarks updated successfully", {
-        style: { background: "#E5E1DA", color: "#89A8B2" },
-      })
+      toast.success("Remarks updated successfully")
     } catch (error) {
       console.error("Failed to update remarks", error)
-      toast.error("Failed to update remarks", {
-        style: { background: "#F1F0E8", color: "#B3C8CF" },
-      })
+      toast.error("Failed to update remarks")
     } finally {
       setIsSavingRemarks(false)
     }
@@ -239,14 +235,20 @@ const ComplaintDetailPage = () => {
   }
 
   return (
-    <div className="flex h-screen bg-gray-100">
-      <Sidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} setIsOpen={setIsSidebarOpen} />
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <Topbar toggleSidebar={toggleSidebar} />
+    <div className={hasChrome ? "flex-1 min-w-0 w-full" : "flex h-screen bg-gray-100"}>
+      {!hasChrome && (
+        <Sidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} setIsOpen={setIsSidebarOpen} />
+      )}
+      <div className={hasChrome ? "flex-1 min-w-0 w-full" : "flex-1 flex flex-col overflow-hidden"}>
+        {!hasChrome && <Topbar toggleSidebar={toggleSidebar} />}
         <main
-          className={`flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-6 pt-20 transition-all duration-300 ${
+          className={
+            hasChrome
+              ? "px-6 py-6"
+              : `flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 px-6 pb-6 pt-20 transition-all duration-300 ${
             isSidebarOpen ? "ml-72" : "ml-0 md:ml-20"
-          }`}
+          }`
+          }
         >
           <div className="container mx-auto max-w-5xl">
             {/* Header with back button */}

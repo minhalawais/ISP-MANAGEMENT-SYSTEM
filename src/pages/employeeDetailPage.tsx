@@ -8,6 +8,7 @@ import axiosInstance from "../utils/axiosConfig.ts"
 import { useCompany } from "../context/CompanyContext.tsx"
 import { Sidebar } from "../components/sideNavbar.tsx"
 import { Topbar } from "../components/topNavbar.tsx"
+import { useOptionalAdminChrome } from "../context/AdminLayoutContext.tsx"
 import {
   User,
   DollarSign,
@@ -316,6 +317,7 @@ const EmployeeDetailPage: React.FC = () => {
   const [ledger, setLedger] = useState<LedgerEntry[]>([])
   const [inventory, setInventory] = useState<InventoryData[]>([])
   const [activeTab, setActiveTab] = useState("overview")
+  const hasChrome = useOptionalAdminChrome()
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [loading, setLoading] = useState(true)
 
@@ -934,11 +936,11 @@ const EmployeeDetailPage: React.FC = () => {
   }
 
   return (
-    <div className="flex h-screen bg-[#F1F0E8]">
-      <Sidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} />
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <Topbar toggleSidebar={toggleSidebar} />
-        <main className="flex-1 overflow-y-auto p-4 md:p-6 mt-12">
+    <div className={hasChrome ? "flex-1 min-w-0 w-full" : "flex h-screen bg-[#F1F0E8]"}>
+      {!hasChrome && <Sidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} />}
+      <div className={hasChrome ? "flex-1 min-w-0 w-full" : "flex-1 flex flex-col overflow-hidden"}>
+        {!hasChrome && <Topbar toggleSidebar={toggleSidebar} />}
+        <main className={hasChrome ? "px-4 md:px-6 py-4 md:py-6" : "flex-1 overflow-y-auto px-4 md:px-6 pb-4 md:pb-6 pt-16"}>
           <div className="max-w-7xl mx-auto">
             {/* Header */}
             <div className="mb-6">

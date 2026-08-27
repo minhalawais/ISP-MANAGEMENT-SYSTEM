@@ -3,16 +3,18 @@
 import { useEffect, useState } from "react"
 import { Topbar } from "../../components/topNavbar.tsx"
 import { Sidebar } from "../../components/sideNavbar.tsx"
+import { useOptionalAdminChrome } from "../../context/AdminLayoutContext.tsx"
 import { Activity, Settings, AlertCircle } from "lucide-react"
 import { getToken } from "../../utils/auth.ts"
 import axiosInstance from "../../utils/axiosConfig.ts"
-import { toast } from "react-toastify"
+import { toast } from "../../utils/notify.ts";
 import APIConnectionList from "../../components/monitoring/APIConnectionList.tsx"
 import MetricsDashboard from "../../components/monitoring/MetricsDashboard.tsx"
 import NetworkAlerts from "../../components/monitoring/NetworkAlerts.tsx"
 import { useCompany } from "../../context/CompanyContext.tsx"
 
 export default function NetworkMonitoring() {
+  const hasChrome = useOptionalAdminChrome()
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [activeTab, setActiveTab] = useState<"connections" | "metrics" | "alerts">("connections")
   const [connections, setConnections] = useState([])
@@ -34,9 +36,7 @@ export default function NetworkMonitoring() {
       setConnections(response.data)
     } catch (error) {
       console.error("Failed to fetch connections", error)
-      toast.error("Failed to fetch API connections", {
-        style: { background: "#FEE2E2", color: "#EF4444" },
-      })
+      toast.error("Failed to fetch API connections")
     } finally {
       setIsLoading(false)
     }
@@ -47,14 +47,20 @@ export default function NetworkMonitoring() {
   }
 
   return (
-    <div className="flex h-screen" style={{ backgroundColor: "#F1F0E8" }}>
-      <Sidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} setIsOpen={setIsSidebarOpen} />
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <Topbar toggleSidebar={toggleSidebar} />
+    <div className={hasChrome ? "flex-1 min-w-0 w-full" : "flex h-screen"} style={hasChrome ? undefined : { backgroundColor: "#F1F0E8" }}>
+      {!hasChrome && (
+        <Sidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} setIsOpen={setIsSidebarOpen} />
+      )}
+      <div className={hasChrome ? "flex-1 min-w-0 w-full" : "flex-1 flex flex-col overflow-hidden"}>
+        {!hasChrome && <Topbar toggleSidebar={toggleSidebar} />}
         <main
-          className={`flex-1 overflow-x-hidden overflow-y-auto p-0 sm:p-6 pt-20 transition-all duration-300 ${
+          className={
+            hasChrome
+              ? "px-0 pb-0 sm:px-6 sm:pb-6 py-4"
+              : `flex-1 overflow-x-hidden overflow-y-auto px-0 pb-0 sm:px-6 sm:pb-6 pt-20 transition-all duration-300 ${
             isSidebarOpen ? "ml-64" : "ml-0 lg:ml-20"
-          }`}
+          }`
+          }
           style={{ backgroundColor: "#F1F0E8" }}
         >
           <div className="container mx-auto mt-10">

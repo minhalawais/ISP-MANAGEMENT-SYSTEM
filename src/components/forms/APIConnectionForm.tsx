@@ -4,7 +4,7 @@ import type React from "react"
 import { useState, useEffect } from "react"
 import { getToken } from "../../utils/auth.ts"
 import axiosInstance from "../../utils/axiosConfig.ts"
-import { toast } from "react-toastify"
+import { toast } from "../../utils/notify.ts";
 import { Save } from "lucide-react"
 
 interface APIConnection {
@@ -154,15 +154,11 @@ export default function APIConnectionForm({ connection, onSuccess }: APIConnecti
         headers: { Authorization: `Bearer ${token}` },
       })
 
-      toast.success(connection ? "API connection updated successfully" : "API connection added successfully", {
-        style: { background: "#D1FAE5", color: "#10B981" },
-      })
+      toast.success(connection ? "API connection updated successfully" : "API connection added successfully")
       onSuccess()
     } catch (error) {
       console.error("Failed to save API connection", error)
-      toast.error("Failed to save API connection", {
-        style: { background: "#FEE2E2", color: "#EF4444" },
-      })
+      toast.error("Failed to save API connection")
     } finally {
       setIsLoading(false)
     }

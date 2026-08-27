@@ -48,13 +48,13 @@ export const TaskDetailModal: React.FC<Props> = ({ task, onClose }) => {
   const StatusIcon = status.icon
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-hidden" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 backdrop-blur-[2px] p-4" onClick={onClose}>
+      <div className="bg-white rounded-xl shadow-2xl border border-slate-300/70 w-full max-w-md max-h-[90vh] overflow-hidden" onClick={e => e.stopPropagation()}>
         {/* Header */}
-        <div className="flex items-center justify-between p-5 border-b" style={{ backgroundColor: '#89A8B2' }}>
+        <div className="flex items-center justify-between p-5 border-b" style={{ backgroundColor: '#2A5C8A' }}>
           <div className="flex items-center gap-3">
             <ClipboardList className="w-5 h-5 text-white" />
-            <h3 className="text-lg font-semibold text-white">Task Details</h3>
+            <h3 className="text-base font-semibold text-white tracking-tight">Task Details</h3>
           </div>
           <button onClick={onClose} className="p-1.5 hover:bg-white/20 rounded-lg transition-colors">
             <X className="w-5 h-5 text-white" />
@@ -98,7 +98,7 @@ export const TaskDetailModal: React.FC<Props> = ({ task, onClose }) => {
               <div className="space-y-2">
                 {task.assignees.map(a => (
                   <div key={a.id} className="flex items-center gap-3 p-2 bg-gray-50 rounded-lg">
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-medium" style={{ backgroundColor: '#89A8B2' }}>
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-medium" style={{ backgroundColor: '#2A5C8A' }}>
                       {a.name.charAt(0).toUpperCase()}
                     </div>
                     <div>
@@ -139,7 +139,7 @@ export const TaskDetailModal: React.FC<Props> = ({ task, onClose }) => {
 
         {/* Footer */}
         <div className="px-5 py-4 border-t bg-gray-50">
-          <button onClick={onClose} className="w-full py-2.5 font-medium rounded-xl text-white hover:opacity-90" style={{ backgroundColor: '#89A8B2' }}>Close</button>
+          <button onClick={onClose} className="w-full py-2.5 font-medium rounded-xl text-white hover:opacity-90" style={{ backgroundColor: '#2A5C8A' }}>Close</button>
         </div>
       </div>
     </div>

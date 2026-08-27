@@ -43,12 +43,12 @@ export const ISPPaymentAnalysis: React.FC<Props> = ({ data }) => {
   const totalPayments = data.total_isp_payments || 0
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-6">
+    <div className="bg-white rounded-xl border border-gray-200 p-4">
       <h3 className="text-xl font-bold text-gray-900 mb-2">ISP Payment Analysis</h3>
       <p className="text-gray-600 text-sm mb-4">Overview of ISP payment types, bank accounts, and bandwidth cost trends</p>
 
       {/* Totals */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-3">
         <div className="p-3 rounded-lg bg-orange-50 border border-orange-200">
           <div className="text-xs font-medium text-orange-700">Total ISP Payments</div>
           <div className="text-lg font-bold text-orange-800">{formatCurrency(totalPayments)}</div>
@@ -67,7 +67,7 @@ export const ISPPaymentAnalysis: React.FC<Props> = ({ data }) => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Payment Types */}
         <div>
           <h4 className="text-lg font-semibold text-gray-800 mb-3">Payments by Type</h4>

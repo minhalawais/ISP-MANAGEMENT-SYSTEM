@@ -1,7 +1,8 @@
 // src/utils/axiosConfig.ts
 import axios from "axios";
-import { toast } from "react-toastify";
+import { formatApiError, toast } from "./notify.ts";
 import { removeToken, getToken, getRefreshToken } from "./auth.ts";
+import { LOGIN_ROUTE } from "./authRedirects.ts";
 
 // Environment-based configuration
 const getBaseURL = () => {
@@ -42,6 +43,16 @@ axiosInstance.interceptors.request.use(
     const token = getToken();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+    }
+
+    if (typeof FormData !== "undefined" && config.data instanceof FormData) {
+      if (typeof config.headers?.delete === "function") {
+        config.headers.delete("Content-Type");
+        config.headers.delete("content-type");
+      } else if (config.headers) {
+        delete config.headers["Content-Type"];
+        delete config.headers["content-type"];
+      }
     }
 
     // Add timestamp to prevent caching for GET requests
@@ -125,18 +136,20 @@ axiosInstance.interceptors.response.use(
     }
 
     // Handle other errors
-    handleError(error);
+    if (!originalRequest?.skipErrorToast) {
+      handleError(error)
+    }
     return Promise.reject(error);
   }
 );
 
 // Helper function for unauthorized handling
 const handleUnauthorized = () => {
-  toast.error("Session expired. Redirecting to login.");
+  toast.error("Session expired. Redirecting to sign in…");
   removeToken();
   // Delay redirect to allow toast to be visible
   setTimeout(() => {
-    window.location.href = "/login";
+    window.location.href = LOGIN_ROUTE;
   }, 1500);
 };
 
@@ -145,18 +158,16 @@ const handleError = (error: any) => {
   const { response } = error;
 
   if (response?.status === 403) {
-    toast.error("You don't have permission to perform this action.");
+    toast.error(formatApiError(error, "You don't have permission to perform this action."));
   } else if (response?.status === 404) {
-    toast.error("The requested resource was not found.");
+    toast.error(formatApiError(error, "The requested resource was not found."));
   } else if (response?.status === 429) {
-    toast.error("Too many requests. Please try again later.");
+    toast.error(formatApiError(error, "Too many requests. Please try again later."));
   } else if (response?.status >= 500) {
-    toast.error("Server error. Please try again later.");
+    toast.error(formatApiError(error, "Server error. Please try again later."));
   } else if (!response) {
-    toast.error("Network error. Please check your connection.");
+    toast.error(formatApiError(error, "Network error. Please check your connection."));
   }
-
-  // You can add more specific error handling here
 };
 
 // Optional: Add methods for common API patterns

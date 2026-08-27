@@ -12,7 +12,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import axiosInstance from '../../utils/axiosConfig.ts';
 import { getToken } from '../../utils/auth.ts';
-import { toast } from 'react-toastify';
+import { toast } from "../../utils/notify.ts";
 import { useCompany } from '../../context/CompanyContext.tsx';
 
 interface Vendor {
@@ -28,6 +28,8 @@ interface Vendor {
   is_active: boolean;
   vendor_company_id: string | null;
   is_provisioned: boolean;
+  primary_domain?: string | null;
+  domains?: string[];
   created_at: string;
 }
 
@@ -44,6 +46,7 @@ interface CredentialModalData {
   username: string;
   new_password: string;
   vendor_name: string;
+  domain?: string | null;
 }
 
 // ── Credentials Modal ─────────────────────────────────────────────────────────
@@ -96,6 +99,11 @@ const CredentialsModal: React.FC<{
               <p className="text-xs text-slate-500 font-medium uppercase tracking-wider mb-1">New Password</p>
               <p className="text-slate-800 font-mono font-bold text-lg tracking-wider">{data.new_password}</p>
             </div>
+            {data.domain ? (
+              <p className="text-xs text-slate-600">
+                Sign in only at <span className="font-medium text-slate-800">{data.domain}</span>
+              </p>
+            ) : null}
           </div>
 
           <div className="flex gap-3 pt-2">
@@ -163,6 +171,7 @@ const VendorManagement: React.FC = () => {
         username: res.data.username,
         new_password: res.data.new_password,
         vendor_name: res.data.vendor_name,
+        domain: res.data.primary_domain || null,
       });
     } catch (err: any) {
       toast.error(err?.response?.data?.error || 'Failed to reset credentials');
@@ -245,6 +254,18 @@ const VendorManagement: React.FC = () => {
             )}
           </div>
         ),
+      },
+      {
+        header: 'Domain',
+        accessorKey: 'primary_domain',
+        cell: info => {
+          const domain = info.getValue() as string | null | undefined;
+          return (
+            <span className="text-sm text-slate-700 font-mono">
+              {domain || '—'}
+            </span>
+          );
+        },
       },
       // ── Live KPI stats
       {
@@ -396,6 +417,7 @@ const VendorManagement: React.FC = () => {
       <CRUDPage<Vendor>
         title="Vendor"
         endpoint="vendors"
+        filterModuleKey="vendor"
         columns={columns}
         FormComponent={VendorForm}
         useFormData={true}
@@ -403,6 +425,11 @@ const VendorManagement: React.FC = () => {
           if (!formData.name?.trim()) return "Vendor name is required";
           if (!formData.phone?.trim()) return "Phone number is required";
           if (!formData.cnic?.trim()) return "CNIC is required";
+          const domain = (formData.domain || formData.primary_domain || "").trim();
+          if (!domain) return "Domain is required";
+          if (/^https?:\/\//i.test(domain) || domain.includes("/") || domain.includes(" ")) {
+            return "Enter a hostname only (e.g. fastnet.mbanet.com.pk)";
+          }
           return null;
         }}
         onDataChange={() => fetchVendorSummary()}

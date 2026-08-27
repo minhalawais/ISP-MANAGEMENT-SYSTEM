@@ -196,6 +196,7 @@ const ExtraIncomeManagement: React.FC = () => {
       <CRUDPage<ExtraIncome>
         title="Extra Income"
         endpoint="extra-incomes"
+        filterModuleKey="extra-income"
         columns={columns}
         useFormData={true}
         FormComponent={(props) => (
@@ -223,13 +224,13 @@ const ExtraIncomeManagement: React.FC = () => {
           style={{ scrollBehavior: 'smooth' }}
         >
           {/* Add New Income Type */}
-          <div className="bg-light-sky/30 p-4 rounded-lg">
-            <h3 className="text-lg font-medium text-deep-ocean mb-3">
+          <div className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm">
+            <h3 className="text-sm font-semibold text-slate-800 mb-3">
               {editingType ? 'Edit Income Type' : 'Add New Income Type'}
             </h3>
             <div className="space-y-3">
               <div>
-                <label className="block text-sm font-medium text-deep-ocean mb-1">
+                <label className="block text-[11px] font-semibold uppercase tracking-wide text-slate-600 mb-1.5">
                   Name *
                 </label>
                 <input
@@ -240,11 +241,11 @@ const ExtraIncomeManagement: React.FC = () => {
                     : setNewIncomeType(prev => ({ ...prev, name: e.target.value }))
                   }
                   placeholder="Enter income type name"
-                  className="w-full px-3 py-2 border border-slate-gray/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-electric-blue/30"
+                  className="w-full h-9 px-3 text-sm border border-slate-300 rounded-md bg-[#F8FAFB] text-slate-800 focus:bg-white focus:border-[#2A5C8A] focus:outline-none focus:ring-1 focus:ring-[#2A5C8A]/25"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-deep-ocean mb-1">
+                <label className="block text-[11px] font-semibold uppercase tracking-wide text-slate-600 mb-1.5">
                   Description
                 </label>
                 <textarea
@@ -255,7 +256,7 @@ const ExtraIncomeManagement: React.FC = () => {
                   }
                   placeholder="Enter description"
                   rows={2}
-                  className="w-full px-3 py-2 border border-slate-gray/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-electric-blue/30"
+                  className="w-full h-9 px-3 text-sm border border-slate-300 rounded-md bg-[#F8FAFB] text-slate-800 focus:bg-white focus:border-[#2A5C8A] focus:outline-none focus:ring-1 focus:ring-[#2A5C8A]/25"
                 />
               </div>
               <div className="flex gap-2">
@@ -264,7 +265,7 @@ const ExtraIncomeManagement: React.FC = () => {
                     <button
                       onClick={handleUpdateIncomeType}
                       disabled={!editTypeData.name.trim()}
-                      className="flex items-center gap-2 px-4 py-2 bg-electric-blue text-white rounded-lg hover:bg-electric-blue/90 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="flex items-center gap-2 h-9 px-4 text-sm font-medium bg-[#2A5C8A] text-white rounded-md shadow-sm hover:bg-[#1e4568] disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <Save size={16} />
                       Update Type
@@ -281,7 +282,7 @@ const ExtraIncomeManagement: React.FC = () => {
                   <button
                     onClick={handleAddIncomeType}
                     disabled={!newIncomeType.name.trim()}
-                    className="flex items-center gap-2 px-4 py-2 bg-electric-blue text-white rounded-lg hover:bg-electric-blue/90 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex items-center gap-2 h-9 px-4 text-sm font-medium bg-[#2A5C8A] text-white rounded-md shadow-sm hover:bg-[#1e4568] disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <Plus size={16} />
                     Add Type
@@ -293,7 +294,7 @@ const ExtraIncomeManagement: React.FC = () => {
 
           {/* Income Types List */}
           <div>
-            <h3 className="text-lg font-medium text-deep-ocean mb-3">Existing Income Types</h3>
+            <h3 className="text-sm font-semibold text-slate-800 mb-3">Existing Income Types</h3>
             <div className="space-y-2">
               {incomeTypes.length === 0 ? (
                 <p className="text-center text-slate-gray py-4">No income types found</p>

@@ -2,7 +2,7 @@
 
 import type React from "react"
 import { useState, useEffect } from "react"
-import { useParams } from "react-router-dom"
+import { Link, useParams } from "react-router-dom"
 import { getToken } from "../utils/auth.ts"
 import { useCompany } from "../context/CompanyContext.tsx"
 import {
@@ -40,6 +40,7 @@ import {
 import axiosInstance from "../utils/axiosConfig.ts"
 import { Sidebar } from "../components/sideNavbar.tsx"
 import { Topbar } from "../components/topNavbar.tsx"
+import { useOptionalAdminChrome } from "../context/AdminLayoutContext.tsx"
 import { KPICard } from "../components/customer-detail/kpi-card.tsx"
 import { StatusBadge } from "../components/customer-detail/status-badge.tsx"
 import { BillingSummary } from "../components/customer-detail/billing-summary.tsx"
@@ -51,10 +52,17 @@ interface CustomerPackage {
   service_plan_id: string
   service_plan_name: string
   price: number
+  discount_amount?: number
   start_date: string | null
   end_date: string | null
   is_active: boolean
   notes: string | null
+}
+
+interface CustomerTechnician {
+  id: string
+  name: string
+  commission_amount: number
 }
 
 interface CustomerDetail {
@@ -69,6 +77,7 @@ interface CustomerDetail {
   service_plan: string
   servicePlanPrice: number
   packages: CustomerPackage[]
+  technicians?: CustomerTechnician[]
   isp: string
   installation_address: string
   installation_date: string
@@ -151,9 +160,14 @@ interface Invoice {
   total_amount: number
   status: string
   invoice_type?: string
+  charge_types?: string[]
   discount_percentage?: number
   subtotal?: number
   notes?: string
+  line_items?: any[]
+  payments?: any[]
+  total_paid?: number
+  remaining?: number
 }
 
 interface Payment {
@@ -241,14 +255,13 @@ const CustomerDetail: React.FC = () => {
   const [inventory, setInventory] = useState<InventoryItem[]>([])
 
   const [activeTab, setActiveTab] = useState("overview")
+  const hasChrome = useOptionalAdminChrome()
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [cnicImageUrls, setCnicImageUrls] = useState<{ front: string | null; back: string | null }>({
     front: null,
     back: null,
   })
   const [loading, setLoading] = useState(true)
-  const [loadingViewId, setLoadingViewId] = useState<string | null>(null)
-
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null)
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null)
   const [selectedComplaint, setSelectedComplaint] = useState<Complaint | null>(null)
@@ -322,21 +335,6 @@ const CustomerDetail: React.FC = () => {
       if (cnicImageUrls.back) URL.revokeObjectURL(cnicImageUrls.back)
     }
   }, [customer, id])
-
-  const handleViewInvoice = async (invoiceId: string) => {
-    setLoadingViewId(invoiceId)
-    try {
-      const token = getToken()
-      await axiosInstance.get(`/invoices/${invoiceId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      window.open(`/invoices/${invoiceId}`, "_blank")
-    } catch (error) {
-      console.error("Failed to view invoice", error)
-    } finally {
-      setLoadingViewId(null)
-    }
-  }
 
   if (loading) {
     return (
@@ -475,17 +473,37 @@ const CustomerDetail: React.FC = () => {
               <p className="text-xs font-medium text-slate-400 uppercase tracking-wider flex items-center gap-1"><Calendar className="w-3 h-3" /> Installation Date</p>
               <p className="text-slate-700">{new Date(customer.installation_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
             </div>
+            <div className="space-y-1">
+              <p className="text-xs font-medium text-slate-400 uppercase tracking-wider">Assigned Technicians</p>
+              {customer.technicians && customer.technicians.length > 0 ? (
+                <div className="space-y-1">
+                  {customer.technicians.map((tech) => (
+                    <p key={tech.id} className="text-slate-700 text-sm">
+                      {tech.name}
+                      {tech.commission_amount > 0 ? ` · PKR ${tech.commission_amount.toLocaleString()}/mo` : ""}
+                    </p>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-slate-500 text-sm">None</p>
+              )}
+            </div>
             <div className="space-y-2">
               <p className="text-xs font-medium text-slate-400 uppercase tracking-wider">Active Packages</p>
               <div className="space-y-2">
                 {customer.packages && customer.packages.length > 0 ? (
                   customer.packages.map((pkg) => (
-                    <div key={pkg.id} className="flex items-center justify-between p-3 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-100">
+                    <div key={pkg.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
                       <div className="flex items-center gap-2">
                         <Package className="h-4 w-4 text-blue-600" />
                         <span className="text-slate-700 font-medium text-sm">{pkg.service_plan_name}</span>
                       </div>
-                      <span className="text-emerald-600 font-bold text-sm">PKR {pkg.price.toLocaleString()}</span>
+                      <div className="text-right">
+                        <span className="text-slate-800 font-bold text-sm">PKR {pkg.price.toLocaleString()}</span>
+                        {(pkg.discount_amount || 0) > 0 && (
+                          <p className="text-xs text-coral-red">-{pkg.discount_amount?.toLocaleString()} discount</p>
+                        )}
+                      </div>
                     </div>
                   ))
                 ) : (
@@ -495,7 +513,11 @@ const CustomerDetail: React.FC = () => {
               {customer.servicePlanPrice > 0 && (
                 <div className="pt-2 mt-2 border-t border-slate-100 flex justify-between items-center">
                   <span className="text-sm text-slate-500">Monthly Total</span>
-                  <span className="text-lg font-bold text-emerald-600">PKR {customer.servicePlanPrice.toLocaleString()}</span>
+                  <span className="text-lg font-bold text-emerald-600">
+                    PKR {(
+                      customer.packages.reduce((sum, pkg) => sum + pkg.price - (pkg.discount_amount || 0), 0)
+                    ).toLocaleString()}
+                  </span>
                 </div>
               )}
             </div>
@@ -584,6 +606,7 @@ const CustomerDetail: React.FC = () => {
               <thead className="bg-slate-50 border-b border-slate-100">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap" style={{ width: "120px", maxWidth: "120px" }}>Invoice #</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap" style={{ width: "100px", maxWidth: "100px" }}>Type</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap" style={{ width: "120px", maxWidth: "120px" }}>Date</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap" style={{ width: "120px", maxWidth: "120px" }}>Amount</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap" style={{ width: "120px", maxWidth: "120px" }}>Status</th>
@@ -594,7 +617,22 @@ const CustomerDetail: React.FC = () => {
                 {invoices.map((invoice) => (
                   <tr key={invoice.id} className="hover:bg-slate-50/50 transition-colors cursor-pointer" onClick={() => setSelectedInvoice(invoice)}>
                     <td className="px-4 py-4 whitespace-nowrap">
-                      <span className="font-mono text-sm font-semibold text-slate-800">{invoice.invoice_number}</span>
+                      <Link
+                        to={`/invoices/${invoice.id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="font-mono text-sm font-semibold text-[#2A5C8A] hover:underline"
+                      >
+                        {invoice.invoice_number}
+                      </Link>
+                    </td>
+                    <td className="px-4 py-4 whitespace-nowrap">
+                      <span className="inline-block px-2 py-0.5 rounded text-[11px] font-medium bg-slate-100 text-slate-700 capitalize">
+                        {invoice.invoice_type === "mixed" && invoice.charge_types?.length
+                          ? invoice.charge_types.join(" + ").replace(/_/g, " ")
+                          : (invoice.invoice_type || "—").replace(/_/g, " ")}
+                      </span>
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap text-sm text-slate-600">
                       {new Date(invoice.billing_start_date).toLocaleDateString()}
@@ -1020,11 +1058,11 @@ const CustomerDetail: React.FC = () => {
   // MAIN RETURN - ENHANCED LAYOUT
   // ============================================
   return (
-    <div className="flex h-screen bg-[#F1F0E8]">
-      <Sidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} />
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <Topbar toggleSidebar={toggleSidebar} />
-        <main className="flex-1 overflow-y-auto mt-12">
+    <div className={hasChrome ? "flex-1 min-w-0 w-full" : "flex h-screen bg-[#F1F0E8]"}>
+      {!hasChrome && <Sidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} />}
+      <div className={hasChrome ? "flex-1 min-w-0 w-full" : "flex-1 flex flex-col overflow-hidden"}>
+        {!hasChrome && <Topbar toggleSidebar={toggleSidebar} />}
+        <main className={hasChrome ? "" : "flex-1 overflow-y-auto pt-16"}>
           {/* Hero Header */}
           <div className="bg-gradient-to-r from-[#2A5C8A] via-[#3a6d9a] to-[#89A8B2] px-6 py-8">
             <div className="max-w-7xl mx-auto">

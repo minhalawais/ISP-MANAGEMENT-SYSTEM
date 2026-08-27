@@ -1,7 +1,8 @@
 "use client"
 
 import type React from "react"
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo, useCallback } from "react"
+import { Link } from "react-router-dom"
 import { CSVLink } from "react-csv"
 import type { ColumnDef, SortingState } from "@tanstack/react-table"
 import {
@@ -14,19 +15,27 @@ import {
   LayoutDashboard,
   ChevronRight,
   FileText,
-  Eye,
   Share2,
 } from "lucide-react"
 import { Table } from "./table/invoiceTable.tsx"
 import { Modal } from "./modal.tsx"
+import { MODAL_CANCEL_BTN, MODAL_FOOTER, MODAL_PRIMARY_BTN } from "./ui/modalStyles.ts"
 import { Topbar } from "./topNavbar.tsx"
+import { useOptionalAdminChrome } from "../context/AdminLayoutContext.tsx"
 import { Sidebar } from "./sideNavbar.tsx"
 import { UnifiedPaymentModal } from "./modals/UnifiedPaymentModal.tsx"
 import { getToken } from "../utils/auth.ts"
-import { toast } from "react-toastify"
+import { toast } from "../utils/notify.ts";
 import axiosInstance from "../utils/axiosConfig.ts"
 import { useCompany } from "../context/CompanyContext.tsx"
 import { getOperationErrorMessage } from "../utils/crudSubmit.ts"
+import { CRUD_FILTER_CONFIGS } from "../config/crudFilterConfigs.ts"
+import { useCrudTableFilters } from "../hooks/useCrudTableFilters.ts"
+import { useCrudPeriodFilter } from "../hooks/useCrudPeriodFilter.ts"
+import { getCrudPeriodConfig } from "../config/crudPeriodConfigs.ts"
+import { CrudStatsSection } from "./crud/CrudStatsSection.tsx"
+import { periodQueryParamsForTextSearch } from "../utils/crudPeriodUtils.ts"
+import type { StatCardDef } from "../types/crudFilters.ts"
 
 interface CRUDPageProps<T> {
   title: string
@@ -34,11 +43,15 @@ interface CRUDPageProps<T> {
   columns: ColumnDef<T>[]
   FormComponent: React.ComponentType<{
     formData: Partial<T>
-    handleInputChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void
+    handleInputChange: (
+      e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement> | { target: { name: string; value: any } }
+    ) => void
     isEditing: boolean
   }>
   customHeaderButton?: React.ReactNode
   refreshTrigger?: number
+  onSubmit?: (formData: any, isEditing: boolean) => Promise<any> | any
+  validateBeforeSubmit?: (formData: Partial<T>) => string | null
 }
 
 export function CRUDPage<T extends { id: string }>({
@@ -48,12 +61,15 @@ export function CRUDPage<T extends { id: string }>({
   FormComponent,
   customHeaderButton,
   refreshTrigger,
+  onSubmit,
+  validateBeforeSubmit,
 }: CRUDPageProps<T>) {
   const { company } = useCompany()
   const [data, setData] = useState<T[]>([])
   const [isModalVisible, setIsModalVisible] = useState(false)
   const [editingItem, setEditingItem] = useState<T | null>(null)
   const [formData, setFormData] = useState<Partial<T>>({})
+  const hasChrome = useOptionalAdminChrome()
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [selectedRows, setSelectedRows] = useState<string[]>([])
   const [isLoading, setIsLoading] = useState(false)
@@ -70,6 +86,27 @@ export function CRUDPage<T extends { id: string }>({
   const [totalCount, setTotalCount] = useState<number>(0)
   const [sorting, setSorting] = useState<SortingState>([])
   const [search, setSearch] = useState<string>("")
+  const filterConfig = CRUD_FILTER_CONFIGS.invoice
+  const periodConfig = getCrudPeriodConfig("invoice")
+  const tableFilters = useCrudTableFilters({
+    config: filterConfig,
+    onFilterChange: () => setPageIndex(0),
+  })
+  const periodFilter = useCrudPeriodFilter({
+    config: periodConfig,
+    onPeriodChange: () => setPageIndex(0),
+  })
+
+  const statCards: StatCardDef[] = useMemo(
+    () =>
+      filterConfig.statCards.map((card) => {
+        if (card.id === "total") return { ...card, value: stats.total }
+        if (card.id === "paid") return { ...card, value: stats.paid }
+        if (card.id === "pending") return { ...card, value: stats.pending }
+        return { ...card, value: 0 }
+      }),
+    [filterConfig.statCards, stats],
+  )
   // Add loading states for view and share operations
   const [loadingViewId, setLoadingViewId] = useState<string | null>(null)
   const [loadingShareId, setLoadingShareId] = useState<string | null>(null)
@@ -79,7 +116,7 @@ export function CRUDPage<T extends { id: string }>({
   useEffect(() => {
     fetchData()
     fetchStats()
-  }, [refreshTrigger, pageIndex, pageSize, JSON.stringify(sorting), search])
+  }, [refreshTrigger, pageIndex, pageSize, JSON.stringify(sorting), search, JSON.stringify(tableFilters.mergedColumnFilters), periodFilter.period])
 
   const buildSortQuery = (s: SortingState) => s.map((x) => `${x.id}:${x.desc ? "desc" : "asc"}`).join(",")
 
@@ -88,6 +125,7 @@ export function CRUDPage<T extends { id: string }>({
       const token = getToken()
       const res = await axiosInstance.get(`/${endpoint}/summary`, {
         headers: { Authorization: `Bearer ${token}` },
+        params: periodFilter.queryParams,
       })
       setStats({
         total: res.data.total ?? 0,
@@ -122,6 +160,8 @@ export function CRUDPage<T extends { id: string }>({
           page_size: pageSize,
           sort: buildSortQuery(sorting),
           q: search || undefined,
+          ...tableFilters.invoicePageParams,
+          ...periodQueryParamsForTextSearch(periodFilter.period, search),
         },
       })
       const items = res.data.items ?? []
@@ -142,18 +182,34 @@ export function CRUDPage<T extends { id: string }>({
         setData(slice)
       } catch (error) {
         console.error(`Failed to fetch ${title}`, error)
-        toast.error(`Failed to fetch ${title}`, {
-          style: { background: "#FEE2E2", color: "#EF4444" },
-        })
+        toast.error(`Failed to fetch ${title}`)
       }
     } finally {
       setIsLoading(false)
     }
   }
 
-  const showModal = (item: T | null) => {
+  const showModal = async (item: T | null) => {
     setEditingItem(item)
-    setFormData(item || {})
+    if (item?.id) {
+      try {
+        const token = getToken()
+        const res = await axiosInstance.get(`/${endpoint}/${item.id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        const detail = res.data || {}
+        setFormData({
+          ...item,
+          ...detail,
+          lines: detail.line_items || detail.lines || [],
+          due_date: (detail.due_date || (item as any).due_date || "").toString().slice(0, 10),
+        } as Partial<T>)
+      } catch {
+        setFormData(item || {})
+      }
+    } else {
+      setFormData({})
+    }
     setIsModalVisible(true)
   }
 
@@ -165,32 +221,37 @@ export function CRUDPage<T extends { id: string }>({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (validateBeforeSubmit) {
+      const validationError = validateBeforeSubmit(formData)
+      if (validationError) {
+        toast.error(validationError)
+        return
+      }
+    }
     setIsLoading(true)
     try {
       const token = getToken()
+      let payload: any = formData
+      if (onSubmit) {
+        payload = await onSubmit(formData, !!editingItem)
+      }
       if (editingItem) {
-        await axiosInstance.put(`/${endpoint}/update/${editingItem.id}`, formData, {
+        await axiosInstance.put(`/${endpoint}/update/${editingItem.id}`, payload, {
           headers: { Authorization: `Bearer ${token}` },
         })
-        toast.success(`${title} updated successfully`, {
-          style: { background: "#D1FAE5", color: "#10B981" },
-        })
+        toast.success(`${title} updated successfully`)
       } else {
-        await axiosInstance.post(`/${endpoint}/add`, formData, {
+        await axiosInstance.post(`/${endpoint}/add`, payload, {
           headers: { Authorization: `Bearer ${token}` },
         })
-        toast.success(`${title} added successfully`, {
-          style: { background: "#D1FAE5", color: "#10B981" },
-        })
+        toast.success(`${title} added successfully`)
       }
       await fetchData()
       await fetchStats()
       handleCancel()
-    } catch (error) {
+    } catch (error: any) {
       console.error("Operation failed", error)
-      toast.error("Operation failed", {
-        style: { background: "#FEE2E2", color: "#EF4444" },
-      })
+      toast.error(error?.response?.data?.error || error?.response?.data?.message || "Operation failed")
     } finally {
       setIsLoading(false)
     }
@@ -204,23 +265,21 @@ export function CRUDPage<T extends { id: string }>({
       await axiosInstance.delete(`/${endpoint}/delete/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       })
-      toast.success(`${title} deleted successfully`, {
-        style: { background: "#D1FAE5", color: "#10B981" },
-      })
+      toast.success(`${title} deleted successfully`)
       await fetchData()
       await fetchStats()
     } catch (error: any) {
       console.error("Delete operation failed", error)
       const errorMessage = getOperationErrorMessage(error, title, "delete")
-      toast.error(errorMessage || `Failed to delete ${title.toLowerCase()}`, {
-        style: { background: "#FEE2E2", color: "#EF4444" },
-      })
+      toast.error(errorMessage || `Failed to delete ${title.toLowerCase()}`)
     } finally {
       setIsLoading(false)
     }
   }
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement> | { target: { name: string; value: any } }
+  ) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
@@ -230,7 +289,7 @@ export function CRUDPage<T extends { id: string }>({
   }
 
   // Enhanced handleViewInvoice with loading and timeout
-  const handleViewInvoice = async (invoice: any) => {
+  const handleViewInvoice = useCallback(async (invoice: any) => {
     setLoadingViewId(invoice.id)
 
     // Create a timeout promise
@@ -259,24 +318,19 @@ export function CRUDPage<T extends { id: string }>({
 
       // If we get here, the request was successful within timeout
       window.open(`/${endpoint}/${invoice.id}`, "_blank")
-      toast.success("Invoice opened successfully", {
-        style: { background: "#D1FAE5", color: "#10B981" },
-      })
+      toast.success("Invoice opened successfully")
     } catch (error: any) {
       console.error("Failed to view invoice", error)
       const errorMessage = error.message === 'Request timeout after 50 seconds'
         ? "Request timeout. Please try again."
         : "Failed to load invoice. Please try again."
 
-      toast.error(errorMessage, {
-        style: { background: "#FEE2E2", color: "#EF4444" },
-      })
+      toast.error(errorMessage)
     } finally {
       setLoadingViewId(null)
     }
-  }
+  }, [endpoint])
 
-  // Enhanced handleWhatsAppShare with loading and timeout
   // Enhanced handleWhatsAppShare with loading and timeout
   const handleWhatsAppShare = async (invoice: any) => {
     setLoadingShareId(invoice.id)
@@ -360,9 +414,7 @@ Thank you for choosing ${compName}!`
       // Race between the request and timeout
       await Promise.race([sharePromise, timeoutPromise])
 
-      toast.success("Invoice shared via WhatsApp", {
-        style: { background: "#D1FAE5", color: "#10B981" },
-      })
+      toast.success("Invoice shared via WhatsApp")
     } catch (error: any) {
       console.error("Failed to share invoice", error)
 
@@ -378,121 +430,116 @@ Thank you for choosing ${compName}!`
         errorMessage = "Authentication failed. Please login again."
       }
 
-      toast.error(errorMessage, {
-        style: { background: "#FEE2E2", color: "#EF4444" },
-      })
+      toast.error(errorMessage)
     } finally {
       setLoadingShareId(null)
     }
   }
 
   const memoizedColumns = useMemo(() => {
+    const dataColumns = columns.filter((col) => {
+      const key = "accessorKey" in col ? col.accessorKey : col.id
+      return key !== "invoice_number" && key !== "internet_id"
+    })
+
+    const rowSpinner = (
+      <svg
+        className="animate-spin h-3.5 w-3.5 text-electric-blue inline-block ml-1"
+        xmlns="http://www.w3.org/2000/svg"
+        fill="none"
+        viewBox="0 0 24 24"
+        aria-hidden
+      >
+        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+        <path
+          className="opacity-75"
+          fill="currentColor"
+          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+        />
+      </svg>
+    )
+
     return [
-      ...columns,
       {
-        header: "View",
+        header: "Invoice Number",
+        accessorKey: "invoice_number",
         cell: (info: any) => {
           const invoice = info.row.original
           const isLoading = loadingViewId === invoice.id
-
           return (
-            <div className="flex justify-center">
-              <button
-                onClick={() => handleViewInvoice(invoice)}
-                disabled={isLoading}
-                className={`flex items-center gap-2 px-4 py-2 bg-electric-blue text-white rounded-lg hover:bg-btn-hover transition-colors duration-200 text-sm shadow-sm ${isLoading ? "opacity-50 cursor-not-allowed" : ""
-                  }`}
-                title="View Invoice"
-              >
-                {isLoading ? (
-                  <>
-                    <svg
-                      className="animate-spin h-4 w-4 text-white"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      ></circle>
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      ></path>
-                    </svg>
-                    Loading...
-                  </>
-                ) : (
-                  <>
-                    <Eye className="w-4 h-4" />
-                    View Invoice
-                  </>
-                )}
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={() => handleViewInvoice(invoice)}
+              disabled={isLoading}
+              className="text-electric-blue font-medium hover:underline text-sm whitespace-nowrap disabled:opacity-60 inline-flex items-center"
+              title={`View invoice ${invoice.invoice_number}`}
+            >
+              {invoice.invoice_number}
+              {isLoading && rowSpinner}
+            </button>
           )
         },
       },
       {
+        header: "Internet ID",
+        accessorKey: "internet_id",
+        cell: (info: any) => {
+          const invoice = info.row.original
+          if (!invoice.customer_id) {
+            return <span className="text-sm text-slate-gray">{invoice.internet_id}</span>
+          }
+          return (
+            <Link
+              to={`/customers/${invoice.customer_id}`}
+              className="text-electric-blue font-medium hover:underline text-sm whitespace-nowrap"
+              title="View customer profile"
+            >
+              {invoice.internet_id}
+            </Link>
+          )
+        },
+      },
+      ...dataColumns,
+      {
         header: "Share",
         cell: (info: any) => {
           const invoice = info.row.original
-          console.log('Invoice: ', invoice)
           const isLoading = loadingShareId === invoice.id
 
-          // Check both phone numbers
-          const phoneNumber1 = invoice.customer_phone || invoice.phone_1;
-          const phoneNumber2 = invoice.phone_2;
-          const hasPhoneNumber = !!(phoneNumber1 || phoneNumber2);
+          const phoneNumber1 = invoice.customer_phone || invoice.phone_1
+          const phoneNumber2 = invoice.phone_2
+          const hasPhoneNumber = !!(phoneNumber1 || phoneNumber2)
 
           return (
             <div className="flex justify-center">
               <button
                 onClick={() => handleWhatsAppShare(invoice)}
                 disabled={isLoading || !hasPhoneNumber}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors duration-200 text-sm shadow-sm ${!hasPhoneNumber
-                    ? "bg-gray-400 text-white cursor-not-allowed opacity-50"
+                className={`p-2 rounded-lg transition-colors duration-200 ${
+                  !hasPhoneNumber
+                    ? "bg-gray-200 text-gray-400 cursor-not-allowed"
                     : isLoading
                       ? "bg-emerald-green/50 text-white cursor-not-allowed"
                       : "bg-emerald-green text-white hover:bg-emerald-green/90"
-                  }`}
+                }`}
                 title={!hasPhoneNumber ? "Phone number not available" : "Share via WhatsApp"}
               >
                 {isLoading ? (
-                  <>
-                    <svg
-                      className="animate-spin h-4 w-4 text-white"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      ></circle>
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      ></path>
-                    </svg>
-                    Loading...
-                  </>
+                  <svg
+                    className="animate-spin h-4 w-4 text-white"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    />
+                  </svg>
                 ) : (
-                  <>
-                    <Share2 className="w-4 h-4" />
-                    Share
-                  </>
+                  <Share2 className="w-4 h-4" />
                 )}
               </button>
             </div>
@@ -505,14 +552,14 @@ Thank you for choosing ${compName}!`
           <div className="flex items-center gap-2 justify-center">
             <button
               onClick={() => showModal(info.row.original)}
-              className="p-2 text-white bg-electric-blue rounded-md hover:bg-btn-hover transition-colors"
+              className="h-8 w-8 inline-flex items-center justify-center text-white bg-electric-blue rounded-md hover:bg-btn-hover transition-colors"
               title="Edit"
             >
               <Pencil className="h-4 w-4" />
             </button>
             <button
               onClick={() => handleDelete(info.row.original.id)}
-              className="p-2 text-white bg-coral-red rounded-md hover:bg-coral-red/80 transition-colors"
+              className="h-8 w-8 inline-flex items-center justify-center text-white bg-coral-red rounded-md hover:bg-coral-red/80 transition-colors"
               title="Delete"
             >
               <Trash2 className="h-4 w-4" />
@@ -521,132 +568,82 @@ Thank you for choosing ${compName}!`
         ),
       },
     ]
-  }, [columns, loadingViewId, loadingShareId])
+  }, [columns, loadingViewId, loadingShareId, handleViewInvoice])
 
   return (
-    <div className="flex h-screen bg-light-sky/50">
-      <Sidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} setIsOpen={setIsSidebarOpen} />
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <Topbar toggleSidebar={toggleSidebar} />
+    <div className={hasChrome ? "flex-1 min-w-0 w-full" : "flex h-screen bg-light-sky/50"}>
+      {!hasChrome && (
+        <Sidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} setIsOpen={setIsSidebarOpen} />
+      )}
+      <div className={hasChrome ? "flex-1 min-w-0 w-full" : "flex-1 flex flex-col overflow-hidden"}>
+        {!hasChrome && <Topbar toggleSidebar={toggleSidebar} />}
         <main
-          className={`flex-1 overflow-x-hidden overflow-y-auto bg-light-sky/50 p-0 sm:p-6 pt-20 transition-all duration-300 ${isSidebarOpen ? "ml-64" : "ml-0 lg:ml-20"
-            }`}
+          className={
+            hasChrome
+              ? "px-3 py-3 sm:px-4"
+              : `flex-1 overflow-x-hidden overflow-y-auto bg-light-sky/50 px-3 py-3 sm:px-4 pt-16 transition-all duration-300 ${isSidebarOpen ? "ml-64" : "ml-0 lg:ml-20"}`
+          }
         >
 
           <div className="container mx-auto">
             {/* Breadcrumb */}
-            <div className="flex items-center text-sm text-slate-gray mb-6">
-              <LayoutDashboard className="h-4 w-4 mr-1" />
+            <div className="flex items-center text-xs text-slate-gray mb-2">
+              <LayoutDashboard className="h-3.5 w-3.5 mr-1" />
               <span>Dashboard</span>
-              <ChevronRight className="h-4 w-4 mx-1" />
+              <ChevronRight className="h-3.5 w-3.5 mx-1" />
               <span className="text-deep-ocean font-medium">{title} Management</span>
             </div>
 
             {/* Header Section */}
-            <div className="bg-white rounded-xl shadow-md p-6 mb-6">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-                <div>
-                  <h1 className="text-2xl md:text-3xl font-bold text-deep-ocean flex items-center gap-2">
-                    <FileText className="h-7 w-7 text-electric-blue" />
-                    {title} Management
-                  </h1>
-                  <p className="text-slate-gray mt-1">Manage your {title.toLowerCase()} records efficiently</p>
-                </div>
-                <div className="flex flex-wrap gap-3 self-start md:self-center">
+            <div className="bg-white rounded-xl shadow-sm p-4 mb-3">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-3">
+                <h1 className="text-xl font-semibold text-deep-ocean flex items-center gap-2">
+                  <FileText className="h-5 w-5 text-electric-blue" />
+                  {title} Management
+                </h1>
+                <div className="flex flex-wrap gap-2 self-start md:self-center">
                   <CSVLink
                     data={data}
                     filename={`${title.toLowerCase()}.csv`}
-                    className="bg-slate-gray text-white px-4 py-2.5 rounded-lg hover:bg-slate-gray/80 transition-colors flex items-center justify-center gap-2 shadow-sm"
+                    className="h-9 bg-slate-gray text-white px-3 text-sm rounded-lg hover:bg-slate-gray/80 transition-colors inline-flex items-center justify-center gap-1.5"
                   >
-                    <FileText className="h-5 w-5" />
+                    <FileText className="h-4 w-4" />
                     Export CSV
                   </CSVLink>
                   {customHeaderButton}
 
                   <button
                     onClick={() => setIsUnifiedPaymentModalVisible(true)}
-                    className="bg-emerald-green text-white px-4 py-2.5 rounded-lg hover:bg-emerald-green/90 transition-colors flex items-center justify-center gap-2 shadow-sm"
+                    className="h-9 bg-emerald-green text-white px-3 text-sm rounded-lg hover:bg-emerald-green/90 transition-colors inline-flex items-center justify-center gap-1.5"
                   >
-                    <Plus className="h-5 w-5" />
+                    <Plus className="h-4 w-4" />
                     Add Payment
                   </button>
 
                   <button
                     onClick={() => showModal(null)}
-                    className="bg-electric-blue text-white px-4 py-2.5 rounded-lg hover:bg-btn-hover transition-colors flex items-center justify-center gap-2 shadow-sm"
+                    className="h-9 bg-electric-blue text-white px-3 text-sm rounded-lg hover:bg-btn-hover transition-colors inline-flex items-center justify-center gap-1.5"
                   >
-                    <Plus className="h-5 w-5" />
+                    <Plus className="h-4 w-4" />
                     Add New {title}
                   </button>
                 </div>
               </div>
 
-              {/* Stats Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                <div className="bg-light-sky/50 rounded-lg p-4 border border-slate-gray/10">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-slate-gray text-sm">Total {title}s</p>
-                      <h3 className="text-2xl font-bold text-deep-ocean mt-1">{stats.total}</h3>
-                      <p className="text-sm font-semibold text-deep-ocean/70 mt-1">
-                        {(() => {
-                          const val = stats.total_amount
-                          if (val >= 1000000) return `PKR ${(val / 1000000).toFixed(2)}M`
-                          if (val >= 1000) return `PKR ${(val / 1000).toFixed(1)}k`
-                          return `PKR ${Math.round(val).toLocaleString()}`
-                        })()}
-                      </p>
-                    </div>
-                    <div className="bg-deep-ocean/10 p-3 rounded-full">
-                      <FileText className="h-6 w-6 text-deep-ocean" />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-emerald-green/5 rounded-lg p-4 border border-emerald-green/10">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-slate-gray text-sm">Paid {title}s</p>
-                      <h3 className="text-2xl font-bold text-emerald-green mt-1">{stats.paid}</h3>
-                      <p className="text-sm font-semibold text-emerald-green/70 mt-1">
-                       {(() => {
-                          const val = stats.paid_amount
-                          if (val >= 1000000) return `PKR ${(val / 1000000).toFixed(2)}M`
-                          if (val >= 1000) return `PKR ${(val / 1000).toFixed(1)}k`
-                          return `PKR ${Math.round(val).toLocaleString()}`
-                        })()}
-                      </p>
-                    </div>
-                    <div className="bg-emerald-green/10 p-3 rounded-full">
-                      <CheckCircle2 className="h-6 w-6 text-emerald-green" />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-coral-red/5 rounded-lg p-4 border border-coral-red/10">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-slate-gray text-sm">Pending {title}s</p>
-                      <h3 className="text-2xl font-bold text-coral-red mt-1">{stats.pending}</h3>
-                      <p className="text-sm font-semibold text-coral-red/70 mt-1">
-                       {(() => {
-                          const val = stats.pending_amount
-                          if (val >= 1000000) return `PKR ${(val / 1000000).toFixed(2)}M`
-                          if (val >= 1000) return `PKR ${(val / 1000).toFixed(1)}k`
-                          return `PKR ${Math.round(val).toLocaleString()}`
-                        })()}
-                      </p>
-                    </div>
-                    <div className="bg-coral-red/10 p-3 rounded-full">
-                      <XCircle className="h-6 w-6 text-coral-red" />
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <CrudStatsSection
+                cards={statCards}
+                activeStatId={tableFilters.activeStatId}
+                onStatClick={tableFilters.applyStatFilter}
+                period={periodFilter.period}
+                periodLabel={periodFilter.label}
+                periodActive={periodFilter.isActive}
+                onSetPeriod={periodFilter.setPeriod}
+                onSetPeriodAll={periodFilter.setAll}
+              />
             </div>
 
             {/* Table Section */}
-            <div className="mb-8">
+            <div className="mb-4">
               <Table
                 data={data}
                 columns={memoizedColumns}
@@ -662,6 +659,13 @@ Thank you for choosing ${compName}!`
                 sorting={sorting}
                 onSortingChange={setSorting}
                 onGlobalSearch={setSearch}
+                onColumnFiltersChangeExternal={tableFilters.handleColumnFiltersChange}
+                quickFilters={filterConfig.quickFilters}
+                filterState={tableFilters.filterState}
+                onQuickFilterChange={tableFilters.setQuickFilter}
+                onClearFilters={tableFilters.clearAllFilters}
+                hasActiveFilters={tableFilters.hasAnyActiveFilters}
+                inlineFilterFields={tableFilters.inlineFields}
               />
             </div>
           </div>
@@ -675,25 +679,25 @@ Thank you for choosing ${compName}!`
         title={editingItem ? `Edit ${title}` : `Add New ${title}`}
         isLoading={isLoading}
       >
-        <form onSubmit={handleSubmit} className="bg-white">
+        <form onSubmit={handleSubmit} className="bg-transparent">
           <FormComponent formData={formData} handleInputChange={handleInputChange} isEditing={!!editingItem} />
-          <div className="mt-6 flex justify-end gap-3">
+          <div className={MODAL_FOOTER}>
             <button
               type="button"
               onClick={handleCancel}
-              className="px-4 py-2.5 border border-slate-gray/20 text-slate-gray rounded-lg hover:bg-light-sky/50 transition-colors"
+              className={MODAL_CANCEL_BTN}
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isLoading}
-              className="px-4 py-2.5 bg-electric-blue text-white rounded-lg hover:bg-btn-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-electric-blue disabled:opacity-50 transition-colors flex items-center gap-2"
+              className={MODAL_PRIMARY_BTN}
             >
               {isLoading ? (
                 <>
                   <svg
-                    className="animate-spin h-5 w-5 text-white"
+                    className="animate-spin h-4 w-4 text-white"
                     xmlns="http://www.w3.org/2000/svg"
                     fill="none"
                     viewBox="0 0 24 24"
@@ -712,16 +716,16 @@ Thank you for choosing ${compName}!`
                       d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                     ></path>
                   </svg>
-                  Processing...
+                  Saving…
                 </>
               ) : editingItem ? (
                 <>
-                  <Check className="h-5 w-5" />
+                  <Check className="h-4 w-4" />
                   Update {title}
                 </>
               ) : (
                 <>
-                  <Plus className="h-5 w-5" />
+                  <Plus className="h-4 w-4" />
                   Create {title}
                 </>
               )}

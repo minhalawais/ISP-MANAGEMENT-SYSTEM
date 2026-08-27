@@ -33,13 +33,13 @@ interface Props {
 
 export const PaymentDetailModal: React.FC<Props> = ({ payment, onClose }) => {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-hidden" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 backdrop-blur-[2px] p-4" onClick={onClose}>
+      <div className="bg-white rounded-xl shadow-2xl border border-slate-300/70 w-full max-w-lg max-h-[90vh] overflow-hidden" onClick={e => e.stopPropagation()}>
         {/* Header */}
-        <div className="flex items-center justify-between p-5 border-b" style={{ backgroundColor: '#89A8B2' }}>
+        <div className="flex items-center justify-between p-5 border-b" style={{ backgroundColor: '#2A5C8A' }}>
           <div className="flex items-center gap-3">
             <Receipt className="w-5 h-5 text-white" />
-            <h3 className="text-lg font-semibold text-white">Payment Receipt</h3>
+            <h3 className="text-base font-semibold text-white tracking-tight">Payment Receipt</h3>
           </div>
           <button onClick={onClose} className="p-1.5 hover:bg-white/20 rounded-lg transition-colors">
             <X className="w-5 h-5 text-white" />
@@ -126,7 +126,7 @@ export const PaymentDetailModal: React.FC<Props> = ({ payment, onClose }) => {
 
         {/* Footer */}
         <div className="px-5 py-4 border-t bg-gray-50">
-          <button onClick={onClose} className="w-full py-2.5 font-medium rounded-xl text-white hover:opacity-90" style={{ backgroundColor: '#89A8B2' }}>
+          <button onClick={onClose} className="w-full py-2.5 font-medium rounded-xl text-white hover:opacity-90" style={{ backgroundColor: '#2A5C8A' }}>
             Close Receipt
           </button>
         </div>

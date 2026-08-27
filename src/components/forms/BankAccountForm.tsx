@@ -1,15 +1,46 @@
 "use client"
 
 import type React from "react"
-import { Building, Hash, MapPin, User, CreditCard,DollarSign } from "lucide-react"
+import { useEffect, useState } from "react"
+import { Building, Hash, MapPin, User, CreditCard, Upload, QrCode } from "lucide-react"
+import { getAssetUrl } from "../../utils/auth.ts"
 
 interface BankAccountFormProps {
   formData: any
   handleInputChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => void
+  handleFileChange?: (name: string, file: File | null) => void
   isEditing: boolean
 }
 
-export function BankAccountForm({ formData, handleInputChange, isEditing }: BankAccountFormProps) {
+export function BankAccountForm({
+  formData,
+  handleInputChange,
+  handleFileChange,
+  isEditing,
+}: BankAccountFormProps) {
+  const [qrPreview, setQrPreview] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!formData?.qr_code_image || typeof formData.qr_code_image !== "string") {
+      setQrPreview(null)
+      return
+    }
+    setQrPreview(getAssetUrl(formData.qr_code_image))
+  }, [formData?.qr_code_image, formData?.id])
+
+  const onQrSelected = (file: File | null) => {
+    handleFileChange?.("qr_code_image", file)
+    if (file && file.type.startsWith("image/")) {
+      const reader = new FileReader()
+      reader.onload = (ev) => setQrPreview((ev.target?.result as string) || null)
+      reader.readAsDataURL(file)
+    } else if (!file) {
+      setQrPreview(
+        typeof formData.qr_code_image === "string" ? getAssetUrl(formData.qr_code_image) : null,
+      )
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -175,6 +206,47 @@ export function BankAccountForm({ formData, handleInputChange, isEditing }: Bank
             rows={3}
             className="w-full pl-10 pr-4 py-2.5 border border-slate-gray/20 rounded-lg bg-light-sky/30 text-deep-ocean placeholder-slate-gray/50 focus:outline-none focus:ring-2 focus:ring-electric-blue/30 focus:border-transparent transition-all duration-200 resize-y"
           />
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <label className="block text-sm font-medium text-deep-ocean">Payment QR Code (Optional)</label>
+        <div className="relative">
+          <input
+            type="file"
+            id="qr_code_image"
+            name="qr_code_image"
+            accept="image/png,image/jpeg,image/webp,image/gif"
+            onChange={(e) => onQrSelected(e.target.files?.[0] || null)}
+            className="hidden"
+          />
+          <label
+            htmlFor="qr_code_image"
+            className="flex items-center gap-3 w-full min-h-[72px] py-3 px-4 border border-dashed border-slate-gray/30 rounded-lg cursor-pointer hover:border-electric-blue hover:bg-light-sky/40 transition-colors"
+          >
+            {qrPreview ? (
+              <img
+                src={qrPreview}
+                alt="Payment QR preview"
+                className="h-16 w-16 object-contain rounded-md bg-white border border-slate-gray/15 p-1"
+              />
+            ) : (
+              <div className="h-16 w-16 rounded-md bg-light-sky/60 border border-slate-gray/15 flex items-center justify-center">
+                <QrCode className="h-6 w-6 text-slate-gray/60" />
+              </div>
+            )}
+            <div className="min-w-0">
+              <p className="text-sm text-deep-ocean font-medium flex items-center gap-1.5">
+                <Upload className="h-4 w-4 text-slate-gray/70" />
+                {qrPreview || formData.qr_code_image
+                  ? isEditing
+                    ? "Replace QR image"
+                    : "QR image selected"
+                  : "Upload bank QR code"}
+              </p>
+              <p className="text-xs text-slate-gray mt-0.5">PNG or JPG. Shown on customer invoices.</p>
+            </div>
+          </label>
         </div>
       </div>
     </div>

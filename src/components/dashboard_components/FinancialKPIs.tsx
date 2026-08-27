@@ -191,17 +191,17 @@ export const FinancialKPIs: React.FC<FinancialKPIsProps> = ({ data }) => {
   }, [data])
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-6">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-3">
        {kpis.map((kpi, index) => {
         const IconComponent = kpi.icon
         return (
           <div
             key={index}
-            className={`bg-white rounded-xl border ${kpi.borderColor} p-6 hover:shadow-lg transition-all duration-300 group`}
+            className={`bg-white rounded-xl border ${kpi.borderColor} p-4 shadow-sm`}
           >
             <div className="flex items-start justify-between mb-4">
               <div 
-                className={`w-12 h-12 rounded-lg flex items-center justify-center text-white group-hover:scale-110 transition-transform duration-300 ${kpi.bgColor}`}
+                className={`w-9 h-9 rounded-lg flex items-center justify-center text-white ${kpi.bgColor}`}
                 style={{ backgroundColor: kpi.color }}
               >
                 <IconComponent className="w-6 h-6" />
@@ -209,7 +209,7 @@ export const FinancialKPIs: React.FC<FinancialKPIsProps> = ({ data }) => {
             </div>
             <div>
               <h3 className="text-sm font-medium text-[#6B7280] mb-2 leading-tight">{kpi.title}</h3>
-              <p className="text-2xl font-bold text-[#1F2937] mb-1 leading-none">{kpi.value}</p>
+              <p className="text-xl font-semibold text-[#1F2937] mb-1 leading-none">{kpi.value}</p>
               <p className="text-xs text-[#9CA3AF] leading-tight">{kpi.description}</p>
             </div>
           </div>
@@ -282,10 +282,10 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
   ]
 
   return (
-    <div className="bg-white rounded-xl border border-[#E5E1DA] p-6 mb-6">
+    <div className="bg-white rounded-xl border border-[#E5E1DA] p-4 mb-3">
       {/* Header */}
-      <div className="flex items-center mb-6 pb-4 border-b border-[#E5E1DA]">
-        <div className="w-10 h-10 rounded-lg bg-[#89A8B2]/10 flex items-center justify-center mr-3">
+      <div className="flex items-center mb-3 pb-4 border-b border-[#E5E1DA]">
+        <div className="w-9 h-9 rounded-lg bg-[#89A8B2]/10 flex items-center justify-center mr-3">
           <IconFilter className="w-5 h-5 text-[#89A8B2]" />
         </div>
         <div>
@@ -295,7 +295,7 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
       </div>
 
       {/* Quick Filters */}
-      <div className="mb-6">
+      <div className="mb-3">
         <label className="text-sm font-semibold text-[#374151] mb-3 flex items-center">
           <IconCalendar className="w-4 h-4 mr-2 text-[#89A8B2]" />
           Quick Time Periods

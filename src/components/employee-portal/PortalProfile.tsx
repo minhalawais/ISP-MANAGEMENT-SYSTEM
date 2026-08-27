@@ -4,7 +4,7 @@ import type React from "react"
 import { useState, useEffect } from "react"
 import { getToken } from "../../utils/auth.ts"
 import axiosInstance from "../../utils/axiosConfig.ts"
-import { toast } from "react-toastify"
+import { toast } from "../../utils/notify.ts";
 import {
   User,
   Mail,
@@ -50,17 +50,14 @@ interface PortalProfileProps {
   onProfileUpdate?: () => void
 }
 
-// Helper to construct full file URL
 const getFileUrl = (path: string | null) => {
-  if (!path) return "";
-  const baseURL = process.env.REACT_APP_API_BASE_URL || "http://127.0.0.1:8000";
-  // Remove leading slash if present in path to avoid double slashes
-  const cleanPath = path.startsWith("/") ? path.slice(1) : path;
-  return `${baseURL}/${cleanPath}`;
-};
+  if (!path) return ""
+  const baseURL = process.env.REACT_APP_API_BASE_URL || "http://127.0.0.1:8000"
+  const cleanPath = path.startsWith("/") ? path.slice(1) : path
+  return `${baseURL}/${cleanPath}`
+}
 
 export function PortalProfile({ onProfileUpdate }: PortalProfileProps) {
-  // ... existing state ...
   const [profile, setProfile] = useState<ProfileData | null>(null)
   const [loading, setLoading] = useState(true)
   const [isEditing, setIsEditing] = useState(false)
@@ -71,7 +68,6 @@ export function PortalProfile({ onProfileUpdate }: PortalProfileProps) {
   })
   const [saving, setSaving] = useState(false)
 
-  // ... fetchProfile and handleSave (unchanged) ...
   useEffect(() => {
     fetchProfile()
   }, [])
@@ -117,13 +113,9 @@ export function PortalProfile({ onProfileUpdate }: PortalProfileProps) {
 
   if (loading) {
     return (
-      <div className="space-y-4 animate-pulse">
-        <div className="h-32 bg-gray-200 rounded-xl"></div>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {[...Array(4)].map((_, i) => (
-            <div key={i} className="h-40 bg-gray-200 rounded-xl"></div>
-          ))}
-        </div>
+      <div className="space-y-3 animate-pulse">
+        <div className="h-24 bg-gray-200 rounded-lg"></div>
+        <div className="h-72 bg-gray-200 rounded-lg"></div>
       </div>
     )
   }
@@ -131,89 +123,88 @@ export function PortalProfile({ onProfileUpdate }: PortalProfileProps) {
   if (!profile) {
     return (
       <div className="text-center py-12">
-        <p className="text-gray-500">Failed to load profile</p>
+        <p className="text-sm text-gray-500">Failed to load profile</p>
       </div>
     )
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header Card */}
-      <div className="bg-gradient-to-r from-[#89A8B2] to-[#6B8A94] rounded-xl p-6 text-white">
-        <div className="flex flex-col sm:flex-row items-center gap-4">
-          <div className="w-20 h-20 rounded-full bg-white/20 flex items-center justify-center text-3xl font-bold overflow-hidden">
-            {profile.picture ? (
-              <img
-                src={getFileUrl(profile.picture)}
-                alt="Profile"
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                  // Fallback if image fails to load
-                  (e.target as HTMLImageElement).style.display = 'none';
-                  (e.target as HTMLImageElement).parentElement!.innerText = profile.first_name?.charAt(0) || "E";
-                }}
-              />
-            ) : (
-              profile.first_name?.charAt(0) || "E"
-            )}
-          </div>
-          <div className="text-center sm:text-left flex-1">
-            <h2 className="text-2xl font-bold">
-              {profile.first_name} {profile.last_name}
-            </h2>
-            <p className="text-white/80 capitalize">{profile.role?.replace("_", " ")}</p>
-            <p className="text-sm text-white/70 mt-1">@{profile.username}</p>
-          </div>
-          <div className="flex items-center gap-2">
+    <div className="lg:grid lg:grid-cols-[1fr_320px] lg:items-start lg:gap-4">
+      <div className="space-y-4">
+        {/* Hero */}
+        <div className="bg-gradient-to-br from-portal-accent to-portal-primary rounded-xl p-4 lg:p-5 text-white shadow-md">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 shrink-0 rounded-full bg-white/20 ring-2 ring-white/40 flex items-center justify-center text-xl font-bold overflow-hidden">
+              {profile.picture ? (
+                <img
+                  src={getFileUrl(profile.picture)}
+                  alt="Profile"
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    ;(e.target as HTMLImageElement).style.display = "none"
+                    ;(e.target as HTMLImageElement).parentElement!.innerText = profile.first_name?.charAt(0) || "E"
+                  }}
+                />
+              ) : (
+                profile.first_name?.charAt(0) || "E"
+              )}
+            </div>
+            <div className="min-w-0 flex-1">
+              <h2 className="text-lg font-bold truncate">
+                {profile.first_name} {profile.last_name}
+              </h2>
+              <p className="text-sm text-white/80 capitalize truncate">{profile.role?.replace("_", " ")}</p>
+            </div>
             <span
-              className={`px-3 py-1 rounded-full text-sm font-medium ${profile.is_active ? "bg-green-500/20 text-green-100" : "bg-red-500/20 text-red-100"
-                }`}
+              className={`shrink-0 px-2.5 py-1 rounded-full text-xs font-medium ${
+                profile.is_active ? "bg-white/20 text-white" : "bg-red-500/30 text-white"
+              }`}
             >
               {profile.is_active ? "Active" : "Inactive"}
             </span>
           </div>
         </div>
-      </div>
 
-      {/* Edit Toggle */}
-      <div className="flex justify-end">
-        {isEditing ? (
-          <div className="flex gap-2">
+        <div className="flex justify-end">
+          {isEditing ? (
+            <div className="flex gap-2">
+              <button
+                onClick={() => setIsEditing(false)}
+                className="flex items-center gap-1.5 h-9 px-3 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                <X className="w-4 h-4" />
+                Cancel
+              </button>
+              <button
+                onClick={handleSave}
+                disabled={saving}
+                className="flex items-center gap-1.5 h-9 px-3 bg-portal-primary text-white rounded-lg text-sm font-medium hover:bg-portal-primary-dark disabled:opacity-50"
+              >
+                <Save className="w-4 h-4" />
+                {saving ? "Saving..." : "Save changes"}
+              </button>
+            </div>
+          ) : (
             <button
-              onClick={() => setIsEditing(false)}
-              className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+              onClick={() => setIsEditing(true)}
+              className="flex items-center gap-1.5 h-9 px-3 border border-portal-primary text-portal-primary rounded-lg text-sm font-medium hover:bg-portal-tint"
             >
-              <X className="w-4 h-4" />
-              Cancel
+              <Edit3 className="w-4 h-4" />
+              Edit profile
             </button>
-            <button
-              onClick={handleSave}
-              disabled={saving}
-              className="flex items-center gap-2 px-4 py-2 bg-[#89A8B2] text-white rounded-lg hover:bg-[#7896a0] disabled:opacity-50"
-            >
-              <Save className="w-4 h-4" />
-              {saving ? "Saving..." : "Save Changes"}
-            </button>
+          )}
+        </div>
+
+        <div className="rounded-xl border border-gray-100 bg-white shadow-sm">
+          <div className="px-4 py-3 border-b border-gray-100">
+            <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+              <span className="flex h-6 w-6 items-center justify-center rounded-md bg-portal-tint">
+                <User className="h-3.5 w-3.5 text-portal-primary" />
+              </span>
+              Personal information
+            </h3>
           </div>
-        ) : (
-          <button
-            onClick={() => setIsEditing(true)}
-            className="flex items-center gap-2 px-4 py-2 border border-[#89A8B2] text-[#89A8B2] rounded-lg hover:bg-[#89A8B2]/10"
-          >
-            <Edit3 className="w-4 h-4" />
-            Edit Profile
-          </button>
-        )}
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Personal Information */}
-        <div className="bg-white rounded-xl border border-gray-200 p-4 lg:p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            <User className="w-5 h-5 text-[#89A8B2]" />
-            Personal Information
-          </h3>
-          <div className="space-y-4">
+          <div className="p-4 space-y-3">
             <InfoRow icon={Mail} label="Email" value={profile.email} />
             <InfoRow
               icon={Phone}
@@ -224,7 +215,7 @@ export function PortalProfile({ onProfileUpdate }: PortalProfileProps) {
                     type="text"
                     value={editData.contact_number}
                     onChange={(e) => setEditData({ ...editData, contact_number: e.target.value })}
-                    className="w-full px-3 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#89A8B2] focus:border-transparent"
+                    className="w-full px-3 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-portal-accent/40 focus:border-portal-accent"
                   />
                 ) : (
                   profile.contact_number || "-"
@@ -234,14 +225,14 @@ export function PortalProfile({ onProfileUpdate }: PortalProfileProps) {
             <InfoRow icon={Shield} label="CNIC" value={profile.cnic || "-"} />
             <InfoRow
               icon={Phone}
-              label="Emergency Contact"
+              label="Emergency contact"
               value={
                 isEditing ? (
                   <input
                     type="text"
                     value={editData.emergency_contact}
                     onChange={(e) => setEditData({ ...editData, emergency_contact: e.target.value })}
-                    className="w-full px-3 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#89A8B2] focus:border-transparent"
+                    className="w-full px-3 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-portal-accent/40 focus:border-portal-accent"
                   />
                 ) : (
                   profile.emergency_contact || "-"
@@ -257,7 +248,7 @@ export function PortalProfile({ onProfileUpdate }: PortalProfileProps) {
                     value={editData.house_address}
                     onChange={(e) => setEditData({ ...editData, house_address: e.target.value })}
                     rows={2}
-                    className="w-full px-3 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#89A8B2] focus:border-transparent resize-none"
+                    className="w-full px-3 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-portal-accent/40 focus:border-portal-accent resize-none"
                   />
                 ) : (
                   profile.house_address || "-"
@@ -265,64 +256,63 @@ export function PortalProfile({ onProfileUpdate }: PortalProfileProps) {
               }
             />
           </div>
-        </div>
 
-        {/* Work Information */}
-        <div className="bg-white rounded-xl border border-gray-200 p-4 lg:p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            <Briefcase className="w-5 h-5 text-[#89A8B2]" />
-            Work Information
-          </h3>
-          <div className="space-y-4">
+          <div className="px-4 py-3 border-y border-gray-100">
+            <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+              <span className="flex h-6 w-6 items-center justify-center rounded-md bg-portal-tint">
+                <Briefcase className="h-3.5 w-3.5 text-portal-primary" />
+              </span>
+              Work information
+            </h3>
+          </div>
+          <div className="p-4 space-y-3">
             <InfoRow
               icon={Calendar}
-              label="Joining Date"
+              label="Joining date"
               value={profile.joining_date ? new Date(profile.joining_date).toLocaleDateString() : "-"}
             />
+            <InfoRow icon={CreditCard} label="Monthly salary" value={`PKR ${profile.salary?.toLocaleString() || 0}`} />
             <InfoRow
               icon={CreditCard}
-              label="Monthly Salary"
-              value={`PKR ${profile.salary?.toLocaleString() || 0}`}
-            />
-            <InfoRow
-              icon={CreditCard}
-              label="Current Balance"
+              label="Current balance"
               value={`PKR ${profile.current_balance?.toLocaleString() || 0}`}
             />
-            <InfoRow
-              icon={CreditCard}
-              label="Total Paid"
-              value={`PKR ${profile.paid_amount?.toLocaleString() || 0}`}
-            />
+            <InfoRow icon={CreditCard} label="Total paid" value={`PKR ${profile.paid_amount?.toLocaleString() || 0}`} />
           </div>
+
+          {(profile.reference_name || profile.reference_contact) && (
+            <>
+              <div className="px-4 py-3 border-y border-gray-100">
+                <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                  <span className="flex h-6 w-6 items-center justify-center rounded-md bg-portal-tint">
+                    <User className="h-3.5 w-3.5 text-portal-primary" />
+                  </span>
+                  Reference
+                </h3>
+              </div>
+              <div className="p-4 space-y-3">
+                <InfoRow icon={User} label="Name" value={profile.reference_name || "-"} />
+                <InfoRow icon={Phone} label="Contact" value={profile.reference_contact || "-"} />
+              </div>
+            </>
+          )}
         </div>
+      </div>
 
-        {/* Reference Information */}
-        {(profile.reference_name || profile.reference_contact) && (
-          <div className="bg-white rounded-xl border border-gray-200 p-4 lg:p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-              <User className="w-5 h-5 text-[#89A8B2]" />
-              Reference
-            </h3>
-            <div className="space-y-4">
-              <InfoRow icon={User} label="Name" value={profile.reference_name || "-"} />
-              <InfoRow icon={Phone} label="Contact" value={profile.reference_contact || "-"} />
-            </div>
-          </div>
-        )}
-
-        {/* Documents */}
-        <div className="bg-white rounded-xl border border-gray-200 p-4 lg:p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            <FileText className="w-5 h-5 text-[#89A8B2]" />
+      <div className="mt-4 rounded-xl border border-gray-100 bg-white shadow-sm lg:mt-0">
+        <div className="px-4 py-3 border-b border-gray-100">
+          <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+            <span className="flex h-6 w-6 items-center justify-center rounded-md bg-portal-tint">
+              <FileText className="h-3.5 w-3.5 text-portal-primary" />
+            </span>
             Documents
           </h3>
-          <div className="grid grid-cols-2 gap-4">
-            <DocumentCard label="CNIC" documentPath={profile.cnic_image} />
-            <DocumentCard label="Utility Bill" documentPath={profile.utility_bill_image} />
-            <DocumentCard label="Reference CNIC" documentPath={profile.reference_cnic_image} />
-            <DocumentCard label="Profile Picture" documentPath={profile.picture} />
-          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-3 p-4 lg:grid-cols-1">
+          <DocumentCard label="CNIC" documentPath={profile.cnic_image} />
+          <DocumentCard label="Utility bill" documentPath={profile.utility_bill_image} />
+          <DocumentCard label="Reference CNIC" documentPath={profile.reference_cnic_image} />
+          <DocumentCard label="Profile picture" documentPath={profile.picture} />
         </div>
       </div>
     </div>
@@ -340,9 +330,9 @@ function InfoRow({
 }) {
   return (
     <div className="flex items-start gap-3">
-      <Icon className="w-5 h-5 text-gray-400 mt-0.5 flex-shrink-0" />
+      <Icon className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
       <div className="flex-1 min-w-0">
-        <p className="text-sm text-gray-500">{label}</p>
+        <p className="text-xs text-gray-500">{label}</p>
         <div className="text-sm font-medium text-gray-900">{value}</div>
       </div>
     </div>
@@ -350,26 +340,27 @@ function InfoRow({
 }
 
 function DocumentCard({ label, documentPath }: { label: string; documentPath: string | null }) {
-  const hasDocument = !!documentPath;
-  const fileUrl = getFileUrl(documentPath);
+  const hasDocument = !!documentPath
+  const fileUrl = getFileUrl(documentPath)
 
   return (
     <a
       href={hasDocument ? fileUrl : undefined}
       target="_blank"
       rel="noopener noreferrer"
-      className={`block p-3 rounded-lg border transition-colors ${hasDocument
-          ? "border-green-200 bg-green-50 hover:bg-green-100 cursor-pointer"
+      className={`block p-3 rounded-lg border transition-all ${
+        hasDocument
+          ? "border-emerald-200 bg-emerald-50 hover:bg-emerald-100 hover:shadow-sm cursor-pointer"
           : "border-gray-200 bg-gray-50 cursor-default"
-        }`}
+      }`}
       onClick={(e) => !hasDocument && e.preventDefault()}
     >
       <div className="flex items-center gap-2">
-        <Image className={`w-5 h-5 ${hasDocument ? "text-green-600" : "text-gray-400"}`} />
+        <Image className={`w-4 h-4 ${hasDocument ? "text-emerald-600" : "text-gray-400"}`} />
         <span className="text-sm font-medium text-gray-700">{label}</span>
       </div>
-      <p className={`text-xs mt-1 ${hasDocument ? "text-green-600" : "text-gray-500"}`}>
-        {hasDocument ? "View Document" : "Not uploaded"}
+      <p className={`text-xs mt-1 ${hasDocument ? "text-emerald-600" : "text-gray-500"}`}>
+        {hasDocument ? "View document" : "Not uploaded"}
       </p>
     </a>
   )

@@ -7,6 +7,7 @@ import { PaymentVerificationModal } from '../../components/modals/PaymentVerific
 import axiosInstance from '../../utils/axiosConfig.ts';
 import { Eye } from 'lucide-react';
 import { useCompany } from "../../context/CompanyContext.tsx";
+import { formatShortDisplayDate } from "../../utils/formatShortDisplayDate.ts";
 
 interface Payment {
   id: string;
@@ -15,12 +16,14 @@ interface Payment {
   customer_name: string;
   amount: number;
   payment_date: string;
+  payment_time?: string;
   payment_method: string;
   transaction_id: string;
   status: string;
   failure_reason?: string;
   payment_proof: string;
   received_by: string;
+  received_by_name?: string;
   is_active: boolean;
   bank_account_id?: string
   bank_account_details?: string
@@ -64,6 +67,11 @@ const PaymentManagement: React.FC = () => {
       {
         header: 'Payment Date',
         accessorKey: 'payment_date',
+        cell: (info) => (
+          <span className="whitespace-nowrap text-sm">
+            {formatShortDisplayDate(info.getValue<string>())}
+          </span>
+        ),
       },
       {
         header: 'Payment Method',
@@ -130,7 +138,8 @@ const PaymentManagement: React.FC = () => {
       },
       {
         header: 'Received By',
-        accessorKey: 'received_by',
+        accessorKey: 'received_by_name',
+        cell: (info) => info.getValue<string>() || info.row.original.received_by || '—',
       },
       {
         header: 'Payment Proof',

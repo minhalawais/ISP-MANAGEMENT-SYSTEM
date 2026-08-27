@@ -6,24 +6,15 @@ import { getToken } from "../../utils/auth.ts"
 import axiosInstance from "../../utils/axiosConfig.ts"
 import { FileText, DollarSign, Building, Calendar, CreditCard, Hash, User, ChevronDown, MessageSquare, Clock } from "lucide-react"
 import { SearchableSelect } from "../SearchableSelect.tsx"
+import { useInvoiceDropdown } from "../../hooks/useInvoiceDropdown.ts"
+
+const OPEN_INVOICE_STATUSES = ["pending", "Pending", "partially_paid", "Partially Paid"]
 
 interface PaymentFormProps {
   formData: any
   handleInputChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => void
   handleSubmit?: (e: React.FormEvent<HTMLFormElement>) => void
   isEditing: boolean
-}
-
-interface Invoice {
-  id: string
-  invoice_number: string
-  customer_name: string
-  total_amount: number
-  customer_internet_id: string
-  due_date: string
-  status: string
-  billing_start_date: string
-  billing_end_date: string
 }
 
 interface BankAccount {
@@ -45,17 +36,26 @@ const getPakistaniTime = () => {
 }
 
 export function PaymentForm({ formData, handleInputChange, isEditing }: PaymentFormProps) {
-  const [invoices, setInvoices] = useState<Invoice[]>([])
+  const [invoiceSearch, setInvoiceSearch] = useState("")
+  // Add mode: only invoices that can still take a payment. Edit mode: no
+  // status filter, so the invoice already linked to this payment still shows.
+  const { invoices, isLoading: isLoadingInvoices } = useInvoiceDropdown(
+    invoiceSearch,
+    isEditing ? undefined : OPEN_INVOICE_STATUSES,
+    50,
+    isEditing ? formData.invoice_id : undefined
+  )
   const [employees, setEmployees] = useState<{ id: string; name: string }[]>([])
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([])
   const [errors, setErrors] = useState<{ [key: string]: string }>({})
-  const [isLoadingInvoices, setIsLoadingInvoices] = useState(false)
   const [isLoadingEmployees, setIsLoadingEmployees] = useState(false)
   const [isLoadingBankAccounts, setIsLoadingBankAccounts] = useState(false)
+  const [editFieldsNormalized, setEditFieldsNormalized] = useState(false)
 
   useEffect(() => {
     // Set default values only when adding new payment
     if (!isEditing) {
+      setEditFieldsNormalized(false)
       if (!formData.payment_date) {
         handleInputChange({
           target: {
@@ -85,11 +85,57 @@ export function PaymentForm({ formData, handleInputChange, isEditing }: PaymentF
       }
     }
 
-    fetchInvoices()
     fetchEmployees()
     fetchBankAccounts()
   }, [isEditing])
 
+  // Reset normalize flag when opening a different payment for edit
+  useEffect(() => {
+    if (isEditing) {
+      setEditFieldsNormalized(false)
+    }
+  }, [isEditing, formData.id])
+
+  // Edit mode: ensure date/time are form-friendly even if an older API
+  // payload still returns a full ISO datetime without payment_time.
+  useEffect(() => {
+    if (!isEditing || editFieldsNormalized) return
+    if (!formData.payment_date) {
+      setEditFieldsNormalized(true)
+      return
+    }
+
+    const rawDate = String(formData.payment_date || "")
+    if (rawDate.includes("T")) {
+      try {
+        const d = new Date(rawDate)
+        if (!Number.isNaN(d.getTime())) {
+          const pktDate = d.toLocaleDateString("en-CA", { timeZone: "Asia/Karachi" })
+          const pktTime = d.toLocaleTimeString("en-GB", {
+            timeZone: "Asia/Karachi",
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false,
+          })
+          handleInputChange({
+            target: { name: "payment_date", value: pktDate },
+          } as React.ChangeEvent<HTMLInputElement>)
+          if (!formData.payment_time) {
+            handleInputChange({
+              target: { name: "payment_time", value: pktTime },
+            } as React.ChangeEvent<HTMLInputElement>)
+          }
+        }
+      } catch {
+        // leave as-is
+      }
+    } else if (!formData.payment_time && rawDate) {
+      // Date-only value: keep date, leave time empty so user can set it
+      // (API normally supplies payment_time separately.)
+    }
+
+    setEditFieldsNormalized(true)
+  }, [isEditing, formData.id, formData.payment_date, formData.payment_time, editFieldsNormalized, handleInputChange])
   // When editing, fetch the specific invoice data if invoice_id is present
   useEffect(() => {
     if (isEditing && formData.invoice_id && invoices.length > 0) {
@@ -118,42 +164,6 @@ export function PaymentForm({ formData, handleInputChange, isEditing }: PaymentF
       console.error("Failed to fetch bank accounts", error)
     } finally {
       setIsLoadingBankAccounts(false)
-    }
-  }
-
-  const fetchInvoices = async () => {
-    try {
-      setIsLoadingInvoices(true)
-      const token = getToken()
-      const response = await axiosInstance.get("/invoices/list", {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-
-      // When editing, show all invoices (including the one being edited)
-      // When adding, show only pending invoices
-      const filteredInvoices = isEditing
-        ? response.data
-        : response.data.filter((invoice: any) =>
-          invoice.status === 'pending' || invoice.status === 'Pending' || invoice.status === 'partially_paid' || invoice.status === 'Partially Paid'
-        )
-
-      setInvoices(
-        filteredInvoices.map((invoice: any) => ({
-          id: invoice.id,
-          invoice_number: invoice.invoice_number,
-          customer_name: invoice.customer_name,
-          customer_internet_id: invoice.customer_internet_id || "N/A",
-          total_amount: invoice.total_amount,
-          due_date: invoice.due_date,
-          status: invoice.status,
-          billing_end_date: invoice.billing_end_date,
-          billing_start_date: invoice.billing_start_date,
-        })),
-      )
-    } catch (error) {
-      console.error("Failed to fetch invoices", error)
-    } finally {
-      setIsLoadingInvoices(false)
     }
   }
 
@@ -230,7 +240,7 @@ export function PaymentForm({ formData, handleInputChange, isEditing }: PaymentF
         <label htmlFor="invoice_id" className="block text-sm font-medium text-deep-ocean">
           Invoice
         </label>
-        {isLoadingInvoices ? (
+        {invoices.length === 0 && isLoadingInvoices && !invoiceSearch ? (
           <div className="w-full pl-10 pr-10 py-2.5 border border-slate-gray/20 rounded-lg bg-light-sky/30 text-deep-ocean">
             <div className="flex items-center justify-center">
               <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-electric-blue"></div>
@@ -242,6 +252,8 @@ export function PaymentForm({ formData, handleInputChange, isEditing }: PaymentF
             options={invoices}
             value={formData.invoice_id || ""}
             onChange={handleInvoiceChange}
+            onSearchChange={setInvoiceSearch}
+            isLoading={isLoadingInvoices}
             error={errors.invoice_id}
             placeholder="Search and select invoice"
           />
@@ -489,6 +501,12 @@ export function PaymentForm({ formData, handleInputChange, isEditing }: PaymentF
             required
           >
             <option value="">Select Employee</option>
+            {formData.received_by &&
+              !employees.some((employee) => employee.id === formData.received_by) && (
+                <option value={formData.received_by}>
+                  {formData.received_by_name || "Selected employee"}
+                </option>
+              )}
             {employees.map((employee) => (
               <option key={employee.id} value={employee.id}>
                 {employee.name}

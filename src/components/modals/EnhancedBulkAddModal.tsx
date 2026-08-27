@@ -23,9 +23,7 @@ import {
 } from "lucide-react"
 import { getToken } from "../../utils/auth.ts"
 import axiosInstance from "../../utils/axiosConfig.ts"
-import { toast } from "react-toastify"
-
-interface EnhancedBulkAddModalProps {
+import { toast } from "../../utils/notify.ts";interface EnhancedBulkAddModalProps {
   isVisible: boolean
   onClose: () => void
   endpoint: string
@@ -122,9 +120,7 @@ export function EnhancedBulkAddModal({
         setEditedData({})
         setCurrentPage(1)
       } else {
-        toast.error("Please select a CSV or Excel file", {
-          style: { background: "#FEE2E2", color: "#EF4444" },
-        })
+        toast.error("Please select a CSV or Excel file")
       }
     }
   }
@@ -146,14 +142,10 @@ export function EnhancedBulkAddModal({
       link.remove()
       window.URL.revokeObjectURL(url)
 
-      toast.success(`${entityName} template downloaded successfully`, {
-        style: { background: "#D1FAE5", color: "#10B981" },
-      })
+      toast.success(`${entityName} template downloaded successfully`)
     } catch (error) {
       console.error("Failed to download template", error)
-      toast.error("Failed to download template", {
-        style: { background: "#FEE2E2", color: "#EF4444" },
-      })
+      toast.error("Failed to download template")
     }
   }
 
@@ -187,26 +179,17 @@ export function EnhancedBulkAddModal({
       if (responseData.failedCount > 0) {
         toast.warning(
           `Validation complete: ${responseData.successCount} valid, ${responseData.failedCount} errors found`,
-          {
-            style: { background: "#FEF3C7", color: "#D97706" },
-          },
         )
       } else {
-        toast.success(`All ${responseData.totalRecords} records are valid and ready for import`, {
-          style: { background: "#D1FAE5", color: "#10B981" },
-        })
+        toast.success(`All ${responseData.totalRecords} records are valid and ready for import`)
       }
     } catch (error: any) {
       console.error("Failed to validate file", error)
 
       if (error.response?.data?.error) {
-        toast.error(error.response.data.error, {
-          style: { background: "#FEE2E2", color: "#EF4444" },
-        })
+        toast.error(error.response.data.error)
       } else {
-        toast.error("Failed to validate file", {
-          style: { background: "#FEE2E2", color: "#EF4444" },
-        })
+        toast.error("Failed to validate file")
       }
 
       setStep("initial")
@@ -245,22 +228,15 @@ export function EnhancedBulkAddModal({
 
       toast.success(
         `Successfully processed ${responseData.successCount} out of ${validRowsToProcess.length} ${entityName.toLowerCase()}s`,
-        {
-          style: { background: "#D1FAE5", color: "#10B981" },
-        },
       )
       onSuccess()
     } catch (error: any) {
       console.error("Failed to process data", error)
 
       if (error.response?.data?.error) {
-        toast.error(error.response.data.error, {
-          style: { background: "#FEE2E2", color: "#EF4444" },
-        })
+        toast.error(error.response.data.error)
       } else {
-        toast.error("Failed to process validated data", {
-          style: { background: "#FEE2E2", color: "#EF4444" },
-        })
+        toast.error("Failed to process validated data")
       }
 
       setStep("validation")
@@ -478,9 +454,7 @@ export function EnhancedBulkAddModal({
 
         if (responseData.successCount === 1) {
           updateValidationResultAfterEdit(rowIndex, completeRowData, true)
-          toast.success("Row validation passed", {
-            style: { background: "#D1FAE5", color: "#10B981" },
-          })
+          toast.success("Row validation passed")
         } else {
           const rowErrors = responseData.errors.find((error: any) => error.row === 0)
           if (rowErrors && rowErrors.fieldErrors) {
@@ -489,22 +463,16 @@ export function EnhancedBulkAddModal({
           } else {
             updateValidationResultAfterEdit(rowIndex, completeRowData, false, rowErrors?.errors || [])
           }
-          toast.warning("Row still has validation errors", {
-            style: { background: "#FEF3C7", color: "#D97706" },
-          })
+          toast.warning("Row still has validation errors")
         }
         setIsUploading(false)
       } else {
         updateValidationResultAfterEdit(rowIndex, completeRowData, false, clientErrors)
-        toast.warning("Please fix validation errors", {
-          style: { background: "#FEF3C7", color: "#D97706" },
-        })
+        toast.warning("Please fix validation errors")
       }
     } catch (error) {
       console.error("Error saving row changes:", error)
-      toast.error("Failed to save changes", {
-        style: { background: "#FEE2E2", color: "#EF4444" },
-      })
+      toast.error("Failed to save changes")
       setIsUploading(false)
     }
   }
@@ -731,15 +699,15 @@ export function EnhancedBulkAddModal({
   if (!isVisible) return null
 
   return (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black/45 backdrop-blur-[2px] flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-[95vw] max-h-[95vh] overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-300">
-        <div className="flex items-center justify-between p-6 sm:p-8 bg-gradient-to-r from-[#89A8B2] to-[#B3C8CF] border-b border-[#B3C8CF]/20 flex-shrink-0">
+        <div className="flex items-center justify-between px-5 sm:px-6 py-3.5 bg-[#2A5C8A] border-b border-[#1e4568] flex-shrink-0">
           <div className="flex items-center gap-4">
             <div className="bg-white/20 p-3 rounded-lg">
               <Database className="h-6 w-6 text-white" />
             </div>
             <div>
-              <h2 className="text-2xl sm:text-3xl font-bold text-white">Enhanced Bulk Import</h2>
+              <h2 className="text-base sm:text-lg font-semibold text-white tracking-tight">Enhanced Bulk Import</h2>
               <p className="text-white/80 text-sm mt-1">Advanced {entityName} import with validation & editing</p>
             </div>
           </div>
@@ -825,14 +793,14 @@ export function EnhancedBulkAddModal({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="bg-white border-2 border-[#B3C8CF]/30 rounded-xl p-6 hover:border-[#89A8B2] hover:shadow-lg transition-all duration-200">
                     <div className="flex flex-col items-center text-center">
-                      <div className="bg-gradient-to-br from-[#89A8B2] to-[#7A96A3] p-4 rounded-full mb-4">
+                      <div className="bg-gradient-to-br from-[#2A5C8A] to-[#1e4568] p-4 rounded-full mb-4">
                         <FileSpreadsheet className="h-8 w-8 text-white" />
                       </div>
                       <h3 className="text-lg font-semibold text-[#2C3E50] mb-2">Download Template</h3>
                       <p className="text-sm text-[#5A6C7D] mb-4">Get an Excel template with dropdowns and validation</p>
                       <button
                         onClick={downloadTemplate}
-                        className="px-6 py-3 bg-gradient-to-r from-[#89A8B2] to-[#7A96A3] text-white rounded-lg hover:shadow-lg hover:shadow-[#89A8B2]/30 transition-all duration-200 flex items-center gap-2 font-medium"
+                        className="px-6 py-3 bg-[#2A5C8A] text-white rounded-md shadow-sm hover:bg-[#1e4568] transition-colors flex items-center gap-2 font-medium"
                       >
                         <Download className="h-4 w-4" /> Download Template
                       </button>
@@ -876,7 +844,7 @@ export function EnhancedBulkAddModal({
               </p>
               <div className="w-full max-w-md bg-[#B3C8CF]/20 rounded-full h-3 mb-3">
                 <div
-                  className="bg-gradient-to-r from-[#89A8B2] to-[#7A96A3] h-3 rounded-full transition-all duration-300"
+                  className="bg-[#2A5C8A] h-3 rounded-full transition-all duration-300"
                   style={{ width: `${uploadProgress}%` }}
                 ></div>
               </div>
@@ -1298,7 +1266,7 @@ export function EnhancedBulkAddModal({
                 </button>
                 <button
                   onClick={onClose}
-                  className="px-6 py-3 bg-gradient-to-r from-[#89A8B2] to-[#7A96A3] text-white rounded-lg hover:shadow-lg hover:shadow-[#89A8B2]/30 transition-all duration-200 font-medium"
+                  className="px-6 py-3 bg-[#2A5C8A] text-white rounded-md shadow-sm hover:bg-[#1e4568] transition-colors font-medium"
                 >
                   Close
                 </button>
@@ -1319,7 +1287,7 @@ export function EnhancedBulkAddModal({
               <button
                 onClick={validateFile}
                 disabled={!file || isUploading}
-                className="px-6 py-3 bg-gradient-to-r from-[#89A8B2] to-[#7A96A3] text-white rounded-lg hover:shadow-lg hover:shadow-[#89A8B2]/30 transition-all duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-[#89A8B2]/50 flex items-center justify-center gap-2"
+                className="px-6 py-3 bg-[#2A5C8A] text-white rounded-md shadow-sm hover:bg-[#1e4568] transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-[#89A8B2]/50 flex items-center justify-center gap-2"
               >
                 {isUploading ? (
                   <>

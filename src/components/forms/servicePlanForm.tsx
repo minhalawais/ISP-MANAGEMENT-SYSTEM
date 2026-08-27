@@ -178,6 +178,38 @@ export function ServicePlanForm({ formData, handleInputChange, isEditing }: Serv
           </div>
         </div>
       </div>
+
+      <div className="border-t border-[#EBF5FF] pt-6 space-y-5">
+        <div>
+          <h3 className="text-sm font-semibold text-[#2A5C8A]">Public website offer</h3>
+          <p className="mt-1 text-xs text-[#4A5568]">Publishing is off by default. Review customer-facing names, charges and claims before enabling it.</p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div><label className={labelClasses}>Product type</label><select name="product_type" value={formData.product_type || "internet"} onChange={handleInputChange} className={inputClasses}><option value="internet">Internet</option><option value="tv">TV</option><option value="iptv">IPTV</option><option value="addon">Add-on</option><option value="static_ip">Static IP</option></select></div>
+          <div><label className={labelClasses}>Customer type</label><select name="customer_type" value={formData.customer_type || "residential"} onChange={handleInputChange} className={inputClasses}><option value="residential">Residential</option><option value="business">Business</option></select></div>
+          <div><label className={labelClasses}>Technology</label><select name="technology" value={formData.technology || ""} onChange={handleInputChange} className={inputClasses}><option value="">Not specified</option><option value="FTTH / GPON">FTTH / GPON</option><option value="Fixed wireless">Fixed wireless</option><option value="Ethernet">Ethernet</option><option value="Hybrid">Hybrid</option></select></div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="md:col-span-2"><label className={labelClasses}>Public package name</label><input type="text" name="public_name" value={formData.public_name || ""} onChange={handleInputChange} placeholder="e.g. Home 20 — never expose internal tariff codes" className={inputClasses} /></div>
+          <div><label className={labelClasses}>Display order</label><input type="number" name="display_order" value={formData.display_order ?? 100} onChange={handleInputChange} className={inputClasses} /></div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div><label className={labelClasses}>Upload Mbps</label><input type="number" name="upload_speed_mbps" value={formData.upload_speed_mbps || ""} onChange={handleInputChange} className={inputClasses} /></div>
+          <div><label className={labelClasses}>Installation fee</label><input type="number" name="installation_fee" value={formData.installation_fee ?? ""} onChange={handleInputChange} className={inputClasses} /></div>
+          <div><label className={labelClasses}>Equipment fee</label><input type="number" name="equipment_fee" value={formData.equipment_fee ?? ""} onChange={handleInputChange} className={inputClasses} /></div>
+          <div><label className={labelClasses}>Contract months</label><input type="number" name="contract_term_months" value={formData.contract_term_months || ""} onChange={handleInputChange} className={inputClasses} /></div>
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div><label className={labelClasses}>Data policy</label><select name="is_unlimited" value={String(formData.is_unlimited === true || formData.is_unlimited === "true")} onChange={handleInputChange} className={inputClasses}><option value="false">Use data cap</option><option value="true">Unlimited</option></select></div>
+          <div><label className={labelClasses}>Taxes</label><select name="tax_inclusive" value={String(formData.tax_inclusive === true || formData.tax_inclusive === "true")} onChange={handleInputChange} className={inputClasses}><option value="false">Exclusive</option><option value="true">Inclusive</option></select></div>
+          <div><label className={labelClasses}>Featured</label><select name="is_featured" value={String(formData.is_featured === true || formData.is_featured === "true")} onChange={handleInputChange} className={inputClasses}><option value="false">No</option><option value="true">Yes</option></select></div>
+          <div><label className={labelClasses}>Website status</label><select name="is_public" value={String(formData.is_public === true || formData.is_public === "true")} onChange={handleInputChange} className={inputClasses}><option value="false">Private</option><option value="true">Published</option></select></div>
+        </div>
+      </div>
     </div>
   )
 }

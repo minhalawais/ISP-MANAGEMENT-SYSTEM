@@ -1,0 +1,165 @@
+/* ---------------------------------------------------------------------------
+   Marketing site design tokens — scoped under .marketing-site so nothing
+   leaks into the admin app's FOS design tokens. One shared light "editorial"
+   identity used for every vendor's public site; only data changes per host.
+--------------------------------------------------------------------------- */
+
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap");
+
+.marketing-site {
+  --mk-canvas: #f5f8f6;
+  --mk-surface: #ffffff;
+  --mk-ink: #0e1a1f;
+  --mk-ink-dim: #44525a;
+  --mk-ink-mute: #738088;
+  --mk-hairline: rgba(14, 26, 31, 0.08);
+  --mk-hairline-strong: rgba(14, 26, 31, 0.16);
+  --mk-accent: #087c69;
+  --mk-accent-dim: #075f52;
+  --mk-accent-tint: rgba(8, 124, 105, 0.1);
+  --mk-signal: #e45b3f;
+
+  --mk-radius-chip: 6px;
+  --mk-radius-card: 8px;
+  --mk-radius-panel: 8px;
+
+  --mk-font-display: "Space Grotesk", "Inter", system-ui, sans-serif;
+  --mk-font-sans: "Inter", system-ui, sans-serif;
+
+  background: var(--mk-canvas);
+  color: var(--mk-ink);
+  font-family: var(--mk-font-sans);
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  scroll-behavior: smooth;
+  min-height: 100vh;
+}
+
+.mk-shell-wide,
+.mk-shell,
+.mk-shell-narrow {
+  width: 100%;
+  margin-inline: auto;
+}
+
+.mk-shell-wide {
+  max-width: 1560px;
+}
+
+.mk-shell {
+  max-width: 1320px;
+}
+
+.mk-shell-narrow {
+  max-width: 800px;
+}
+
+/* Font/tracking only — color is intentionally NOT set here so headings
+   inherit from their section (.mk-ink-surface, popular plan card, etc.)
+   instead of always forcing ink, which would make dark-surface headings
+   invisible. */
+.marketing-site h1,
+.marketing-site h2,
+.marketing-site h3,
+.marketing-site .mk-display {
+  font-family: var(--mk-font-display);
+  letter-spacing: 0;
+}
+
+.marketing-site :focus-visible {
+  outline: 2px solid var(--mk-accent);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+.marketing-site ::selection {
+  background: var(--mk-accent);
+  color: #fff;
+}
+
+/* Numbered eyebrow label used above section headings, e.g. "01 — Plans" */
+.mk-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--mk-font-sans);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--mk-accent);
+}
+
+.mk-eyebrow::before {
+  content: "";
+  display: inline-block;
+  width: 1.25rem;
+  height: 1px;
+  background: var(--mk-accent);
+}
+
+/* Hairline divider, used instead of shadows/cards to separate sections */
+.mk-hairline-top {
+  border-top: 1px solid var(--mk-hairline);
+}
+.mk-hairline-bottom {
+  border-bottom: 1px solid var(--mk-hairline);
+}
+
+/* Restrained shadow scale — no heavy drop shadows */
+.mk-shadow-sm {
+  box-shadow: 0 1px 2px rgba(16, 20, 24, 0.04);
+}
+.mk-shadow-md {
+  box-shadow: 0 4px 16px rgba(16, 20, 24, 0.06);
+}
+
+/* Subtle dot texture behind hero / CTA bands */
+.mk-dot-grid {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image: radial-gradient(circle, rgba(16, 20, 24, 0.09) 1px, transparent 1px);
+  background-size: 22px 22px;
+  mask-image: linear-gradient(180deg, transparent, black 12%, black 88%, transparent);
+}
+
+.mk-grid-lines {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image: linear-gradient(var(--mk-hairline) 1px, transparent 1px),
+    linear-gradient(90deg, var(--mk-hairline) 1px, transparent 1px);
+  background-size: 4rem 4rem;
+  mask-image: linear-gradient(180deg, transparent, black 15%, black 85%, transparent);
+  opacity: 0.6;
+}
+
+/* Dark inverted band used for CTA sections, mirroring the accent identity */
+.mk-ink-surface {
+  background: var(--mk-ink);
+  color: #f4f5f2;
+}
+
+.mk-ink-surface .mk-eyebrow {
+  color: #7ff0ae;
+}
+
+.mk-ink-surface .mk-eyebrow::before {
+  background: #7ff0ae;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marketing-site {
+    scroll-behavior: auto;
+  }
+  .marketing-site *,
+  .marketing-site *::before,
+  .marketing-site *::after {
+    animation-duration: 1ms !important;
+    animation-delay: 0ms !important;
+    transition-duration: 80ms !important;
+  }
+}

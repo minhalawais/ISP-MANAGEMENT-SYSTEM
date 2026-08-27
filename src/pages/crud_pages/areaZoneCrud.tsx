@@ -11,6 +11,7 @@ interface AreaZone {
   name: string;
   description: string;
   is_active: boolean;
+  is_public: boolean;
   sub_zones_count?: number;
 }
 
@@ -49,7 +50,8 @@ const AreaZoneManagement: React.FC = () => {
             {(info.getValue() as number) || 0} sub-zones
           </button>
         ),
-      }
+      },
+      { header: 'Website', accessorKey: 'is_public', cell: info => info.getValue<boolean>() ? 'Published' : 'Private' },
     ],
     [navigate]
   );
@@ -58,6 +60,7 @@ const AreaZoneManagement: React.FC = () => {
     <CRUDPage<AreaZone>
       title="Area/Zone"
       endpoint="areas"
+      filterModuleKey="area-zone"
       columns={columns}
       FormComponent={AreaZoneForm}
     />
@@ -65,4 +68,3 @@ const AreaZoneManagement: React.FC = () => {
 };
 
 export default AreaZoneManagement;
-

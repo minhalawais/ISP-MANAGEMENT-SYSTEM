@@ -17,11 +17,20 @@ import {
 } from "lucide-react"
 import { Table } from "./table/PaymentTable.tsx"
 import { Modal } from "./modal.tsx"
+import { MODAL_CANCEL_BTN, MODAL_FOOTER, MODAL_PRIMARY_BTN } from "./ui/modalStyles.ts"
 import { Topbar } from "./topNavbar.tsx"
+import { useOptionalAdminChrome } from "../context/AdminLayoutContext.tsx"
 import { Sidebar } from "./sideNavbar.tsx"
 import { getToken } from "../utils/auth.ts"
-import { toast } from "react-toastify"
+import { toast } from "../utils/notify.ts";
 import axiosInstance from "../utils/axiosConfig.ts"
+import { CRUD_FILTER_CONFIGS } from "../config/crudFilterConfigs.ts"
+import { useCrudTableFilters } from "../hooks/useCrudTableFilters.ts"
+import { useCrudPeriodFilter } from "../hooks/useCrudPeriodFilter.ts"
+import { getCrudPeriodConfig } from "../config/crudPeriodConfigs.ts"
+import { CrudStatsSection } from "./crud/CrudStatsSection.tsx"
+import { periodQueryParamsForTextSearch } from "../utils/crudPeriodUtils.ts"
+import type { StatCardDef } from "../types/crudFilters.ts"
 
 interface CRUDPageProps<T> {
   title: string
@@ -51,6 +60,7 @@ export function LogsCRUDPage<T extends { id: string }>({
   const [isModalVisible, setIsModalVisible] = useState(false)
   const [editingItem, setEditingItem] = useState<T | null>(null)
   const [formData, setFormData] = useState<Partial<T>>({})
+  const hasChrome = useOptionalAdminChrome()
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [selectedRows, setSelectedRows] = useState<string[]>([])
   const [isLoading, setIsLoading] = useState(false)
@@ -59,14 +69,36 @@ export function LogsCRUDPage<T extends { id: string }>({
   const [pageCount, setPageCount] = useState<number>(0)
   const [sorting, setSorting] = useState<{ id: string; desc: boolean }[]>([])
   const [globalSearch, setGlobalSearch] = useState("")
-  const [columnFilters, setColumnFilters] = useState<{ id: string; value: string }[]>([])
   const [stats, setStats] = useState<Summary>({ total: 0, active: 0, inactive: 0 })
+
+  const filterConfig = CRUD_FILTER_CONFIGS.logs
+  const periodConfig = getCrudPeriodConfig("logs")
+  const tableFilters = useCrudTableFilters({
+    config: filterConfig,
+    onFilterChange: () => setPagination((p) => ({ ...p, pageIndex: 0 })),
+  })
+  const periodFilter = useCrudPeriodFilter({
+    config: periodConfig,
+    onPeriodChange: () => setPagination((p) => ({ ...p, pageIndex: 0 })),
+  })
+
+  const statCards: StatCardDef[] = useMemo(
+    () =>
+      filterConfig.statCards.map((card) => {
+        if (card.id === "total") return { ...card, value: stats.total }
+        if (card.id === "active") return { ...card, value: stats.active, clickable: false }
+        if (card.id === "inactive") return { ...card, value: stats.inactive, clickable: false }
+        return { ...card, value: 0 }
+      }),
+    [filterConfig.statCards, stats],
+  )
 
   const fetchSummary = useCallback(async () => {
     try {
       const token = getToken()
       const res = await axiosInstance.get(`/${endpoint}/summary`, {
         headers: { Authorization: `Bearer ${token}` },
+        params: periodFilter.queryParams,
       })
       const s = res.data as Summary
       setStats({
@@ -77,7 +109,7 @@ export function LogsCRUDPage<T extends { id: string }>({
     } catch (e) {
       console.warn("Failed to fetch summary", e)
     }
-  }, [endpoint])
+  }, [endpoint, periodFilter.queryParams])
 
   const fetchPage = useCallback(async () => {
     setIsLoading(true)
@@ -92,9 +124,10 @@ export function LogsCRUDPage<T extends { id: string }>({
         q: globalSearch || undefined,
       }
       
-      columnFilters.forEach((f) => {
+      tableFilters.mergedColumnFilters.forEach((f) => {
         if (f.value) params[`filter_${f.id}`] = f.value
       })
+      Object.assign(params, periodQueryParamsForTextSearch(periodFilter.period, globalSearch))
 
       const res = await axiosInstance.get(`/${endpoint}/page`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -108,13 +141,11 @@ export function LogsCRUDPage<T extends { id: string }>({
       if (onDataChange) onDataChange()
     } catch (error) {
       console.error(`Failed to fetch ${title}`, error)
-      toast.error(`Failed to fetch ${title}`, {
-        style: { background: "#FEE2E2", color: "#EF4444" },
-      })
+      toast.error(`Failed to fetch ${title}`)
     } finally {
       setIsLoading(false)
     }
-  }, [endpoint, title, sorting, globalSearch, columnFilters, pagination, onDataChange])
+  }, [endpoint, title, sorting, globalSearch, tableFilters.mergedColumnFilters, pagination, onDataChange, periodFilter.period])
 
   useEffect(() => {
     fetchSummary()
@@ -147,25 +178,19 @@ export function LogsCRUDPage<T extends { id: string }>({
         response = await axiosInstance.put(`/${endpoint}/update/${editingItem.id}`, formData, {
           headers: { Authorization: `Bearer ${token}` },
         })
-        toast.success(`${title} updated successfully`, {
-          style: { background: "#D1FAE5", color: "#10B981" },
-        })
+        toast.success(`${title} updated successfully`)
       } else {
         response = await axiosInstance.post(`/${endpoint}/add`, formData, {
           headers: { Authorization: `Bearer ${token}` },
         })
-        toast.success(`${title} added successfully`, {
-          style: { background: "#D1FAE5", color: "#10B981" },
-        })
+        toast.success(`${title} added successfully`)
       }
       
       fetchPage()
       handleCancel()
     } catch (error) {
       console.error("Operation failed", error)
-      toast.error("Operation failed", {
-        style: { background: "#FEE2E2", color: "#EF4444" },
-      })
+      toast.error("Operation failed")
     } finally {
       setIsLoading(false)
     }
@@ -179,15 +204,11 @@ export function LogsCRUDPage<T extends { id: string }>({
         await axiosInstance.delete(`/${endpoint}/delete/${id}`, {
           headers: { Authorization: `Bearer ${token}` },
         })
-        toast.success(`${title} deleted successfully`, {
-          style: { background: "#D1FAE5", color: "#10B981" },
-        })
+        toast.success(`${title} deleted successfully`)
         await fetchPage()
       } catch (error) {
         console.error("Delete operation failed", error)
-        toast.error("Delete operation failed", {
-          style: { background: "#FEE2E2", color: "#EF4444" },
-        })
+        toast.error("Delete operation failed")
       } finally {
         setIsLoading(false)
       }
@@ -210,14 +231,14 @@ export function LogsCRUDPage<T extends { id: string }>({
           <div className="flex items-center gap-2">
             <button
               onClick={() => showModal(info.row.original)}
-              className="p-2 text-white bg-electric-blue rounded-md hover:bg-btn-hover transition-colors"
+              className="h-8 w-8 inline-flex items-center justify-center text-white bg-electric-blue rounded-md hover:bg-btn-hover transition-colors"
               title="Edit"
             >
               <Pencil className="h-4 w-4" />
             </button>
             <button
               onClick={() => handleDelete(info.row.original.id)}
-              className="p-2 text-white bg-coral-red rounded-md hover:bg-coral-red/80 transition-colors"
+              className="h-8 w-8 inline-flex items-center justify-center text-white bg-coral-red rounded-md hover:bg-coral-red/80 transition-colors"
               title="Delete"
             >
               <Trash2 className="h-4 w-4" />
@@ -237,7 +258,7 @@ export function LogsCRUDPage<T extends { id: string }>({
         sort_dir: sort?.desc ? "desc" : "asc",
         q: globalSearch || undefined,
       }
-      columnFilters.forEach((f) => {
+      tableFilters.mergedColumnFilters.forEach((f) => {
         if (f.value) params[`filter_${f.id}`] = f.value
       })
       
@@ -256,92 +277,67 @@ export function LogsCRUDPage<T extends { id: string }>({
       a.remove()
       URL.revokeObjectURL(url)
     } catch (e) {
-      toast.error("Export failed", { style: { background: "#FEE2E2", color: "#EF4444" } })
+      toast.error("Export failed")
     }
   }
 
   return (
-    <div className="flex h-screen bg-light-sky/50">
-      <Sidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} setIsOpen={setIsSidebarOpen} />
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <Topbar toggleSidebar={toggleSidebar} />
+    <div className={hasChrome ? "flex-1 min-w-0 w-full" : "flex h-screen bg-light-sky/50"}>
+      {!hasChrome && (
+        <Sidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} setIsOpen={setIsSidebarOpen} />
+      )}
+      <div className={hasChrome ? "flex-1 min-w-0 w-full" : "flex-1 flex flex-col overflow-hidden"}>
+        {!hasChrome && <Topbar toggleSidebar={toggleSidebar} />}
         <main
-  className={`flex-1 overflow-x-hidden overflow-y-auto bg-light-sky/50 p-0 sm:p-6 pt-20 transition-all duration-300 ${
+  className={
+    hasChrome
+      ? "px-3 py-3 sm:px-4"
+      : `flex-1 overflow-x-hidden overflow-y-auto bg-light-sky/50 px-3 py-3 sm:px-4 pt-16 transition-all duration-300 ${
     isSidebarOpen ? "ml-64" : "ml-0 lg:ml-20"
-  }`}
+  }`
+  }
 >
 
           <div className="container mx-auto">
             {/* Breadcrumb */}
-            <div className="flex items-center text-sm text-slate-gray mb-6">
-              <LayoutDashboard className="h-4 w-4 mr-1" />
+            <div className="flex items-center text-xs text-slate-gray mb-2">
+              <LayoutDashboard className="h-3.5 w-3.5 mr-1" />
               <span>Dashboard</span>
-              <ChevronRight className="h-4 w-4 mx-1" />
+              <ChevronRight className="h-3.5 w-3.5 mx-1" />
               <span className="text-deep-ocean font-medium">{title} Management</span>
             </div>
 
             {/* Header Section */}
-            <div className="bg-white rounded-xl shadow-md p-6 mb-6">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-                <div>
-                  <h1 className="text-2xl md:text-3xl font-bold text-deep-ocean flex items-center gap-2">
-                    <Users className="h-7 w-7 text-electric-blue" />
-                    {title} Management
-                  </h1>
-                  <p className="text-slate-gray mt-1">Manage your {title.toLowerCase()} records efficiently</p>
-                </div>
-                <div className="flex flex-wrap gap-3">
+            <div className="bg-white rounded-xl shadow-sm p-4 mb-3">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-3">
+                <h1 className="text-xl font-semibold text-deep-ocean flex items-center gap-2">
+                  <Users className="h-5 w-5 text-electric-blue" />
+                  {title} Management
+                </h1>
+                <div className="flex flex-wrap gap-2">
                   <button
                     onClick={handleExport}
-                    className="bg-golden-amber text-white px-4 py-2.5 rounded-lg hover:bg-golden-amber/90 transition-colors flex items-center gap-2 shadow-sm"
+                    className="h-9 bg-golden-amber text-white px-3 text-sm rounded-lg hover:bg-golden-amber/90 transition-colors inline-flex items-center gap-1.5"
                   >
-                    <FileDown className="h-5 w-5" /> Export CSV
+                    <FileDown className="h-4 w-4" /> Export CSV
                   </button>
                 </div>
               </div>
 
-              {/* Stats Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                <div className="bg-light-sky/50 rounded-lg p-4 border border-slate-gray/10">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-slate-gray text-sm">Total {title}s</p>
-                      <h3 className="text-2xl font-bold text-deep-ocean mt-1">{stats.total}</h3>
-                    </div>
-                    <div className="bg-deep-ocean/10 p-3 rounded-full">
-                      <Users className="h-6 w-6 text-deep-ocean" />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-emerald-green/5 rounded-lg p-4 border border-emerald-green/10">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-slate-gray text-sm">Active {title}s</p>
-                      <h3 className="text-2xl font-bold text-emerald-green mt-1">{stats.active}</h3>
-                    </div>
-                    <div className="bg-emerald-green/10 p-3 rounded-full">
-                      <CheckCircle2 className="h-6 w-6 text-emerald-green" />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-coral-red/5 rounded-lg p-4 border border-coral-red/10">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-slate-gray text-sm">Inactive {title}s</p>
-                      <h3 className="text-2xl font-bold text-coral-red mt-1">{stats.inactive}</h3>
-                    </div>
-                    <div className="bg-coral-red/10 p-3 rounded-full">
-                      <XCircle className="h-6 w-6 text-coral-red" />
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <CrudStatsSection
+                cards={statCards}
+                activeStatId={tableFilters.activeStatId}
+                onStatClick={tableFilters.applyStatFilter}
+                period={periodFilter.period}
+                periodLabel={periodFilter.label}
+                periodActive={periodFilter.isActive}
+                onSetPeriod={periodFilter.setPeriod}
+                onSetPeriodAll={periodFilter.setAll}
+              />
             </div>
 
             {/* Table Section */}
-            <div className="mb-8">
+            <div className="mb-4">
               <Table
                 data={data}
                 columns={memoizedColumns}
@@ -360,10 +356,13 @@ export function LogsCRUDPage<T extends { id: string }>({
                   setGlobalSearch(value)
                   setPagination((p) => ({ ...p, pageIndex: 0 }))
                 }}
-                onColumnFiltersChangeExternal={(filters) => {
-                  setColumnFilters(filters as any)
-                  setPagination((p) => ({ ...p, pageIndex: 0 }))
-                }}
+                onColumnFiltersChangeExternal={tableFilters.handleColumnFiltersChange}
+                quickFilters={filterConfig.quickFilters}
+                filterState={tableFilters.filterState}
+                onQuickFilterChange={tableFilters.setQuickFilter}
+                onClearFilters={tableFilters.clearAllFilters}
+                hasActiveFilters={tableFilters.hasAnyActiveFilters}
+                inlineFilterFields={tableFilters.inlineFields}
               />
             </div>
           </div>
@@ -379,18 +378,18 @@ export function LogsCRUDPage<T extends { id: string }>({
       >
         <form onSubmit={handleSubmit}>
           <FormComponent formData={formData} handleInputChange={handleInputChange} isEditing={!!editingItem} />
-          <div className="mt-6 flex justify-end gap-3">
+          <div className={MODAL_FOOTER}>
             <button
               type="button"
               onClick={handleCancel}
-              className="px-4 py-2.5 border border-slate-gray/20 text-slate-gray rounded-lg hover:bg-light-sky/50 transition-colors"
+              className={MODAL_CANCEL_BTN}
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isLoading}
-              className="px-4 py-2.5 bg-electric-blue text-white rounded-lg hover:bg-btn-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-electric-blue disabled:opacity-50 transition-colors flex items-center gap-2"
+              className={MODAL_PRIMARY_BTN}
             >
               {isLoading ? (
                 <>

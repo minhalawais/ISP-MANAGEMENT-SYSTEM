@@ -1,5 +1,5 @@
-import { useState, useMemo } from "react"
-import { Search, Users, Hash, ChevronDown } from "lucide-react"
+import { useEffect, useMemo, useRef, useState } from "react"
+import { Search, Users, Hash, ChevronDown, Loader2 } from "lucide-react"
 
 interface Customer {
   id: string
@@ -12,33 +12,53 @@ interface SearchableCustomerSelectProps {
   value: string
   onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void
   onCustomerSelect?: (customerId: string) => void
+  /**
+   * Called (debounced ~300ms) whenever the search box changes, so a parent
+   * can re-query a server-side search endpoint instead of relying solely on
+   * client-side filtering of whatever `customers` it was handed.
+   */
+  onSearchChange?: (term: string) => void
+  isLoading?: boolean
   error?: string
   placeholder?: string
 }
 
-export function SearchableCustomerSelect({ 
-  customers, 
-  value, 
-  onChange, 
+export function SearchableCustomerSelect({
+  customers,
+  value,
+  onChange,
   onCustomerSelect,
-  error, 
-  placeholder = "Search and select customer" 
+  onSearchChange,
+  isLoading = false,
+  error,
+  placeholder = "Search and select customer",
 }: SearchableCustomerSelectProps) {
   const [searchTerm, setSearchTerm] = useState("")
   const [isOpen, setIsOpen] = useState(false)
-  
-  const filteredCustomers = useMemo(() => {
-    if (!searchTerm) return customers;
-  
-    return customers.filter(customer => 
-      (customer.name?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
-      (customer.internetId?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
-      (customer.id?.toLowerCase() || "").includes(searchTerm.toLowerCase())
-    );
-  }, [customers, searchTerm]);
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>()
 
-  const selectedCustomer = customers.find(customer => customer.id === value)
-  
+  useEffect(() => {
+    if (!onSearchChange) return
+    debounceRef.current = setTimeout(() => onSearchChange(searchTerm), 300)
+    return () => clearTimeout(debounceRef.current)
+  }, [searchTerm, onSearchChange])
+
+  const filteredCustomers = useMemo(() => {
+    // When a parent supplies onSearchChange, it already narrows `customers`
+    // server-side, so avoid double-filtering (and dropping results the
+    // server matched on fields the client filter doesn't know about).
+    if (!searchTerm || onSearchChange) return customers
+
+    return customers.filter(
+      (customer) =>
+        (customer.name?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
+        (customer.internetId?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
+        (customer.id?.toLowerCase() || "").includes(searchTerm.toLowerCase())
+    )
+  }, [customers, searchTerm, onSearchChange])
+
+  const selectedCustomer = customers.find((customer) => customer.id === value)
+
   const handleCustomerSelect = (customerId: string) => {
     if (onCustomerSelect) {
       onCustomerSelect(customerId)
@@ -56,123 +76,98 @@ export function SearchableCustomerSelect({
 
   return (
     <div className="relative">
-      {/* Display selected customer */}
-      <div 
-        className={`w-full pl-10 pr-10 py-2.5 border ${
-          error ? "border-coral-red" : "border-slate-gray/20"
-        } rounded-lg bg-light-sky/30 text-deep-ocean cursor-pointer flex items-center transition-all duration-200 hover:border-electric-blue/30`}
+      <button
+        type="button"
+        className={`w-full h-9 pl-9 pr-9 text-left text-sm border rounded-md bg-[#F8FAFB] text-slate-800 cursor-pointer flex items-center shadow-sm transition-colors ${
+          error
+            ? "border-red-400"
+            : isOpen
+              ? "bg-white border-[#2A5C8A] ring-1 ring-[#2A5C8A]/25"
+              : "border-slate-300 hover:border-slate-400 hover:bg-white"
+        }`}
         onClick={() => setIsOpen(!isOpen)}
       >
-        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-          <Users className="h-5 w-5 text-slate-gray/60" />
-        </div>
-        
+        <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+          <Users className="h-4 w-4 text-slate-400" />
+        </span>
+
         {selectedCustomer ? (
-          <div className="flex-1">
-            <div className="flex items-center gap-3 flex-wrap">
-              {/* Customer Name */}
-              <span className="font-medium text-deep-ocean">
-                {selectedCustomer.name}
-              </span>
-              
-              {/* Internet ID */}
-              <span className="flex items-center gap-1 text-sm text-electric-blue bg-electric-blue/10 px-2 py-1 rounded-md">
-                <Hash className="h-3.5 w-3.5" />
+          <span className="flex items-center gap-2 min-w-0 truncate">
+            <span className="font-medium text-slate-800 truncate">{selectedCustomer.name}</span>
+            {selectedCustomer.internetId ? (
+              <span className="inline-flex items-center gap-0.5 shrink-0 text-[11px] font-medium text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">
+                <Hash className="h-3 w-3" />
                 {selectedCustomer.internetId}
               </span>
-              
-              {/* Customer ID */}
-              <span className="text-xs text-slate-gray">
-                ID: {selectedCustomer.id}
-              </span>
-            </div>
-          </div>
+            ) : null}
+          </span>
         ) : (
-          <span className="text-slate-gray/50">{placeholder}</span>
+          <span className="text-slate-400">{placeholder}</span>
         )}
-        
-        <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-          <ChevronDown className={`h-5 w-5 text-slate-gray/60 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
-        </div>
-      </div>
 
-      {/* Dropdown menu */}
+        <span className="absolute inset-y-0 right-0 flex items-center pr-2.5">
+          <ChevronDown
+            className={`h-4 w-4 text-slate-400 transition-transform duration-150 ${isOpen ? "rotate-180" : ""}`}
+          />
+        </span>
+      </button>
+
       {isOpen && (
-        <div className="absolute z-50 w-full mt-1 bg-white border border-slate-gray/20 rounded-lg shadow-lg max-h-80 overflow-y-auto animate-dropdown">
-          {/* Search input */}
-          <div className="sticky top-0 bg-white p-3 border-b border-slate-gray/20">
+        <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-md shadow-md max-h-72 overflow-hidden">
+          <div className="sticky top-0 bg-white p-2 border-b border-slate-100">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-gray/60" />
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
               <input
                 type="text"
-                placeholder="Search customers by name, internet ID, or customer ID..."
+                placeholder="Search name or internet ID…"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 border border-slate-gray/20 rounded-md focus:outline-none focus:ring-2 focus:ring-electric-blue/30 focus:border-transparent"
+                className="w-full h-8 pl-8 pr-2.5 text-sm border border-slate-200 rounded-md bg-white text-slate-700 placeholder:text-slate-400 focus:outline-none focus:border-slate-400 focus:ring-1 focus:ring-slate-300"
                 autoFocus
               />
             </div>
           </div>
 
-          {/* Options list */}
-          <div className="p-2">
-            {filteredCustomers.length === 0 ? (
-              <div className="p-4 text-center text-slate-gray text-sm">
-                <Search className="h-8 w-8 mx-auto mb-2 text-slate-gray/40" />
-                <p>No customers found matching "{searchTerm}"</p>
+          <div className="overflow-y-auto max-h-56 py-1">
+            {isLoading ? (
+              <div className="px-3 py-6 flex items-center justify-center gap-2 text-slate-400 text-sm">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                Searching…
               </div>
+            ) : filteredCustomers.length === 0 ? (
+              <div className="px-3 py-6 text-center text-slate-400 text-sm">No customers found</div>
             ) : (
-              filteredCustomers.map((customer) => (
-                <div
-                  key={customer.id}
-                  className={`p-3 cursor-pointer rounded-lg mb-1 transition-all duration-200 hover:bg-light-sky/50 hover:border-electric-blue/20 border border-transparent ${
-                    value === customer.id 
-                      ? "bg-electric-blue/10 border-electric-blue/30 shadow-sm" 
-                      : "bg-white"
-                  }`}
-                  onClick={() => handleCustomerSelect(customer.id)}
-                >
-                  <div className="flex items-center gap-3 flex-wrap">
-                    {/* Customer Name */}
-                    <div className="min-w-[150px]">
-                      <span className="text-xs font-semibold text-slate-gray block">CUSTOMER</span>
-                      <span className="text-sm font-medium text-deep-ocean">
-                        {customer.name}
+              filteredCustomers.map((customer) => {
+                const selected = value === customer.id
+                return (
+                  <button
+                    type="button"
+                    key={customer.id}
+                    className={`w-full px-3 py-2 text-left flex items-center justify-between gap-2 transition-colors ${
+                      selected ? "bg-slate-100" : "hover:bg-slate-50"
+                    }`}
+                    onClick={() => handleCustomerSelect(customer.id)}
+                  >
+                    <span className="min-w-0">
+                      <span className="block text-sm font-medium text-slate-800 truncate">{customer.name}</span>
+                      <span className="block text-xs text-slate-500 truncate">{customer.internetId || "—"}</span>
+                    </span>
+                    {selected ? (
+                      <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                        Selected
                       </span>
-                    </div>
-
-                    {/* Internet ID */}
-                    <div className="min-w-[120px]">
-                      <span className="text-xs font-semibold text-slate-gray block">INTERNET ID</span>
-                      <span className="text-sm text-electric-blue font-medium">
-                        {customer.internetId}
-                      </span>
-                    </div>
-
-                    {/* Customer ID */}
-                    <div className="min-w-[100px]">
-                      <span className="text-xs font-semibold text-slate-gray block">CUSTOMER ID</span>
-                      <span className="text-xs text-slate-gray font-mono">
-                        {customer.id.slice(0, 8)}...
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              ))
+                    ) : null}
+                  </button>
+                )
+              })
             )}
           </div>
         </div>
       )}
 
-      {error && <p className="text-coral-red text-xs mt-1">{error}</p>}
+      {error && <p className="text-red-600 text-xs mt-1">{error}</p>}
 
-      {/* Click outside to close */}
-      {isOpen && (
-        <div 
-          className="fixed inset-0 z-40"
-          onClick={() => setIsOpen(false)}
-        />
-      )}
+      {isOpen && <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />}
     </div>
   )
 }
