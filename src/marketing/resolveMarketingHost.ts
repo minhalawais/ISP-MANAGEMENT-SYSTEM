@@ -1,32 +1,54 @@
-// Hostnames that always serve the admin/employee app, never a vendor's
-// marketing site. Every other hostname is treated as a vendor domain bound
-// in company_hosts (see api/app/services/company_host_access.py) and gets
-// the marketing site rendered instead.
-const ADMIN_HOSTNAMES = new Set(["localhost", "127.0.0.1", "nexus.mbanet.com.pk", "connectx.mbanet.com.pk"])
+const LOCAL_PREVIEW_HOSTNAMES = new Set(["localhost", "127.0.0.1"])
+const LOCAL_PREVIEW_STORAGE_KEY = "marketing_preview_host"
+
+const normalizePreviewHost = (value: string | null): string | null => {
+  const normalized = value?.trim().toLowerCase().replace(/^https?:\/\//, "").split(/[/?#]/, 1)[0]
+  if (!normalized || !/^[a-z0-9.-]+(?::\d+)?$/.test(normalized)) return null
+  return normalized.replace(/:\d+$/, "")
+}
+
+const getStoredPreviewHost = (): string | null => {
+  try {
+    return normalizePreviewHost(window.sessionStorage.getItem(LOCAL_PREVIEW_STORAGE_KEY))
+  } catch {
+    return null
+  }
+}
+
+const storePreviewHost = (host: string) => {
+  try {
+    window.sessionStorage.setItem(LOCAL_PREVIEW_STORAGE_KEY, host)
+  } catch {
+    // Preview still works for the current URL when storage is unavailable.
+  }
+}
 
 /**
  * Resolve which vendor marketing site (if any) should render for the
  * current browser location.
  *
- * - Real vendor domains (production): hostname itself, unless it's a known
- *   admin hostname.
+ * - Every real hostname is resolved through the backend company_hosts table.
+ *   Portal routing is path-based (`/admin`) rather than tied to domain names.
  * - Local dev: dev server (:3000) is always "localhost", so a `?site=`
  *   query override lets you preview any vendor's site without DNS/hosts
- *   file changes. Only honored in development builds.
+ *   file changes. The selection is retained in sessionStorage so marketing
+ *   links and hard reloads do not lose the preview host.
  *
  * Returns null when the admin app should render instead.
  */
 export const resolveMarketingHost = (hostname: string, search: string): string | null => {
   const normalizedHostname = hostname.trim().toLowerCase()
 
-  if (process.env.NODE_ENV === "development") {
-    const override = new URLSearchParams(search).get("site")
-    if (override && override.trim()) {
-      return override.trim().toLowerCase()
+  if (process.env.NODE_ENV !== "production" && LOCAL_PREVIEW_HOSTNAMES.has(normalizedHostname)) {
+    const override = normalizePreviewHost(new URLSearchParams(search).get("site"))
+    if (override) {
+      storePreviewHost(override)
+      return override
     }
+    return getStoredPreviewHost()
   }
 
-  if (!normalizedHostname || ADMIN_HOSTNAMES.has(normalizedHostname)) {
+  if (!normalizedHostname) {
     return null
   }
   if (normalizedHostname.startsWith("customer.")) {

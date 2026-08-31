@@ -92,6 +92,41 @@ describe("PortalTasks", () => {
     expect(screen.getByText(/Abid Majeed/)).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Pending" })).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "In progress" })).toBeInTheDocument()
+    // List shows status, not priority
+    expect(screen.getAllByText("Pending").length).toBeGreaterThan(0)
+    expect(screen.getByText("In Progress")).toBeInTheDocument()
+    expect(screen.queryByText("high")).not.toBeInTheDocument()
+    expect(screen.queryByText("medium")).not.toBeInTheDocument()
+  })
+
+  it("hides completed tasks from the All tab", async () => {
+    mockedAxios.get.mockResolvedValue({
+      data: [
+        ...sampleTasks,
+        {
+          ...sampleTasks[0],
+          id: "task-done",
+          task_type: "inspection",
+          status: "completed",
+          customer_name: "Done Customer",
+        },
+      ],
+    })
+
+    renderPortalTasks()
+
+    await waitFor(() => expect(screen.getByText("Installation")).toBeInTheDocument())
+    expect(screen.queryByText("Inspection")).not.toBeInTheDocument()
+    expect(screen.queryByText("Done Customer")).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole("button", { name: "Completed" }))
+
+    await waitFor(() =>
+      expect(mockedAxios.get).toHaveBeenCalledWith(
+        "/employee-portal/tasks?status=completed",
+        expect.anything()
+      )
+    )
   })
 
   it("opens the detail sheet when a row is tapped", async () => {
@@ -135,6 +170,43 @@ describe("PortalTasks", () => {
         expect.anything()
       )
     )
+  })
+
+  it("uploads a completion proof image instead of asking for a URL", async () => {
+    const createObjectURL = jest.fn(() => "blob:proof-preview")
+    const revokeObjectURL = jest.fn()
+    Object.defineProperty(window.URL, "createObjectURL", { writable: true, value: createObjectURL })
+    Object.defineProperty(window.URL, "revokeObjectURL", { writable: true, value: revokeObjectURL })
+
+    renderPortalTasks()
+
+    await waitFor(() => expect(screen.getByText("Installation")).toBeInTheDocument())
+    fireEvent.click(screen.getByText("Installation"))
+
+    const dialog = await screen.findByRole("dialog")
+    fireEvent.change(within(dialog).getByDisplayValue("Pending"), {
+      target: { value: "completed" },
+    })
+    fireEvent.change(within(dialog).getByPlaceholderText("Describe what was done..."), {
+      target: { value: "Router installed and tested" },
+    })
+
+    expect(within(dialog).queryByPlaceholderText("https://...")).not.toBeInTheDocument()
+    const file = new File(["proof"], "site-photo.png", { type: "image/png" })
+    fireEvent.change(within(dialog).getByLabelText("Upload completion proof"), {
+      target: { files: [file] },
+    })
+
+    expect(within(dialog).getByText("site-photo.png")).toBeInTheDocument()
+
+    fireEvent.click(within(dialog).getByRole("button", { name: "Update task" }))
+
+    await waitFor(() => expect(mockedAxios.put).toHaveBeenCalled())
+    const [, body] = mockedAxios.put.mock.calls[0]
+    expect(body).toBeInstanceOf(FormData)
+    expect((body as FormData).get("status")).toBe("completed")
+    expect((body as FormData).get("completion_notes")).toBe("Router installed and tested")
+    expect((body as FormData).get("completion_proof")).toBeInstanceOf(File)
   })
 
   it("hides update controls for view-only tasks", async () => {

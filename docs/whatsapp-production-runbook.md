@@ -4,9 +4,9 @@
 
 1. Pause WhatsApp sending for all tenants.
 2. Back up PostgreSQL.
-3. Apply `scripts/2026-08-27_whatsapp_production_hardening.sql` directly, or run
+3. Apply `scripts/migrations/2026-08-27_whatsapp_production_hardening.sql` directly, or run
    `python scripts/apply_whatsapp_production_hardening.py` from the `api` directory.
-4. Apply `scripts/2026-08-27_whatsapp_professional_templates.sql` directly, or run
+4. Apply `scripts/migrations/2026-08-27_whatsapp_professional_templates.sql` directly, or run
    `python scripts/apply_whatsapp_professional_templates.py` from the `api` directory.
 5. Set `EVOLUTION_API_KEY` and `WHATSAPP_TOKEN_ENCRYPTION_KEY`.
 6. Deploy the API without an embedded dispatcher or scheduler.

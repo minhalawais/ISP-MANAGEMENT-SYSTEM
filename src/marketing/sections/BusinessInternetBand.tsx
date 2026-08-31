@@ -14,10 +14,10 @@ const BusinessInternetBand: React.FC = () => {
   <section id="business-internet" className="mk-hairline-bottom bg-[var(--mk-surface)]">
     <div className="mk-shell px-5 sm:px-8 py-16 sm:py-24 grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
       <div className="relative aspect-[4/3] overflow-hidden rounded-lg bg-[#dfe8e4]">
-        <img src={DEFAULT_BUSINESS_IMAGE} alt="A Lahore neighbourhood business using connected systems" className="h-full w-full object-cover" loading="lazy" />
+        <img src={DEFAULT_BUSINESS_IMAGE} alt="A small business using connected systems" className="h-full w-full object-cover" loading="lazy" />
       </div>
       <div>
-        <span className="mk-eyebrow">For local business</span>
+        <span className="mk-eyebrow">For business</span>
         <h2 className="mt-4 text-3xl sm:text-4xl font-semibold leading-tight max-w-[14ch]">Internet that keeps everyday business moving</h2>
         <p className="mt-5 text-[var(--mk-ink-dim)] leading-relaxed max-w-xl">
           Ask about business packages when your shop, office, cameras and payments need a connection planned around real operating hours.

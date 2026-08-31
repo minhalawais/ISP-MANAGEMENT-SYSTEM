@@ -1,7 +1,11 @@
 import { useEffect, useState } from "react"
+import type { AxiosInstance } from "axios"
 import axiosInstance from "../utils/axiosConfig.ts"
 
-export function useAuthenticatedBlobUrl(url: string | null) {
+export function useAuthenticatedBlobUrl(
+  url: string | null,
+  client: AxiosInstance = axiosInstance
+) {
   const [objectUrl, setObjectUrl] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(false)
@@ -20,7 +24,7 @@ export function useAuthenticatedBlobUrl(url: string | null) {
     setError(false)
     setObjectUrl(null)
 
-    axiosInstance
+    client
       .get(url, { responseType: "blob", skipErrorToast: true } as any)
       .then((response) => {
         created = window.URL.createObjectURL(response.data)
@@ -41,7 +45,7 @@ export function useAuthenticatedBlobUrl(url: string | null) {
       cancelled = true
       if (created) window.URL.revokeObjectURL(created)
     }
-  }, [url])
+  }, [url, client])
 
   return { objectUrl, loading, error }
 }

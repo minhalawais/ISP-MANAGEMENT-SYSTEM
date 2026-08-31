@@ -5,13 +5,13 @@ import { buildTelLink, buildWhatsAppLink } from "../utils.ts"
 
 const CustomerCareBand: React.FC = () => {
   const site = useMarketingSite()
-  const portalUrl = site.website_content?.customer_portal_url || "/customer-portal"
+  const portalUrl = site.website_content?.customer_portal_url?.trim() || null
   const whatsappLink = buildWhatsAppLink(site.website_content?.social_links?.whatsapp || site.contact_number, `Hi ${site.name}, I need help with my connection.`)
   const telLink = buildTelLink(site.contact_number)
   const actions = [
-    { label: "Customer portal", detail: "View your account and billing", href: portalUrl, icon: UserRound },
+    ...(portalUrl ? [{ label: "Customer portal", detail: "View your account and billing", href: portalUrl, icon: UserRound }] : []),
     ...(telLink ? [{ label: "Call support", detail: site.contact_number, href: telLink, icon: Phone }] : []),
-    { label: "Report a service issue", detail: "Send details to the support team", href: "/contact", icon: Headphones },
+    { label: "Contact support", detail: "Send your question to the support team", href: "/contact", icon: Headphones },
   ]
 
   return (

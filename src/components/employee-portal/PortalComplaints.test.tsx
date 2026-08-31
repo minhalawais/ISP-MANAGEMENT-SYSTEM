@@ -89,7 +89,12 @@ function renderComplaints() {
 describe("PortalComplaints", () => {
   beforeEach(() => {
     jest.clearAllMocks()
-    mockedAxios.get.mockResolvedValue({ data: sampleComplaints })
+    mockedAxios.get.mockImplementation((url: string) => {
+      if (String(url).includes("resolve-options")) {
+        return Promise.resolve({ data: { wire_items: [], custody: [], warehouse_items: [] } })
+      }
+      return Promise.resolve({ data: sampleComplaints })
+    })
     mockedAxios.put.mockResolvedValue({ data: {} })
   })
 
@@ -254,5 +259,47 @@ describe("PortalComplaints", () => {
     expect(within(dialog).getByText(/only the assigned technician can update/i)).toBeInTheDocument()
     expect(within(dialog).queryByRole("button", { name: "Update complaint" })).not.toBeInTheDocument()
     expect(within(dialog).queryByText("Update complaint")).not.toBeInTheDocument()
+  })
+
+  it("sends materials and cash when resolving with billing fields", async () => {
+    mockedAxios.get.mockImplementation((url: string) => {
+      if (String(url).includes("resolve-options")) {
+        return Promise.resolve({
+          data: {
+            wire_items: [{ id: "wire-1", item_type: "Fiber Cable", quantity: 100, unit_price: 50 }],
+            custody: [],
+            warehouse_items: [],
+          },
+        })
+      }
+      return Promise.resolve({ data: sampleComplaints })
+    })
+
+    renderComplaints()
+    await waitFor(() => expect(screen.getByText("TCK-1001")).toBeInTheDocument())
+    fireEvent.click(screen.getByText("TCK-1001"))
+
+    const dialog = await screen.findByRole("dialog")
+    fireEvent.change(within(dialog).getByDisplayValue("Open"), { target: { value: "resolved" } })
+    fireEvent.change(within(dialog).getByPlaceholderText("Describe how the issue was resolved..."), {
+      target: { value: "Replaced drop wire" },
+    })
+
+    await waitFor(() => expect(within(dialog).getByText(/Wire used/i)).toBeInTheDocument())
+    const wireSelect = within(dialog).getByDisplayValue("No wire")
+    fireEvent.change(wireSelect, { target: { value: "wire-1" } })
+    fireEvent.change(within(dialog).getByPlaceholderText("Quantity (m / units)"), { target: { value: "20" } })
+    fireEvent.change(within(dialog).getByPlaceholderText("0"), { target: { value: "500" } })
+
+    fireEvent.click(within(dialog).getByRole("button", { name: "Update complaint" }))
+
+    await waitFor(() => expect(mockedAxios.put).toHaveBeenCalled())
+    const [, body] = mockedAxios.put.mock.calls[0]
+    expect(body).toBeInstanceOf(FormData)
+    expect((body as FormData).get("status")).toBe("resolved")
+    expect((body as FormData).get("cash_amount")).toBe("500")
+    const materials = JSON.parse(String((body as FormData).get("materials")))
+    expect(materials[0].inventory_item_id).toBe("wire-1")
+    expect(materials[0].quantity).toBe(20)
   })
 })

@@ -4,7 +4,6 @@ import {
   XCircle,
   FileText,
   Clock,
-  DollarSign,
   AlertCircle,
   MessageSquare,
 } from "lucide-react"
@@ -108,7 +107,6 @@ export const CRUD_FILTER_CONFIGS: Record<string, CrudFilterConfig> = {
       { id: "total", label: "Total Payments", tone: "neutral", icon: FileText, filter: { field: "status", value: null }, clearFields: ["status"] },
       { id: "active", label: "Active Payments", tone: "success", icon: CheckCircle2, filter: { field: "status", value: "paid" } },
       { id: "pending", label: "Pending Payments", tone: "warning", icon: Clock, filter: { field: "status", value: "pending" } },
-      { id: "amount", label: "Total Amount", tone: "info", icon: DollarSign, clickable: false },
     ],
     quickFilters: [
       {

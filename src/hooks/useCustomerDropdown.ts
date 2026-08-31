@@ -8,6 +8,8 @@ export interface DropdownCustomer {
   internetId: string
   servicePlanPrice: number
   discountAmount: number
+  /** YYYY-MM-DD; its day is reused as the recurring invoice due day. */
+  dueDate: string | null
   packages: DropdownCustomerPackage[]
 }
 
@@ -40,6 +42,11 @@ const fetcher = async (url: string): Promise<DropdownCustomer[]> => {
     internetId: c.internet_id,
     servicePlanPrice: Number(c.service_plan_price ?? c.servicePlanPrice ?? 0),
     discountAmount: Number(c.discount_amount ?? c.discountAmount ?? 0),
+    dueDate: c.due_date
+      ? String(c.due_date).slice(0, 10)
+      : c.dueDate
+        ? String(c.dueDate).slice(0, 10)
+        : null,
     packages: mapPackages(c.packages),
   }))
 }

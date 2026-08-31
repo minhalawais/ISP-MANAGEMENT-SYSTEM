@@ -314,11 +314,13 @@ const CustomerDetail: React.FC = () => {
             axiosInstance.get(`/customers/cnic-front-image/${id}`, {
               headers: { Authorization: `Bearer ${token}` },
               responseType: "blob",
-            }),
+              skipErrorToast: true,
+            } as any),
             axiosInstance.get(`/customers/cnic-back-image/${id}`, {
               headers: { Authorization: `Bearer ${token}` },
               responseType: "blob",
-            }),
+              skipErrorToast: true,
+            } as any),
           ])
           const imageUrlFront = URL.createObjectURL(responseFront.data)
           const imageUrlBack = URL.createObjectURL(responseBack.data)

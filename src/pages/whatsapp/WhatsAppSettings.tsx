@@ -13,6 +13,8 @@ interface WhatsAppConfig {
     server_address?: string;
     auto_send_invoices?: boolean;
     auto_send_deadline_alerts?: boolean;
+    auto_send_complaint_updates?: boolean;
+    auto_send_customer_onboarding?: boolean;
     deadline_check_time?: string;
     deadline_alert_days_before?: number;
     daily_quota_limit?: number;
@@ -42,6 +44,8 @@ const WhatsAppSettings: React.FC = () => {
     const [formData, setFormData] = useState({
         auto_send_invoices: true,
         auto_send_deadline_alerts: true,
+        auto_send_complaint_updates: true,
+        auto_send_customer_onboarding: true,
         deadline_check_time: '09:00',
         deadline_alert_days_before: 2,
         daily_quota_limit: 200,
@@ -91,6 +95,8 @@ const WhatsAppSettings: React.FC = () => {
                 setFormData({
                     auto_send_invoices: response.data.auto_send_invoices ?? true,
                     auto_send_deadline_alerts: response.data.auto_send_deadline_alerts ?? true,
+                    auto_send_complaint_updates: response.data.auto_send_complaint_updates ?? true,
+                    auto_send_customer_onboarding: response.data.auto_send_customer_onboarding ?? true,
                     deadline_check_time: response.data.deadline_check_time || '09:00',
                     deadline_alert_days_before: response.data.deadline_alert_days_before || 2,
                     daily_quota_limit: response.data.daily_quota_limit || 200,
@@ -548,6 +554,28 @@ const WhatsAppSettings: React.FC = () => {
                                     </div>
                                     <label className="relative inline-flex items-center cursor-pointer">
                                         <input type="checkbox" checked={formData.auto_send_deadline_alerts} onChange={(e) => setFormData({ ...formData, auto_send_deadline_alerts: e.target.checked })} className="sr-only peer" />
+                                        <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-emerald-500/[0.12] rounded-full peer peer-checked:bg-emerald-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-5"></div>
+                                    </label>
+                                </div>
+
+                                <div className="flex items-center justify-between p-4 bg-slate-50 rounded-[10px] border border-slate-200">
+                                    <div>
+                                        <p className="text-[13px] font-medium text-slate-700">Auto-send Complaint Updates</p>
+                                        <p className="text-[11px] text-slate-400 mt-0.5">Notify customers when tickets are opened or resolved</p>
+                                    </div>
+                                    <label className="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" checked={formData.auto_send_complaint_updates} onChange={(e) => setFormData({ ...formData, auto_send_complaint_updates: e.target.checked })} className="sr-only peer" />
+                                        <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-emerald-500/[0.12] rounded-full peer peer-checked:bg-emerald-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-5"></div>
+                                    </label>
+                                </div>
+
+                                <div className="flex items-center justify-between p-4 bg-slate-50 rounded-[10px] border border-slate-200">
+                                    <div>
+                                        <p className="text-[13px] font-medium text-slate-700">Auto-send Customer Onboarding</p>
+                                        <p className="text-[11px] text-slate-400 mt-0.5">Welcome message when a new customer is created</p>
+                                    </div>
+                                    <label className="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" checked={formData.auto_send_customer_onboarding} onChange={(e) => setFormData({ ...formData, auto_send_customer_onboarding: e.target.checked })} className="sr-only peer" />
                                         <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-emerald-500/[0.12] rounded-full peer peer-checked:bg-emerald-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-5"></div>
                                     </label>
                                 </div>

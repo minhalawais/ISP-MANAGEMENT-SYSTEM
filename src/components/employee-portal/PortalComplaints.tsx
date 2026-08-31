@@ -20,6 +20,9 @@ import {
   Image,
   Star,
   Hash,
+  Cable,
+  Package,
+  Banknote,
 } from "lucide-react"
 import { PortalStatStrip, type PortalStatItem } from "./shared/PortalStatStrip.tsx"
 import { PortalSegmentedControl } from "./shared/PortalSegmentedControl.tsx"
@@ -62,6 +65,26 @@ const FILTER_OPTIONS = [
   { value: "resolved", label: "Resolved" },
 ]
 
+interface WireItem {
+  id: string
+  item_type: string
+  quantity: number
+  unit_price: number
+}
+
+interface CustodyItem {
+  assignment_id: string
+  inventory_item_id: string
+  item_type: string | null
+  quantity: number
+  unit_price: number
+  unit_of_measure: string
+}
+
+function todayPktDate() {
+  return new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Karachi" })
+}
+
 export function PortalComplaints() {
   const [complaints, setComplaints] = useState<Complaint[]>([])
   const [loading, setLoading] = useState(true)
@@ -74,6 +97,12 @@ export function PortalComplaints() {
   })
   const [proofFile, setProofFile] = useState<File | null>(null)
   const [proofPreview, setProofPreview] = useState<string | null>(null)
+  const [wireItems, setWireItems] = useState<WireItem[]>([])
+  const [custody, setCustody] = useState<CustodyItem[]>([])
+  const [wireItemId, setWireItemId] = useState("")
+  const [wireQty, setWireQty] = useState("")
+  const [selectedCustodyIds, setSelectedCustodyIds] = useState<string[]>([])
+  const [cashAmount, setCashAmount] = useState("")
 
   useEffect(() => {
     fetchComplaints()
@@ -102,6 +131,27 @@ export function PortalComplaints() {
     setProofPreview(null)
   }
 
+  const resetBillingFields = () => {
+    setWireItemId("")
+    setWireQty("")
+    setSelectedCustodyIds([])
+    setCashAmount("")
+  }
+
+  const loadResolveOptions = async () => {
+    try {
+      const token = getToken()
+      const res = await axiosInstance.get("/employee-portal/complaints/resolve-options", {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      setWireItems(res.data?.wire_items || [])
+      setCustody(res.data?.custody || [])
+    } catch {
+      setWireItems([])
+      setCustody([])
+    }
+  }
+
   const handleProofFileChange = (file: File | null) => {
     if (proofPreview) URL.revokeObjectURL(proofPreview)
     if (!file) {
@@ -117,16 +167,57 @@ export function PortalComplaints() {
     setProofPreview(URL.createObjectURL(file))
   }
 
+  const buildMaterials = () => {
+    const materials: Array<Record<string, unknown>> = []
+    const wQty = Number(wireQty)
+    if (wireItemId && wQty > 0) {
+      materials.push({
+        inventory_item_id: wireItemId,
+        quantity: wQty,
+        usage_outcome: "consumed",
+      })
+    }
+    for (const assignmentId of selectedCustodyIds) {
+      const row = custody.find((c) => c.assignment_id === assignmentId)
+      if (!row) continue
+      materials.push({
+        inventory_item_id: row.inventory_item_id,
+        assignment_id: row.assignment_id,
+        quantity: 1,
+        usage_outcome: "installed",
+        unit_price: row.unit_price,
+      })
+    }
+    return materials
+  }
+
   const handleStatusUpdate = async () => {
     if (!selectedComplaint || !resolutionForm.status) return
     setUpdating(true)
     try {
       const token = getToken()
-      if (proofFile) {
+      const materials = resolutionForm.status === "resolved" ? buildMaterials() : []
+      const cash = resolutionForm.status === "resolved" ? Number(cashAmount || 0) : 0
+      const hasBilling = materials.length > 0 || cash > 0
+
+      if (cash > 0 && materials.length === 0) {
+        toast.error("Enter parts used or set cash received to 0")
+        return
+      }
+
+      if (proofFile || hasBilling) {
         const body = new FormData()
         body.append("status", resolutionForm.status)
         if (resolutionForm.remarks) body.append("remarks", resolutionForm.remarks)
-        body.append("resolution_proof", proofFile, proofFile.name)
+        if (proofFile) body.append("resolution_proof", proofFile, proofFile.name)
+        if (hasBilling) {
+          body.append("materials", JSON.stringify(materials))
+          body.append("cash_amount", String(cash || 0))
+          if (cash > 0) {
+            body.append("payment_method", "cash")
+            body.append("payment_date", todayPktDate())
+          }
+        }
         await axiosInstance.put(
           `/employee-portal/complaints/${selectedComplaint.id}/status`,
           body,
@@ -142,8 +233,9 @@ export function PortalComplaints() {
           { headers: { Authorization: `Bearer ${token}` } }
         )
       }
-      toast.success("Complaint updated successfully!")
+      toast.success(hasBilling ? "Complaint resolved and billed" : "Complaint updated successfully!")
       clearProofFile()
+      resetBillingFields()
       setSelectedComplaint(null)
       fetchComplaints()
     } catch (error: any) {
@@ -155,11 +247,15 @@ export function PortalComplaints() {
 
   const openComplaintModal = (complaint: Complaint) => {
     clearProofFile()
+    resetBillingFields()
     setSelectedComplaint(complaint)
     setResolutionForm({
       status: complaint.status,
       remarks: complaint.remarks || "",
     })
+    if (complaint.can_update && complaint.status !== "resolved" && complaint.status !== "closed") {
+      loadResolveOptions()
+    }
   }
 
   if (loading) {
@@ -168,9 +264,9 @@ export function PortalComplaints() {
         <div className="h-14 bg-gray-200 rounded-lg animate-pulse" />
         <div className="h-9 bg-gray-200 rounded-lg animate-pulse w-64" />
         <div className="rounded-lg border border-gray-200 divide-y divide-gray-100 overflow-hidden">
-          {[...Array(6)].map((_, i) => (
+        {[...Array(6)].map((_, i) => (
             <div key={i} className="h-16 bg-gray-100 animate-pulse" />
-          ))}
+        ))}
         </div>
       </div>
     )
@@ -211,12 +307,12 @@ export function PortalComplaints() {
 
   const detailFooter = selectedComplaint && (
     <>
-      <button
+          <button
         onClick={() => setSelectedComplaint(null)}
         className="h-9 px-4 rounded-lg border border-gray-300 text-sm font-medium hover:bg-gray-100 transition-colors"
       >
         Close
-      </button>
+          </button>
       {canUpdateSelected && (
         <button
           onClick={handleStatusUpdate}
@@ -244,22 +340,22 @@ export function PortalComplaints() {
               ) : (
                 <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-600">
                   View only
-                </span>
+                  </span>
               )}
-              {selectedComplaint.satisfaction_rating && (
+                  {selectedComplaint.satisfaction_rating && (
                 <div className="ml-auto flex items-center gap-0.5">
-                  {[...Array(5)].map((_, i) => (
-                    <Star
-                      key={i}
+                      {[...Array(5)].map((_, i) => (
+                        <Star
+                          key={i}
                       className={`w-4 h-4 ${
                         i < selectedComplaint.satisfaction_rating! ? "text-amber-500 fill-current" : "text-gray-300"
                       }`}
-                    />
-                  ))}
+                        />
+                      ))}
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-
+                
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <p className="text-gray-500">Assignee</p>
@@ -269,42 +365,42 @@ export function PortalComplaints() {
                     : selectedComplaint.assigned_to_name || (selectedComplaint.is_assignee ? "You" : "Another employee")}
                 </p>
               </div>
-              <div>
-                <p className="text-gray-500">Created</p>
-                <p className="font-medium text-gray-900">
-                  {selectedComplaint.created_at ? new Date(selectedComplaint.created_at).toLocaleString() : "—"}
-                </p>
-              </div>
-              {selectedComplaint.resolved_at && (
-                <div>
-                  <p className="text-gray-500">Resolved</p>
+                  <div>
+                    <p className="text-gray-500">Created</p>
+                    <p className="font-medium text-gray-900">
+                      {selectedComplaint.created_at ? new Date(selectedComplaint.created_at).toLocaleString() : "—"}
+                    </p>
+                  </div>
+                  {selectedComplaint.resolved_at && (
+                    <div>
+                      <p className="text-gray-500">Resolved</p>
                   <p className="font-medium text-emerald-600">
-                    {new Date(selectedComplaint.resolved_at).toLocaleString()}
-                  </p>
-                </div>
-              )}
-              <div>
-                <p className="text-gray-500">Attempts</p>
-                <p className="font-medium text-gray-900">{selectedComplaint.resolution_attempts}</p>
-              </div>
-              {selectedComplaint.response_due_date && (
-                <div>
+                        {new Date(selectedComplaint.resolved_at).toLocaleString()}
+                      </p>
+                    </div>
+                  )}
+                  <div>
+                    <p className="text-gray-500">Attempts</p>
+                    <p className="font-medium text-gray-900">{selectedComplaint.resolution_attempts}</p>
+                  </div>
+                  {selectedComplaint.response_due_date && (
+                    <div>
                   <p className="text-gray-500">Due by</p>
-                  <p className="font-medium text-gray-900">
-                    {new Date(selectedComplaint.response_due_date).toLocaleDateString()}
-                  </p>
+                      <p className="font-medium text-gray-900">
+                        {new Date(selectedComplaint.response_due_date).toLocaleDateString()}
+                      </p>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
 
             {selectedComplaint.description && (
               <div className="border-t border-gray-100 pt-3">
                 <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500">Description</p>
                 <p className="text-gray-700">{selectedComplaint.description}</p>
-              </div>
-            )}
+                </div>
+              )}
 
-            {selectedComplaint.customer_name && (
+              {selectedComplaint.customer_name && (
               <div className="space-y-2 border-t border-gray-100 pt-3">
                 <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Customer</p>
                 <div className="flex items-center justify-between gap-3">
@@ -319,12 +415,12 @@ export function PortalComplaints() {
                       {selectedComplaint.customer_name}
                     </Link>
                   ) : (
-                    <span className="font-medium">{selectedComplaint.customer_name}</span>
+                      <span className="font-medium">{selectedComplaint.customer_name}</span>
                   )}
-                </div>
-                {selectedComplaint.customer_internet_id && (
+                    </div>
+                    {selectedComplaint.customer_internet_id && (
                   <div className="flex items-center justify-between gap-3">
-                    <span className="text-gray-600">Internet ID</span>
+                        <span className="text-gray-600">Internet ID</span>
                     {selectedComplaint.customer_id ? (
                       <Link
                         to={`/employee-portal/customers/${selectedComplaint.customer_id}`}
@@ -336,34 +432,34 @@ export function PortalComplaints() {
                       <span className="font-medium text-electric-blue">{selectedComplaint.customer_internet_id}</span>
                     )}
                   </div>
-                )}
-                {selectedComplaint.customer_phone && (
+                    )}
+                    {selectedComplaint.customer_phone && (
                   <div className="flex items-center justify-between">
-                    <span className="text-gray-600">Phone</span>
+                        <span className="text-gray-600">Phone</span>
                     <a
                       href={`tel:${selectedComplaint.customer_phone}`}
                       className="flex items-center gap-1 font-medium text-electric-blue"
                     >
-                      <Phone className="w-3 h-3" />
-                      {selectedComplaint.customer_phone}
-                    </a>
-                  </div>
-                )}
-                {selectedComplaint.customer_area && (
+                          <Phone className="w-3 h-3" />
+                          {selectedComplaint.customer_phone}
+                        </a>
+                      </div>
+                    )}
+                    {selectedComplaint.customer_area && (
                   <div className="flex items-center justify-between">
                     <span className="flex items-center gap-1.5 text-gray-600">
                       <MapPin className="w-3.5 h-3.5" /> Area
                     </span>
-                    <span className="font-medium">{selectedComplaint.customer_area}</span>
-                  </div>
-                )}
-                {selectedComplaint.customer_address && (
-                  <div>
-                    <span className="text-gray-600">Address</span>
+                        <span className="font-medium">{selectedComplaint.customer_area}</span>
+                      </div>
+                    )}
+                    {selectedComplaint.customer_address && (
+                      <div>
+                        <span className="text-gray-600">Address</span>
                     <p className="mt-1 font-medium">{selectedComplaint.customer_address}</p>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
             )}
 
             {selectedComplaint.remarks && (
@@ -381,8 +477,8 @@ export function PortalComplaints() {
                   <MessageSquare className="w-3.5 h-3.5" /> Customer feedback
                 </p>
                 <p className="text-gray-700">{selectedComplaint.feedback_comments}</p>
-              </div>
-            )}
+                </div>
+              )}
 
             {(selectedComplaint.attachment_path || selectedComplaint.resolution_proof) && (
               <div className="space-y-2 border-t border-gray-100 pt-3">
@@ -403,8 +499,8 @@ export function PortalComplaints() {
                     actionClassName="text-electric-blue"
                   />
                 )}
-              </div>
-            )}
+                </div>
+              )}
 
             {selectedComplaint.status !== "resolved" &&
               selectedComplaint.status !== "closed" &&
@@ -419,37 +515,37 @@ export function PortalComplaints() {
             {canUpdateSelected && (
               <div className="space-y-3 border-t border-gray-100 pt-3">
                 <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Update complaint</p>
-
-                <div>
+                  
+                  <div>
                   <label className="text-xs font-medium text-gray-600">Status</label>
-                  <select
-                    value={resolutionForm.status}
-                    onChange={(e) => setResolutionForm({ ...resolutionForm, status: e.target.value })}
+                    <select
+                      value={resolutionForm.status}
+                      onChange={(e) => setResolutionForm({ ...resolutionForm, status: e.target.value })}
                     className="mt-1 w-full h-9 px-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-portal-accent/40 focus:border-portal-accent"
-                  >
-                    <option value="open">Open</option>
-                    <option value="in_progress">In Progress</option>
-                    <option value="resolved">Resolved</option>
-                  </select>
-                </div>
+                    >
+                      <option value="open">Open</option>
+                      <option value="in_progress">In Progress</option>
+                      <option value="resolved">Resolved</option>
+                    </select>
+                  </div>
 
-                {resolutionForm.status === "resolved" && (
-                  <>
-                    <div>
+                  {resolutionForm.status === "resolved" && (
+                    <>
+                      <div>
                       <label className="flex items-center gap-1.5 text-xs font-medium text-gray-600">
                         <MessageSquare className="w-3.5 h-3.5" />
                         Resolution remarks
-                      </label>
-                      <textarea
-                        value={resolutionForm.remarks}
-                        onChange={(e) => setResolutionForm({ ...resolutionForm, remarks: e.target.value })}
-                        placeholder="Describe how the issue was resolved..."
-                        rows={3}
+                        </label>
+                        <textarea
+                          value={resolutionForm.remarks}
+                          onChange={(e) => setResolutionForm({ ...resolutionForm, remarks: e.target.value })}
+                          placeholder="Describe how the issue was resolved..."
+                          rows={3}
                         className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-portal-accent/40 focus:border-portal-accent resize-none"
-                      />
-                    </div>
+                        />
+                      </div>
 
-                    <div>
+                      <div>
                       <p className="flex items-center gap-1.5 text-xs font-medium text-gray-600">
                         <Image className="w-3.5 h-3.5" />
                         Resolution proof
@@ -484,12 +580,94 @@ export function PortalComplaints() {
                           Remove image
                         </button>
                       )}
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
-          </div>
+                      </div>
+
+                      <div className="rounded-lg border border-slate-200 p-3 space-y-2">
+                        <p className="flex items-center gap-1.5 text-xs font-medium text-gray-600">
+                          <Cable className="w-3.5 h-3.5" />
+                          Wire used (optional)
+                        </p>
+                        <select
+                          value={wireItemId}
+                          onChange={(e) => setWireItemId(e.target.value)}
+                          className="w-full h-9 px-2 text-xs border border-gray-300 rounded-lg"
+                        >
+                          <option value="">No wire</option>
+                          {wireItems.map((w) => (
+                            <option key={w.id} value={w.id}>
+                              {w.item_type} · stock {w.quantity} · Rs {Number(w.unit_price || 0).toLocaleString()}
+                            </option>
+                          ))}
+                        </select>
+                        {wireItemId && (
+                          <input
+                            type="number"
+                            min={1}
+                            value={wireQty}
+                            onChange={(e) => setWireQty(e.target.value)}
+                            placeholder="Quantity (m / units)"
+                            className="w-full h-9 px-2 text-xs border border-gray-300 rounded-lg"
+                          />
+                        )}
+                      </div>
+
+                      <div className="rounded-lg border border-slate-200 p-3 space-y-2">
+                        <p className="flex items-center gap-1.5 text-xs font-medium text-gray-600">
+                          <Package className="w-3.5 h-3.5" />
+                          Other inventory (optional)
+                        </p>
+                        {custody.length === 0 ? (
+                          <p className="text-xs text-slate-400">No assigned inventory in custody</p>
+                        ) : (
+                          <div className="max-h-36 overflow-y-auto space-y-1">
+                            {custody.map((c) => {
+                              const selected = selectedCustodyIds.includes(c.assignment_id)
+                              return (
+                                <button
+                                  key={c.assignment_id}
+                                  type="button"
+                                  onClick={() =>
+                                    setSelectedCustodyIds((prev) =>
+                                      selected
+                                        ? prev.filter((id) => id !== c.assignment_id)
+                                        : [...prev, c.assignment_id]
+                                    )
+                                  }
+                                  className={`w-full text-left px-2 py-1.5 rounded-md text-xs border ${
+                                    selected
+                                      ? "border-portal-accent bg-portal-accent/5"
+                                      : "border-slate-200"
+                                  }`}
+                                >
+                                  {c.item_type || "Item"} · qty {c.quantity} · Rs{" "}
+                                  {Number(c.unit_price || 0).toLocaleString()}
+                                </button>
+                              )
+                            })}
+                          </div>
+                        )}
+                      </div>
+
+                      <div>
+                        <label className="flex items-center gap-1.5 text-xs font-medium text-gray-600">
+                          <Banknote className="w-3.5 h-3.5" />
+                          Cash received from customer (optional)
+                        </label>
+                        <input
+                          type="number"
+                          min={0}
+                          step="0.01"
+                          value={cashAmount}
+                          onChange={(e) => setCashAmount(e.target.value)}
+                          placeholder="0"
+                          className="mt-1 w-full h-9 px-3 text-sm border border-gray-300 rounded-lg"
+                        />
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
     )
 
   return (
@@ -597,6 +775,6 @@ export function PortalComplaints() {
       >
         {detailBody}
       </PortalSheet>
-    </div>
+        </div>
   )
 }

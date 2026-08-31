@@ -8,7 +8,7 @@ import axiosInstance from "../../utils/axiosConfig.ts"
 import { SearchableCustomerSelect } from "../SearchableCustomerSelect.tsx"
 import { SearchableInventorySelect } from "../SearchableInventorySelect.tsx"
 import { useCustomerDropdown, type DropdownCustomer } from "../../hooks/useCustomerDropdown.ts"
-import { buildSubscriptionLinesFromPackages } from "../../utils/invoiceSubscriptionLines.ts"
+import { buildSubscriptionLinesFromPackages, billingPeriodForMonth, nextBillingMonth, yearForBillingMonth } from "../../utils/invoiceSubscriptionLines.ts"
 
 interface InvoiceFormProps {
   formData: any
@@ -79,35 +79,6 @@ function showsQuantity(chargeType: string) {
   return chargeType === "equipment" || chargeType === "add_on"
 }
 
-function formatDateLocal(d: Date) {
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, "0")
-  const day = String(d.getDate()).padStart(2, "0")
-  return `${y}-${m}-${day}`
-}
-
-/**
- * Billing period for a calendar month (1–12) in the given year.
- * Due date = last day of month + 5 days (same rule as customer autofill).
- */
-function billingPeriodForMonth(month: number, year: number = new Date().getFullYear()) {
-  const start = new Date(year, month - 1, 1)
-  const end = new Date(year, month, 0)
-  const due = new Date(end)
-  due.setDate(due.getDate() + 5)
-  return {
-    billing_start_date: formatDateLocal(start),
-    billing_end_date: formatDateLocal(end),
-    due_date: formatDateLocal(due),
-  }
-}
-
-/** Current calendar month start/end + due date (end + 5 days). */
-function currentBillingPeriod() {
-  const now = new Date()
-  return billingPeriodForMonth(now.getMonth() + 1, now.getFullYear())
-}
-
 function lineTotal(line: InvoiceLine) {
   return Math.max(0, (Number(line.unit_price) || 0) * (Number(line.quantity) || 1) - (Number(line.discount_amount) || 0))
 }
@@ -116,9 +87,15 @@ function setField(handleInputChange: (e: any) => void, name: string, value: any)
   handleInputChange({ target: { name, value } })
 }
 
+function defaultNextMonthValue() {
+  const { month } = nextBillingMonth()
+  return String(month).padStart(2, "0")
+}
+
 export function InvoiceForm({ formData, handleInputChange, isEditing }: InvoiceFormProps) {
   const [customerSearch, setCustomerSearch] = useState("")
-  const [selectedMonth, setSelectedMonth] = useState("")
+  // Default to next month (auto-invoice bills ahead — e.g. Sep create → October invoice)
+  const [selectedMonth, setSelectedMonth] = useState(() => (isEditing ? "" : defaultNextMonthValue()))
   const { customers, isLoading: customersLoading } = useCustomerDropdown(
     customerSearch,
     50,
@@ -220,6 +197,34 @@ export function InvoiceForm({ formData, handleInputChange, isEditing }: InvoiceF
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isEditing, formData.id, Array.isArray(formData.line_items) ? formData.line_items.length : 0])
 
+  // New invoice: prefill next-month period; customer selection applies its due day.
+  useEffect(() => {
+    if (isEditing || !selectedMonth) return
+    const monthNum = Number.parseInt(selectedMonth, 10)
+    const period = billingPeriodForMonth(
+      monthNum,
+      yearForBillingMonth(monthNum),
+      null,
+    )
+    if (!formData.due_date) {
+      setField(handleInputChange, "due_date", period.due_date)
+    }
+    // Apply billing dates to empty subscription starter line
+    setLines((prev) => {
+      const next = prev.map((l) => {
+        if (l.charge_type !== "subscription") return l
+        if (l.billing_start_date && l.billing_end_date) return l
+        return {
+          ...l,
+          billing_start_date: l.billing_start_date || period.billing_start_date,
+          billing_end_date: l.billing_end_date || period.billing_end_date,
+        }
+      })
+      return next
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isEditing])
+
   const totals = useMemo(() => {
     const subtotal = lines.reduce((s, l) => s + (Number(l.unit_price) || 0) * (Number(l.quantity) || 1), 0)
     const total = lines.reduce((s, l) => s + lineTotal(l), 0)
@@ -237,15 +242,23 @@ export function InvoiceForm({ formData, handleInputChange, isEditing }: InvoiceF
 
   const addLine = () => syncLines([...lines, emptyLine("installation")])
 
-  const resolveBillingPeriod = () => {
+      const selectedCustomer = customers.find((c) => c.id === formData.customer_id)
+
+  const resolveBillingPeriod = (customerDueDate?: string | null) => {
     if (selectedMonth) {
-      return billingPeriodForMonth(Number.parseInt(selectedMonth, 10))
+      const monthNum = Number.parseInt(selectedMonth, 10)
+      return billingPeriodForMonth(
+        monthNum,
+        yearForBillingMonth(monthNum),
+        customerDueDate,
+      )
     }
-    return currentBillingPeriod()
+    const { month, year } = nextBillingMonth()
+    return billingPeriodForMonth(month, year, customerDueDate)
   }
 
   const applyCustomerSubscriptionDefaults = (customer: DropdownCustomer, sourceLines: InvoiceLine[]) => {
-    const period = resolveBillingPeriod()
+    const period = resolveBillingPeriod(customer.dueDate)
 
     // Keep non-subscription charges (equipment, installation, etc.) when switching customers.
     const preserved = sourceLines.filter((l) => {
@@ -268,9 +281,8 @@ export function InvoiceForm({ formData, handleInputChange, isEditing }: InvoiceF
           ...seed,
         }),
       )
-      if (!formData.due_date) {
-        setField(handleInputChange, "due_date", period.due_date)
-      }
+      // Always align due date with the customer's configured recurring due day.
+      setField(handleInputChange, "due_date", period.due_date)
       syncLines([...packageLines, ...preserved])
       return
     }
@@ -305,10 +317,10 @@ export function InvoiceForm({ formData, handleInputChange, isEditing }: InvoiceF
     })
 
     if (touched) {
-      if (!formData.due_date) {
-        setField(handleInputChange, "due_date", period.due_date)
-      }
+      setField(handleInputChange, "due_date", period.due_date)
       syncLines(next)
+    } else {
+      setField(handleInputChange, "due_date", period.due_date)
     }
   }
 
@@ -324,7 +336,12 @@ export function InvoiceForm({ formData, handleInputChange, isEditing }: InvoiceF
     setSelectedMonth(month)
     if (!month) return
 
-    const period = billingPeriodForMonth(Number.parseInt(month, 10))
+    const monthNum = Number.parseInt(month, 10)
+    const period = billingPeriodForMonth(
+      monthNum,
+      yearForBillingMonth(monthNum),
+      selectedCustomer?.dueDate,
+    )
     setField(handleInputChange, "due_date", period.due_date)
 
     // Apply billing period to every subscription line (month picker is an
@@ -343,7 +360,7 @@ export function InvoiceForm({ formData, handleInputChange, isEditing }: InvoiceF
 
   const onChargeTypeChange = (key: string, chargeType: string) => {
     const customer = customers.find((c) => c.id === formData.customer_id)
-    const period = resolveBillingPeriod()
+    const period = resolveBillingPeriod(customer?.dueDate)
     const patch: Partial<InvoiceLine> = { charge_type: chargeType }
 
     // Non-countable charges always bill as qty 1 — clear any leftover qty from equipment/add-on.
@@ -412,15 +429,18 @@ export function InvoiceForm({ formData, handleInputChange, isEditing }: InvoiceF
               aria-label="Select billing month"
             >
               <option value="">Select month</option>
-              {MONTHS.map((month) => (
+              {MONTHS.map((month) => {
+                const monthNum = Number.parseInt(month.value, 10)
+                return (
                 <option key={month.value} value={month.value}>
-                  {month.label} {new Date().getFullYear()}
+                    {month.label} {yearForBillingMonth(monthNum)}
                 </option>
-              ))}
+                )
+              })}
             </select>
           </div>
           <p className="mt-1 text-xs text-slate-500">
-            Sets due date and billing dates on subscription lines
+            Billing month for subscription lines. Due date uses the customer&apos;s configured due day, or the 5th.
           </p>
         </div>
 

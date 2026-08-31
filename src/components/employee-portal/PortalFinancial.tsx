@@ -5,17 +5,15 @@ import { useState, useEffect } from "react"
 import { getToken } from "../../utils/auth.ts"
 import axiosInstance from "../../utils/axiosConfig.ts"
 import { toast } from "../../utils/notify.ts";
-import { Wallet, TrendingUp, CreditCard, DollarSign, ArrowUpRight, ArrowDownRight } from "lucide-react"
+import { Wallet, Banknote, HandCoins, ArrowUpRight, ArrowDownRight } from "lucide-react"
 import { PortalStatStrip, type PortalStatItem } from "./shared/PortalStatStrip.tsx"
 
 interface FinancialData {
-  current_balance: number
   total_paid: number
-  total_earned: number
-  month_earnings: number
   salary: number
-  breakdown: Record<string, number>
+  hold_money: number
   ledger: LedgerEntry[]
+  period?: { start: string; end: string; label: string }
 }
 
 interface LedgerEntry {
@@ -34,6 +32,8 @@ const transactionTypeLabels: Record<string, string> = {
   adjustment: "Adjustment",
   recovery_cash_hold: "Recovery cash hold",
   recovery_cash_settle: "Recovery cash settle",
+  complaint_cash_hold: "Complaint cash hold",
+  complaint_cash_settle: "Complaint cash settle",
 }
 
 export function PortalFinancial() {
@@ -78,83 +78,39 @@ export function PortalFinancial() {
     )
   }
 
+  const periodLabel = data.period?.label
   const statItems: PortalStatItem[] = [
-    { key: "month_earnings", label: "This month", value: `PKR ${data.month_earnings.toLocaleString()}`, icon: TrendingUp, tone: "success" },
-    { key: "total_earned", label: "Total earned", value: `PKR ${data.total_earned.toLocaleString()}`, icon: DollarSign, tone: "default" },
-    { key: "total_paid", label: "Total paid", value: `PKR ${data.total_paid.toLocaleString()}`, icon: CreditCard, tone: "default" },
-    { key: "salary", label: "Monthly salary", value: `PKR ${data.salary.toLocaleString()}`, icon: CreditCard, tone: "accent" },
+    { key: "salary", label: "Monthly salary", value: `PKR ${data.salary.toLocaleString()}`, icon: Banknote, tone: "accent" },
+    { key: "total_paid", label: "Paid this month", value: `PKR ${data.total_paid.toLocaleString()}`, icon: HandCoins, tone: "success" },
+    { key: "hold_money", label: "Hold money", value: `PKR ${data.hold_money.toLocaleString()}`, icon: Wallet, tone: data.hold_money > 0 ? "warning" : "default" },
   ]
 
-  const hasCustody = data.breakdown.recovery_cash_hold != null || data.breakdown.recovery_cash_settle != null
-
   return (
-    <div className="lg:grid lg:grid-cols-[1fr_1.3fr] lg:items-start lg:gap-4">
-      <div className="space-y-4">
-        <div className="rounded-xl border border-electric-blue/15 bg-gradient-to-br from-electric-blue/5 to-white p-5 shadow-sm">
-          <div className="flex items-center gap-2 text-xs font-medium text-deep-ocean">
-            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-electric-blue/10">
-              <Wallet className="h-4 w-4 text-electric-blue" />
-            </span>
-            Current balance
-          </div>
-          <p className="mt-2 text-3xl font-bold tabular-nums text-deep-ocean">
-            PKR {data.current_balance.toLocaleString()}
-          </p>
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-end justify-between gap-2">
+        <div>
+          <h2 className="text-base font-semibold text-deep-ocean">Financial summary</h2>
+          <p className="mt-0.5 text-xs text-slate-500">Salary, payments and unsettled customer collections</p>
         </div>
-
-        <PortalStatStrip items={statItems} columnsMobile={2} columnsDesktop={4} />
-
-        {hasCustody && (
-          <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
-            <h3 className="text-sm font-semibold text-gray-900 mb-3">Recovery cash custody</h3>
-            <div className="grid grid-cols-2 divide-x divide-gray-100 text-sm">
-              <div className="pr-3">
-                <p className="text-xs text-gray-500">Holds (field collections)</p>
-                <p className="text-lg font-bold tabular-nums text-amber-600">
-                  PKR {Math.abs(Number(data.breakdown.recovery_cash_hold || 0)).toLocaleString()}
-                </p>
-              </div>
-              <div className="pl-3">
-                <p className="text-xs text-gray-500">Settled (cleared)</p>
-                <p className="text-lg font-bold tabular-nums text-portal-primary">
-                  PKR {Math.abs(Number(data.breakdown.recovery_cash_settle || 0)).toLocaleString()}
-                </p>
-              </div>
-            </div>
-            <p className="text-xs text-gray-400 mt-2">
-              Net custody is included in current balance (holds negative, settles positive).
-            </p>
-          </div>
-        )}
-
-        {Object.keys(data.breakdown).length > 0 && (
-          <div className="rounded-xl border border-gray-100 bg-white shadow-sm divide-y divide-gray-100">
-            <div className="px-4 py-3">
-              <h3 className="text-sm font-semibold text-gray-900">Earnings breakdown</h3>
-            </div>
-            {Object.entries(data.breakdown).map(([type, amount]) => (
-              <div key={type} className="flex items-center justify-between px-4 py-2.5 text-sm">
-                <span className="text-gray-600">{transactionTypeLabels[type] || type.replace("_", " ")}</span>
-                <span className={`font-semibold tabular-nums ${amount >= 0 ? "text-emerald-600" : "text-red-600"}`}>
-                  PKR {Math.abs(amount).toLocaleString()}
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
+        {periodLabel ? <p className="text-xs font-medium text-slate-500">{periodLabel}</p> : null}
       </div>
 
-      <div className="mt-4 rounded-xl border border-gray-100 bg-white shadow-sm lg:mt-0">
+      <PortalStatStrip items={statItems} columnsMobile={1} columnsDesktop={3} />
+
+      <div className="rounded-xl border border-gray-100 bg-white shadow-sm">
         <div className="px-4 py-3 border-b border-gray-100">
           <h3 className="text-sm font-semibold text-gray-900">Transaction history</h3>
+          {periodLabel ? (
+            <p className="text-xs text-slate-500 mt-0.5">{periodLabel}</p>
+          ) : null}
         </div>
 
         {data.ledger.length === 0 ? (
           <div className="text-center py-8">
-            <p className="text-sm text-gray-500">No transactions yet</p>
+            <p className="text-sm text-gray-500">No transactions this month</p>
           </div>
         ) : (
-          <div className="divide-y divide-gray-100 max-h-[420px] overflow-y-auto lg:max-h-[calc(100vh-160px)]">
+          <div className="divide-y divide-gray-100 max-h-[520px] overflow-y-auto">
             {data.ledger.map((entry) => (
               <div key={entry.id} className="flex items-center justify-between gap-3 px-4 py-2.5">
                 <div className="flex min-w-0 items-center gap-2.5">
@@ -173,8 +129,19 @@ export function PortalFinancial() {
                     <p className="truncate text-sm font-medium text-gray-900">
                       {transactionTypeLabels[entry.transaction_type] || entry.transaction_type}
                     </p>
-                    <p className="truncate text-xs text-gray-500">
-                      {entry.description || (entry.created_at ? new Date(entry.created_at).toLocaleString() : "No description")}
+                    {entry.description ? (
+                      <p className="truncate text-xs text-gray-500">{entry.description}</p>
+                    ) : null}
+                    <p className="text-xs text-gray-400 tabular-nums">
+                      {entry.created_at
+                        ? new Date(entry.created_at).toLocaleString("en-PK", {
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })
+                        : "—"}
                     </p>
                   </div>
                 </div>

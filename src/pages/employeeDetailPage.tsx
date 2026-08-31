@@ -56,16 +56,13 @@ interface EmployeeProfile {
   reference_name: string
   reference_contact: string
   reference_cnic_image: string
-  current_balance: number
-  paid_amount: number
-  pending_amount: number
   commission_amount_per_complaint: number
   created_at: string
   serviceDuration: number
   financialMetrics: {
-    totalCommissionEarned: number
-    totalPayouts: number
-    totalSalaryAccrued: number
+    paidThisMonth: number
+    holdMoney: number
+    periodLabel: string
     totalPaymentsCollected: number
     paymentsCount: number
     avgPaymentAmount: number
@@ -405,9 +402,10 @@ const EmployeeDetailPage: React.FC = () => {
         />
         <KPICard
           icon={<Wallet className="w-5 h-5 text-white" />}
-          label="Current Balance"
-          value={`PKR ${employee.current_balance.toLocaleString()}`}
-          color="bg-gradient-to-br from-[#8B5CF6] to-[#6D28D9]"
+          label="Hold Money"
+          value={`PKR ${employee.financialMetrics.holdMoney.toLocaleString()}`}
+          color="bg-gradient-to-br from-[#F59E0B] to-[#D97706]"
+          subtext="Unsettled customer collections"
         />
         <KPICard
           icon={<Clock className="w-5 h-5 text-white" />}
@@ -443,41 +441,28 @@ const EmployeeDetailPage: React.FC = () => {
         </InfoCard>
       </div>
 
-      {/* Payment Balances */}
-      <InfoCard title="Payment Balances" icon={<DollarSign className="w-5 h-5" />}>
+      <InfoCard title="Employee Financials" icon={<DollarSign className="w-5 h-5" />}>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-gradient-to-br from-amber-50 to-amber-100 border border-amber-200 rounded-lg p-4 text-center">
-            <p className="text-sm text-amber-700 font-medium">Pending Balance</p>
-            <p className="text-2xl font-bold text-amber-600">PKR {(employee.pending_amount || 0).toLocaleString()}</p>
-            <p className="text-xs text-amber-600/70 mt-1">Salary + Commissions owed</p>
+          <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
+            <p className="text-sm font-medium text-blue-700">Monthly Salary</p>
+            <p className="mt-2 text-2xl font-bold tabular-nums text-blue-700">PKR {employee.salary.toLocaleString()}</p>
+            <p className="mt-1 text-xs text-blue-600/70">Configured salary</p>
           </div>
-          <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 border border-emerald-200 rounded-lg p-4 text-center">
-            <p className="text-sm text-emerald-700 font-medium">Total Paid</p>
-            <p className="text-2xl font-bold text-emerald-600">PKR {(employee.paid_amount || 0).toLocaleString()}</p>
-            <p className="text-xs text-emerald-600/70 mt-1">Via expense module</p>
+          <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4">
+            <p className="text-sm font-medium text-emerald-700">Paid This Month</p>
+            <p className="mt-2 text-2xl font-bold tabular-nums text-emerald-700">PKR {employee.financialMetrics.paidThisMonth.toLocaleString()}</p>
+            <p className="mt-1 text-xs text-emerald-600/70">{employee.financialMetrics.periodLabel}</p>
           </div>
-          <div className="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-lg p-4 text-center">
-            <p className="text-sm text-blue-700 font-medium">Total Earned</p>
-            <p className="text-2xl font-bold text-blue-600">
-              PKR {((employee.pending_amount || 0) + (employee.paid_amount || 0)).toLocaleString()}
-            </p>
-            <p className="text-xs text-blue-600/70 mt-1">Pending + Paid</p>
+          <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+            <p className="text-sm font-medium text-amber-700">Hold Money</p>
+            <p className="mt-2 text-2xl font-bold tabular-nums text-amber-700">PKR {employee.financialMetrics.holdMoney.toLocaleString()}</p>
+            <p className="mt-1 text-xs text-amber-600/70">Awaiting company settlement</p>
           </div>
         </div>
       </InfoCard>
 
-      {/* Commission Settings */}
       <InfoCard title="Commission Settings" icon={<Award className="w-5 h-5" />}>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-[#F1F0E8] rounded-lg p-4 text-center">
-            <p className="text-sm text-[#89A8B2]">Per Complaint</p>
-            <p className="text-2xl font-bold text-[#3A86FF]">PKR {employee.commission_amount_per_complaint}</p>
-          </div>
-          <div className="bg-[#F1F0E8] rounded-lg p-4 text-center">
-            <p className="text-sm text-[#89A8B2]">Total Earned</p>
-            <p className="text-2xl font-bold text-[#8B5CF6]">PKR {employee.financialMetrics.totalCommissionEarned.toLocaleString()}</p>
-          </div>
-        </div>
+        <InfoRow label="Per complaint" value={`PKR ${employee.commission_amount_per_complaint.toLocaleString()}`} />
         <p className="text-sm text-slate-500 mt-4">Note: Connection commissions are set per customer in Customer Management.</p>
       </InfoCard>
     </div>
@@ -541,31 +526,27 @@ const EmployeeDetailPage: React.FC = () => {
 
   const renderFinancialTab = () => (
     <div className="space-y-6">
-      {/* Financial KPIs */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <KPICard
-          icon={<TrendingUp className="w-5 h-5 text-white" />}
-          label="Total Earned"
-          value={`PKR ${(employee.financialMetrics.totalCommissionEarned + employee.financialMetrics.totalSalaryAccrued).toLocaleString()}`}
-          color="bg-gradient-to-br from-[#10B981] to-[#059669]"
-        />
-        <KPICard
-          icon={<DollarSign className="w-5 h-5 text-white" />}
-          label="Commission Earned"
-          value={`PKR ${employee.financialMetrics.totalCommissionEarned.toLocaleString()}`}
+          icon={<CreditCard className="w-5 h-5 text-white" />}
+          label="Monthly Salary"
+          value={`PKR ${employee.salary.toLocaleString()}`}
           color="bg-gradient-to-br from-[#3A86FF] to-[#2A5C8A]"
+          subtext="Configured salary"
         />
         <KPICard
           icon={<CreditCard className="w-5 h-5 text-white" />}
-          label="Total Payouts"
-          value={`PKR ${employee.financialMetrics.totalPayouts.toLocaleString()}`}
-          color="bg-gradient-to-br from-[#EF4444] to-[#DC2626]"
+          label="Paid This Month"
+          value={`PKR ${employee.financialMetrics.paidThisMonth.toLocaleString()}`}
+          color="bg-gradient-to-br from-[#10B981] to-[#059669]"
+          subtext={employee.financialMetrics.periodLabel}
         />
         <KPICard
           icon={<Wallet className="w-5 h-5 text-white" />}
-          label="Current Balance"
-          value={`PKR ${employee.current_balance.toLocaleString()}`}
-          color="bg-gradient-to-br from-[#8B5CF6] to-[#6D28D9]"
+          label="Hold Money"
+          value={`PKR ${employee.financialMetrics.holdMoney.toLocaleString()}`}
+          color="bg-gradient-to-br from-[#F59E0B] to-[#D97706]"
+          subtext="Awaiting company settlement"
         />
       </div>
 

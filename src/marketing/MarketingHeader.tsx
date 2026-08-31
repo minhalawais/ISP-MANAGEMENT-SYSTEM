@@ -13,14 +13,14 @@ const MarketingHeader: React.FC = () => {
   const telLink = buildTelLink(site.contact_number)
   const phoneLabel = formatDisplayPhone(site.contact_number)
   const logoSrc = getAssetUrl(site.logo_url)
-  const customerPortalUrl = site.website_content?.customer_portal_url || "/customer-portal"
+  const customerPortalUrl = site.website_content?.customer_portal_url?.trim() || null
   const hasBusinessPlans = site.plans.some((plan) => plan.customer_type === "business")
-  const hasAboutContent = Boolean(site.website_content?.about_text?.trim() || site.website_content?.established_year)
+  const hasCoverage = site.coverage.length > 0
   const navLinks = [
     { to: "/plans", label: "Packages" },
     { to: "/coverage", label: "Coverage" },
     ...(hasBusinessPlans ? [{ to: "/#business-internet", label: "Business" }] : []),
-    ...(hasAboutContent ? [{ to: "/about", label: "About" }] : []),
+    { to: "/about", label: "About" },
     { to: "/contact", label: "Support" },
   ]
 
@@ -33,10 +33,10 @@ const MarketingHeader: React.FC = () => {
     <header className="sticky top-0 z-40 bg-[var(--mk-surface)]/96 backdrop-blur border-b border-[var(--mk-hairline)]">
       <div className="hidden md:block border-b border-[var(--mk-hairline)] bg-[#edf3f0]">
         <div className="mk-shell-wide px-8 h-8 flex items-center justify-between text-xs text-[var(--mk-ink-dim)]">
-          <span>{site.website_content?.service_city?.trim() ? `Serving ${site.website_content.service_city}` : site.website_content?.support_hours || site.website_content?.business_hours || "Local sales and support"}</span>
+          <span>{site.website_content?.service_city?.trim() ? `Serving ${site.website_content.service_city}` : site.website_content?.support_hours || site.website_content?.business_hours || "Sales and support"}</span>
           <div className="flex items-center gap-5">
             {telLink && <a href={telLink} className="inline-flex items-center gap-1.5 hover:text-[var(--mk-accent)]"><Phone className="h-3.5 w-3.5" />{phoneLabel}</a>}
-            <a href={customerPortalUrl} className="inline-flex items-center gap-1.5 font-semibold text-[var(--mk-ink)] hover:text-[var(--mk-accent)]"><UserRound className="h-3.5 w-3.5" />Customer portal</a>
+            {customerPortalUrl && <a href={customerPortalUrl} className="inline-flex items-center gap-1.5 font-semibold text-[var(--mk-ink)] hover:text-[var(--mk-accent)]"><UserRound className="h-3.5 w-3.5" />Customer portal</a>}
           </div>
         </div>
       </div>
@@ -72,7 +72,11 @@ const MarketingHeader: React.FC = () => {
               WhatsApp
             </a>
           )}
-          <a href="/#coverage-check" className="h-9 px-4 inline-flex items-center gap-1.5 rounded-md bg-[var(--mk-ink)] text-white text-sm font-semibold hover:bg-[var(--mk-accent)] transition-colors"><Wifi className="h-3.5 w-3.5" />Get internet</a>
+          {hasCoverage ? (
+            <a href="/#coverage-check" className="h-9 px-4 inline-flex items-center gap-1.5 rounded-md bg-[var(--mk-ink)] text-white text-sm font-semibold hover:bg-[var(--mk-accent)] transition-colors"><Wifi className="h-3.5 w-3.5" />Get internet</a>
+          ) : whatsappLink ? (
+            <a href={whatsappLink} target="_blank" rel="noopener noreferrer" className="h-9 px-4 inline-flex items-center gap-1.5 rounded-md bg-[var(--mk-ink)] text-white text-sm font-semibold hover:bg-[var(--mk-accent)] transition-colors"><MessageCircle className="h-3.5 w-3.5" />Ask about coverage</a>
+          ) : null}
         </div>
 
         <button
@@ -99,7 +103,7 @@ const MarketingHeader: React.FC = () => {
             </NavLink>
           ))}
           <div className="pt-2 flex flex-col gap-2">
-            <a href={customerPortalUrl} className="h-10 inline-flex items-center justify-center gap-2 rounded-md border border-[var(--mk-hairline-strong)] text-sm font-medium"><UserRound className="h-4 w-4" />Customer portal</a>
+            {customerPortalUrl && <a href={customerPortalUrl} className="h-10 inline-flex items-center justify-center gap-2 rounded-md border border-[var(--mk-hairline-strong)] text-sm font-medium"><UserRound className="h-4 w-4" />Customer portal</a>}
             {telLink && (
               <a
                 href={telLink}

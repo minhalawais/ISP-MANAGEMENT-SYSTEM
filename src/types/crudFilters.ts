@@ -29,6 +29,8 @@ export type StatCardDef = {
   id: string
   label: string
   value: number | string
+  /** Optional secondary line under the main value (e.g. "PKR 17.2M") */
+  subValue?: string | null
   tone: StatCardTone
   icon: LucideIcon
   filter?: { field: string; value: FilterValue }

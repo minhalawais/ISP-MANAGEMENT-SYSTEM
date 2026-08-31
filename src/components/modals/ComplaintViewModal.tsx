@@ -21,6 +21,10 @@ import {
 import { Modal } from "../modal.tsx"
 import axiosInstance from "../../utils/axiosConfig.ts"
 import { ComplaintFilePreview } from "../complaint/ComplaintFilePreview.tsx"
+import { ResolveComplaintModal, type ResolveComplaintPayload } from "./ResolveComplaintModal.tsx"
+import { getToken } from "../../utils/auth.ts"
+import { toast } from "../../utils/notify.ts"
+import { createFormDataRequestConfig } from "../../utils/crudSubmit.ts"
 
 interface VisibleEmployee {
   id: string
@@ -67,6 +71,7 @@ interface ComplaintDetail {
 interface Props {
   complaintId: string | null
   onClose: () => void
+  onResolved?: () => void
 }
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -143,10 +148,12 @@ function InfoItem({
   )
 }
 
-export function ComplaintViewModal({ complaintId, onClose }: Props) {
+export function ComplaintViewModal({ complaintId, onClose, onResolved }: Props) {
   const [complaint, setComplaint] = useState<ComplaintDetail | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [showResolve, setShowResolve] = useState(false)
+  const [resolving, setResolving] = useState(false)
 
   useEffect(() => {
     if (!complaintId) {
@@ -388,8 +395,61 @@ export function ComplaintViewModal({ complaintId, onClose }: Props) {
               </ul>
             </div>
           )}
+
+          {complaint.status !== "resolved" && complaint.status !== "closed" && (
+            <div className="flex justify-end border-t border-slate-100 pt-3">
+              <button
+                type="button"
+                disabled={resolving}
+                onClick={() => setShowResolve(true)}
+                className="h-9 px-4 rounded-lg bg-electric-blue text-white text-sm font-medium hover:bg-blue-600 disabled:opacity-50"
+              >
+                Resolve with billing
+              </button>
+            </div>
+          )}
         </div>
       )}
+
+      <ResolveComplaintModal
+        isOpen={showResolve}
+        onClose={() => setShowResolve(false)}
+        onConfirm={async (payload: ResolveComplaintPayload) => {
+          if (!complaint) return
+          if (payload.cash_amount > 0 && payload.materials.length === 0) {
+            toast.error("Enter parts used or set cash received to 0")
+            return
+          }
+          setResolving(true)
+          try {
+            const token = getToken()
+            const body = new FormData()
+            body.append("remarks", payload.notes)
+            body.append("materials", JSON.stringify(payload.materials))
+            body.append("cash_amount", String(payload.cash_amount || 0))
+            if (payload.cash_amount > 0) {
+              body.append("payment_method", payload.payment_method || "cash")
+              if (payload.payment_date) body.append("payment_date", payload.payment_date)
+            }
+            if (payload.resolutionProof) {
+              body.append("resolution_proof", payload.resolutionProof, payload.resolutionProof.name)
+            }
+            await axiosInstance.post(
+              `/complaints/${complaint.id}/resolve-with-billing`,
+              body,
+              createFormDataRequestConfig(token)
+            )
+            toast.success("Complaint resolved")
+            setShowResolve(false)
+            onResolved?.()
+            onClose()
+          } catch (err: any) {
+            toast.error(err?.response?.data?.message || err?.response?.data?.error || "Resolve failed")
+          } finally {
+            setResolving(false)
+          }
+        }}
+      />
     </Modal>
   )
 }

@@ -36,4 +36,17 @@ describe("CrudStatCards", () => {
     render(<CrudStatCards cards={cards} activeStatId="active" onStatClick={jest.fn()} />)
     expect(screen.getByRole("button", { name: /Active Customers/i }).className).toMatch(/ring-electric-blue/)
   })
+
+  test("renders subValue under main value", () => {
+    const withSub: StatCardDef[] = [
+      {
+        ...cards[0],
+        value: 692,
+        subValue: "PKR 17.2M",
+      },
+    ]
+    render(<CrudStatCards cards={withSub} activeStatId={null} onStatClick={jest.fn()} />)
+    expect(screen.getByText("692")).toBeInTheDocument()
+    expect(screen.getByText("PKR 17.2M")).toBeInTheDocument()
+  })
 })

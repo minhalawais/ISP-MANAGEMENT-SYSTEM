@@ -37,10 +37,16 @@ const Login = () => {
     setIsLoading(true)
   
     try {
-      const response = await axiosInstance.post("/auth/login", {
-        username,
-        password,
-      })
+      const response = await axiosInstance.post(
+        "/auth/login",
+        {
+          username,
+          password,
+          // Address-bar host — required when API is on nexus.* and vendor opens connectx.*/fastinternet.*
+          site_host: typeof window !== "undefined" ? window.location.hostname : undefined,
+        },
+        { skipErrorToast: true } as any,
+      )
   
       const data = response.data
   
@@ -63,7 +69,8 @@ const Login = () => {
       navigate(homeRoute, { replace: true })
     } catch (err: any) {
       console.error("Login failed", err)
-      setError("Invalid credentials")
+      const apiError = err?.response?.data?.error
+      setError(typeof apiError === "string" && apiError.trim() ? apiError : "Invalid credentials")
     } finally {
       setIsLoading(false)
     }

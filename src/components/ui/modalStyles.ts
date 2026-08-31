@@ -6,6 +6,8 @@ export const MODAL_CANCEL_BTN =
 export const MODAL_PRIMARY_BTN =
   "h-9 px-4 text-sm font-medium bg-[#2A5C8A] text-white rounded-md shadow-sm hover:bg-[#1e4568] focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-[#2A5C8A]/35 disabled:opacity-50 transition-colors inline-flex items-center gap-1.5"
 
+export const MODAL_DANGER_BTN =
+  "h-9 px-4 text-sm font-medium bg-coral-red text-white rounded-md shadow-sm hover:bg-coral-red/90 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-coral-red/35 disabled:opacity-50 transition-colors inline-flex items-center gap-1.5"
 export const MODAL_SECONDARY_BTN =
   "h-8 px-2.5 text-xs font-medium rounded-md text-[#2A5C8A] bg-[#E8EEF1] border border-[#C5D4DA] shadow-sm hover:bg-[#dce6ea] inline-flex items-center gap-1 transition-colors"
 

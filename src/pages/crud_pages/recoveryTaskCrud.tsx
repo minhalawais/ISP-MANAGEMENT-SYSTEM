@@ -244,6 +244,56 @@ const RecoveryTaskManagement: React.FC = () => {
         filterModuleKey="recovery-task"
         columns={columns}
         FormComponent={RecoveryTaskForm}
+        validateBeforeSubmit={(fd) => {
+          const data = fd as RecoveryTask & { invoice_ids?: string[] }
+          if (!data.assigned_to) return "Select an employee"
+          // Edit keeps single invoice_id; create uses invoice_ids.
+          if (Array.isArray(data.invoice_ids)) {
+            if (data.invoice_ids.length === 0) return "Select at least one invoice"
+          } else if (!data.invoice_id) {
+            return "Select an invoice"
+          }
+          return null
+        }}
+        onCreateSubmit={async (fd) => {
+          const data = fd as RecoveryTask & { invoice_ids?: string[] }
+          const ids =
+            Array.isArray(data.invoice_ids) && data.invoice_ids.length > 0
+              ? data.invoice_ids
+              : data.invoice_id
+                ? [data.invoice_id]
+                : []
+          if (ids.length === 0) return false
+
+          const token = getToken()
+          const res = await axiosInstance.post(
+            "/recovery-tasks/bulk-add",
+            {
+              invoice_ids: ids,
+              assigned_to: data.assigned_to,
+              notes: data.notes,
+              status: data.status || "pending",
+            },
+            { headers: { Authorization: `Bearer ${token}` } }
+          )
+          const body = res.data || {}
+          const created = Number(body.total_created || 0)
+          const skipped = Number(body.total_skipped || 0)
+          if (created === 0) {
+            const reason = body.skipped?.[0]?.reason || "No recovery tasks created"
+            throw new Error(reason)
+          }
+          if (skipped > 0) {
+            toast.success(`Created ${created}; skipped ${skipped}`)
+          } else {
+            toast.success(
+              created === 1
+                ? "Recovery task added successfully"
+                : `Created ${created} recovery tasks`
+            )
+          }
+          return true
+        }}
       />
 
       <div className="fixed bottom-4 right-4 z-40 w-full max-w-xl max-h-[45vh] overflow-hidden bg-white border border-slate-200 rounded-xl shadow-lg flex flex-col">

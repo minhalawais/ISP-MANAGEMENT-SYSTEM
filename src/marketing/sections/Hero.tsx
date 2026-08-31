@@ -6,9 +6,10 @@ import { buildWhatsAppLink, formatPrice, lowestPlanPrice } from "../utils.ts"
 import { getAssetUrl } from "../../utils/auth.ts"
 import {
   DEFAULT_HERO_IMAGE,
-  FALLBACK_HERO_HEADLINE,
+  DEFAULT_HERO_MOBILE_IMAGE,
   FALLBACK_HERO_SUBHEADLINE,
   FALLBACK_INSTALL_SLA,
+  defaultHeroHeadline,
 } from "../fallbackContent.ts"
 
 const Hero: React.FC = () => {
@@ -25,19 +26,23 @@ const Hero: React.FC = () => {
     content.service_city?.trim() ||
     (site.areas.length > 0 ? `Serving ${site.areas.slice(0, 3).join(", ")}${site.areas.length > 3 ? " & more" : ""}` : null)
   const installSla = content.install_sla?.trim() || FALLBACK_INSTALL_SLA
+  const hasCoverage = site.coverage.length > 0
 
   return (
     <section className="relative overflow-hidden flex items-end bg-[#e9efec] min-h-[calc(100dvh-4rem)] md:min-h-[calc(100dvh-6rem)]">
-      <img
-        src={heroImage}
-        alt=""
-        className="absolute inset-0 h-full w-full object-cover object-center"
-        onError={(e) => {
-          const img = e.currentTarget
-          if (img.getAttribute("src") === DEFAULT_HERO_IMAGE) return
-          img.src = DEFAULT_HERO_IMAGE
-        }}
-      />
+      <picture className="absolute inset-0">
+        {!configuredHero && <source media="(max-width: 767px)" srcSet={DEFAULT_HERO_MOBILE_IMAGE} />}
+        <img
+          src={heroImage}
+          alt=""
+          className="h-full w-full object-cover object-center"
+          onError={(e) => {
+            const img = e.currentTarget
+            if (img.getAttribute("src") === DEFAULT_HERO_IMAGE) return
+            img.src = DEFAULT_HERO_IMAGE
+          }}
+        />
+      </picture>
       <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(244,248,246,0.98)_0%,rgba(244,248,246,0.94)_34%,rgba(244,248,246,0.38)_60%,rgba(244,248,246,0)_78%)]" />
       <div className="absolute inset-x-0 bottom-0 h-32 bg-[linear-gradient(0deg,rgba(14,26,31,0.18),transparent)]" />
 
@@ -51,7 +56,7 @@ const Hero: React.FC = () => {
           {cityLine && <p className="mb-5 text-sm font-medium text-[var(--mk-ink-dim)] flex items-center gap-1.5"><MapPin className="h-4 w-4 text-[var(--mk-accent)]" />{cityLine}</p>}
 
           <h1 className="text-[2.35rem] sm:text-[3.65rem] leading-[1.02] font-semibold text-[var(--mk-ink)] max-w-[14ch]">
-            {content.hero_headline || FALLBACK_HERO_HEADLINE}
+            {content.hero_headline || defaultHeroHeadline(site.name, content.service_city)}
           </h1>
           <p className="mt-5 max-w-lg text-base sm:text-lg text-[var(--mk-ink-dim)] leading-relaxed">
             {content.hero_subheadline || FALLBACK_HERO_SUBHEADLINE}
@@ -75,13 +80,15 @@ const Hero: React.FC = () => {
 
           <div className="mt-8 flex flex-wrap items-center gap-3">
             <a
-              href="#coverage-check"
+              href={hasCoverage ? "#coverage-check" : (whatsappLink || "/contact")}
+              target={!hasCoverage && whatsappLink ? "_blank" : undefined}
+              rel={!hasCoverage && whatsappLink ? "noopener noreferrer" : undefined}
               className="h-11 px-6 inline-flex items-center gap-2 rounded-md bg-[var(--mk-ink)] text-white text-sm font-semibold hover:bg-[var(--mk-accent)] transition-colors"
             >
-              Check my area
+              {hasCoverage ? "Check my area" : "Ask about coverage"}
               <ArrowRight className="h-4 w-4" />
             </a>
-            {whatsappLink && (
+            {hasCoverage && whatsappLink && (
               <a
                 href={whatsappLink}
                 target="_blank"

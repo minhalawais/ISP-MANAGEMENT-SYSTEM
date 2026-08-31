@@ -156,7 +156,8 @@ export function FileUploadField({
       try {
         const response = await axiosInstance.get(currentImage, {
           responseType: "blob",
-        })
+          skipErrorToast: true,
+        } as any)
 
         const url = window.URL.createObjectURL(response.data)
         window.open(url, "_blank")

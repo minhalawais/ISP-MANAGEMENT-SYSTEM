@@ -28,6 +28,7 @@ interface Customer {
   internet_connection_type: string | null
   tv_cable_connection_type: string | null
   installation_date: string | null
+  due_date: string | null
   is_active: boolean
   cnic: string
   cnic_front_image: string | null

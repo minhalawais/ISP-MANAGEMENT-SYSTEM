@@ -24,6 +24,64 @@ export type BillingPeriod = {
   due_date: string
 }
 
+function pad2(n: number) {
+  return String(n).padStart(2, "0")
+}
+
+export function formatDateLocal(d: Date): string {
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`
+}
+
+/**
+ * Same rule as api/app/services/invoice_due_date.py
+ * (auto batch, bulk monthly, and manual create all use that module).
+ * due = customer's configured due day within the billing month; else the 5th.
+ */
+export function calculateInvoiceDueDate(
+  billingStartIso: string,
+  customerDueDateIso?: string | null,
+): string {
+  const [y, m] = billingStartIso.split("-").map((p) => Number(p))
+  if (!y || !m) return billingStartIso
+
+  const lastDay = new Date(y, m, 0).getDate()
+  if (!customerDueDateIso) return formatDateLocal(new Date(y, m - 1, 5))
+
+  const dayPart = String(customerDueDateIso).slice(0, 10).split("-")[2]
+  const dueDay = Number(dayPart)
+  if (!Number.isFinite(dueDay) || dueDay < 1) return formatDateLocal(new Date(y, m - 1, 5))
+  return formatDateLocal(new Date(y, m - 1, Math.min(dueDay, lastDay)))
+}
+
+/** Calendar year for a selected month number (1–12). Dec → Jan rolls to next year. */
+export function yearForBillingMonth(month: number, reference: Date = new Date()): number {
+  const curMonth = reference.getMonth() + 1
+  const curYear = reference.getFullYear()
+  if (month === 1 && curMonth === 12) return curYear + 1
+  return curYear
+}
+
+/** Next calendar month (auto-invoice bills ahead). */
+export function nextBillingMonth(reference: Date = new Date()): { month: number; year: number } {
+  const d = new Date(reference.getFullYear(), reference.getMonth() + 1, 1)
+  return { month: d.getMonth() + 1, year: d.getFullYear() }
+}
+
+export function billingPeriodForMonth(
+  month: number,
+  year: number,
+  customerDueDateIso?: string | null,
+): BillingPeriod {
+  const start = new Date(year, month - 1, 1)
+  const end = new Date(year, month, 0)
+  const billing_start_date = formatDateLocal(start)
+  return {
+    billing_start_date,
+    billing_end_date: formatDateLocal(end),
+    due_date: calculateInvoiceDueDate(billing_start_date, customerDueDateIso),
+  }
+}
+
 /** Match auto/bulk invoice description: plan name, optionally with speed. */
 export function packageLineDescription(pkg: {
   servicePlanName?: string | null

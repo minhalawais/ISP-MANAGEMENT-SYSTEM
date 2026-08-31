@@ -4,11 +4,12 @@ import WhyChooseUs from "../sections/WhyChooseUs.tsx"
 import StatBand from "../sections/StatBand.tsx"
 import CtaBand from "../sections/CtaBand.tsx"
 import { useMarketingSite } from "../context/MarketingSiteContext.tsx"
-import { FALLBACK_ABOUT_TEXT } from "../fallbackContent.ts"
+import { defaultAboutText } from "../fallbackContent.ts"
 
 const AboutPage: React.FC = () => {
   const site = useMarketingSite()
   const content = site.website_content || {}
+  const hasBusinessPlans = site.plans.some((plan) => plan.customer_type === "business")
 
   return (
     <>
@@ -16,7 +17,7 @@ const AboutPage: React.FC = () => {
       <section className="bg-[var(--mk-surface)]">
         <div className="mk-shell-narrow px-5 sm:px-8 py-16 sm:py-20">
           <p className="text-base sm:text-lg text-[var(--mk-ink-dim)] leading-relaxed">
-            {content.about_text || FALLBACK_ABOUT_TEXT}
+            {content.about_text || defaultAboutText(site.name, hasBusinessPlans)}
           </p>
           {content.business_hours && (
             <div className="mt-8 mk-hairline-top pt-6">

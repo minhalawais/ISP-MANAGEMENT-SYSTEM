@@ -29,7 +29,7 @@ const InventoryManagement: React.FC = () => {
   const [suppliers, setSuppliers] = useState<{ id: string; name: string }[]>([])
   const [showTransactionsModal, setShowTransactionsModal] = useState(false)
   const [showAssignmentsModal, setShowAssignmentsModal] = useState(false)
-  const [selectedItemId, setSelectedItemId] = useState<string | null>(null)
+  const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null)
 
   useEffect(() => {
     const fetchSuppliers = async () => {
@@ -132,7 +132,7 @@ const InventoryManagement: React.FC = () => {
         cell: ({ row }) => (
           <button
             onClick={() => {
-              setSelectedItemId(row.original.id);
+              setSelectedItem(row.original);
               setShowTransactionsModal(true);
             }}
             className="px-2 py-1 bg-[#89A8B2] text-white rounded-md hover:bg-[#6f8a9a] transition-colors duration-200 text-sm"
@@ -146,7 +146,7 @@ const InventoryManagement: React.FC = () => {
         cell: ({ row }) => (
           <button
             onClick={() => {
-              setSelectedItemId(row.original.id);
+              setSelectedItem(row.original);
               setShowAssignmentsModal(true);
             }}
             className="px-2 py-1 bg-[#89A8B2] text-white rounded-md hover:bg-[#6f8a9a] transition-colors duration-200 text-sm"
@@ -204,14 +204,14 @@ const InventoryManagement: React.FC = () => {
         <InventoryTransactionsModal
           isVisible={showTransactionsModal}
           onClose={() => setShowTransactionsModal(false)}
-          inventoryItemId={selectedItemId!}
+          inventoryItemId={selectedItem!.id}
         />
       )}
       {showAssignmentsModal && (
         <InventoryAssignmentsModal
           isVisible={showAssignmentsModal}
           onClose={() => setShowAssignmentsModal(false)}
-          inventoryItemId={selectedItemId!}
+          inventoryItem={selectedItem!}
         />
       )}
     </>

@@ -321,6 +321,13 @@ export function EnhancedBulkAddModal({
       }
     }
 
+    if (rowData.due_date) {
+      const datePattern = /^\d{4}-\d{2}-\d{2}$/
+      if (!datePattern.test(String(rowData.due_date))) {
+        errors.push("due_date must be in YYYY-MM-DD format")
+      }
+    }
+
     if (rowData.connection_type) {
       const validConnectionTypes = ["internet", "tv_cable", "both"]
       if (!validConnectionTypes.includes(String(rowData.connection_type).toLowerCase())) {

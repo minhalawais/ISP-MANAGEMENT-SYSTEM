@@ -14,7 +14,7 @@ export const FALLBACK_FAQS: FaqItem[] = [
   },
   {
     question: "What if I have a technical issue?",
-    answer: "Message us on WhatsApp or call support. A technician will assist you or schedule a visit.",
+    answer: "Contact support through the available phone, WhatsApp or email channel. The team will confirm the next troubleshooting step.",
   },
   {
     question: "Can I change my package later?",
@@ -32,16 +32,26 @@ export const FALLBACK_FAQS: FaqItem[] = [
 
 export const FALLBACK_TESTIMONIALS: TestimonialItem[] = []
 
-export const FALLBACK_HERO_HEADLINE = "Fast internet for Lahore homes"
 export const FALLBACK_HERO_SUBHEADLINE =
-  "Check your area, compare monthly packages and arrange your connection with a local team."
+  "Check availability, compare monthly packages and arrange your connection with our team."
 export const FALLBACK_INSTALL_SLA = "Installation subject to coverage and site feasibility"
 export const FALLBACK_COVERAGE_BLURB =
   "Choose your area below, then confirm your street or society with our team before ordering."
-export const FALLBACK_ABOUT_TEXT =
-  "We connect homes and businesses with dependable internet, backed by a local team that installs, maintains, and supports every connection."
+export const defaultHeroHeadline = (companyName: string, serviceCity?: string) =>
+  serviceCity?.trim()
+    ? `Fast home internet for ${serviceCity.trim()}`
+    : `Fast, dependable internet from ${companyName}`
+
+export const defaultAboutText = (companyName: string, hasBusinessPlans: boolean) =>
+  `${companyName} provides internet connectivity${hasBusinessPlans ? " for homes and businesses" : ""}. Package availability, installation requirements and charges are confirmed for each address before connection.`
+
+export const defaultFooterTagline = (companyName: string, hasBusinessPlans: boolean) =>
+  hasBusinessPlans
+    ? `Internet services for homes and businesses from ${companyName}.`
+    : `Internet connectivity and customer support from ${companyName}.`
 
 /** Built-in hero visual when vendor has not set hero_image_url */
-export const DEFAULT_HERO_IMAGE = "/marketing/pakistan-home-fiber-hero-v2.webp"
+export const DEFAULT_HERO_IMAGE = "/marketing/pakistan-home-fiber-hero-desktop-v3.webp"
+export const DEFAULT_HERO_MOBILE_IMAGE = "/marketing/pakistan-home-fiber-hero-mobile-v3.webp"
 export const DEFAULT_INSTALLATION_IMAGE = "/marketing/local-fiber-installation-v2.webp"
-export const DEFAULT_BUSINESS_IMAGE = "/marketing/pakistan-business-internet-v2.webp"
+export const DEFAULT_BUSINESS_IMAGE = "/marketing/pakistan-business-internet-v3.webp"

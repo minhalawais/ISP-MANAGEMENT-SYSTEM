@@ -12,13 +12,10 @@ import {
   MapPin,
   Calendar,
   Briefcase,
-  CreditCard,
   Shield,
   Edit3,
   Save,
   X,
-  Image,
-  FileText,
 } from "lucide-react"
 
 interface ProfileData {
@@ -34,15 +31,7 @@ interface ProfileData {
   emergency_contact: string
   house_address: string
   joining_date: string | null
-  salary: number
-  current_balance: number
-  paid_amount: number
   picture: string | null
-  cnic_image: string | null
-  utility_bill_image: string | null
-  reference_name: string | null
-  reference_contact: string | null
-  reference_cnic_image: string | null
   created_at: string | null
 }
 
@@ -129,8 +118,7 @@ export function PortalProfile({ onProfileUpdate }: PortalProfileProps) {
   }
 
   return (
-    <div className="lg:grid lg:grid-cols-[1fr_320px] lg:items-start lg:gap-4">
-      <div className="space-y-4">
+    <div className="mx-auto w-full max-w-5xl space-y-4">
         {/* Hero */}
         <div className="bg-gradient-to-br from-portal-accent to-portal-primary rounded-xl p-4 lg:p-5 text-white shadow-md">
           <div className="flex items-center gap-4">
@@ -271,50 +259,8 @@ export function PortalProfile({ onProfileUpdate }: PortalProfileProps) {
               label="Joining date"
               value={profile.joining_date ? new Date(profile.joining_date).toLocaleDateString() : "-"}
             />
-            <InfoRow icon={CreditCard} label="Monthly salary" value={`PKR ${profile.salary?.toLocaleString() || 0}`} />
-            <InfoRow
-              icon={CreditCard}
-              label="Current balance"
-              value={`PKR ${profile.current_balance?.toLocaleString() || 0}`}
-            />
-            <InfoRow icon={CreditCard} label="Total paid" value={`PKR ${profile.paid_amount?.toLocaleString() || 0}`} />
           </div>
-
-          {(profile.reference_name || profile.reference_contact) && (
-            <>
-              <div className="px-4 py-3 border-y border-gray-100">
-                <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
-                  <span className="flex h-6 w-6 items-center justify-center rounded-md bg-portal-tint">
-                    <User className="h-3.5 w-3.5 text-portal-primary" />
-                  </span>
-                  Reference
-                </h3>
-              </div>
-              <div className="p-4 space-y-3">
-                <InfoRow icon={User} label="Name" value={profile.reference_name || "-"} />
-                <InfoRow icon={Phone} label="Contact" value={profile.reference_contact || "-"} />
-              </div>
-            </>
-          )}
         </div>
-      </div>
-
-      <div className="mt-4 rounded-xl border border-gray-100 bg-white shadow-sm lg:mt-0">
-        <div className="px-4 py-3 border-b border-gray-100">
-          <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
-            <span className="flex h-6 w-6 items-center justify-center rounded-md bg-portal-tint">
-              <FileText className="h-3.5 w-3.5 text-portal-primary" />
-            </span>
-            Documents
-          </h3>
-        </div>
-        <div className="grid grid-cols-2 gap-3 p-4 lg:grid-cols-1">
-          <DocumentCard label="CNIC" documentPath={profile.cnic_image} />
-          <DocumentCard label="Utility bill" documentPath={profile.utility_bill_image} />
-          <DocumentCard label="Reference CNIC" documentPath={profile.reference_cnic_image} />
-          <DocumentCard label="Profile picture" documentPath={profile.picture} />
-        </div>
-      </div>
     </div>
   )
 }
@@ -336,32 +282,5 @@ function InfoRow({
         <div className="text-sm font-medium text-gray-900">{value}</div>
       </div>
     </div>
-  )
-}
-
-function DocumentCard({ label, documentPath }: { label: string; documentPath: string | null }) {
-  const hasDocument = !!documentPath
-  const fileUrl = getFileUrl(documentPath)
-
-  return (
-    <a
-      href={hasDocument ? fileUrl : undefined}
-      target="_blank"
-      rel="noopener noreferrer"
-      className={`block p-3 rounded-lg border transition-all ${
-        hasDocument
-          ? "border-emerald-200 bg-emerald-50 hover:bg-emerald-100 hover:shadow-sm cursor-pointer"
-          : "border-gray-200 bg-gray-50 cursor-default"
-      }`}
-      onClick={(e) => !hasDocument && e.preventDefault()}
-    >
-      <div className="flex items-center gap-2">
-        <Image className={`w-4 h-4 ${hasDocument ? "text-emerald-600" : "text-gray-400"}`} />
-        <span className="text-sm font-medium text-gray-700">{label}</span>
-      </div>
-      <p className={`text-xs mt-1 ${hasDocument ? "text-emerald-600" : "text-gray-500"}`}>
-        {hasDocument ? "View document" : "Not uploaded"}
-      </p>
-    </a>
   )
 }

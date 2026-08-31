@@ -24,18 +24,22 @@ import { Topbar } from "./topNavbar.tsx"
 import { useOptionalAdminChrome } from "../context/AdminLayoutContext.tsx"
 import { Sidebar } from "./sideNavbar.tsx"
 import { UnifiedPaymentModal } from "./modals/UnifiedPaymentModal.tsx"
-import { getToken } from "../utils/auth.ts"
+import { getToken, getRole } from "../utils/auth.ts"
 import { toast } from "../utils/notify.ts";
 import axiosInstance from "../utils/axiosConfig.ts"
 import { useCompany } from "../context/CompanyContext.tsx"
 import { getOperationErrorMessage } from "../utils/crudSubmit.ts"
+import { formatCompactPkr } from "../utils/formatCompactPkr.ts"
 import { CRUD_FILTER_CONFIGS } from "../config/crudFilterConfigs.ts"
 import { useCrudTableFilters } from "../hooks/useCrudTableFilters.ts"
 import { useCrudPeriodFilter } from "../hooks/useCrudPeriodFilter.ts"
 import { getCrudPeriodConfig } from "../config/crudPeriodConfigs.ts"
 import { CrudStatsSection } from "./crud/CrudStatsSection.tsx"
+import { ConfirmBulkDeleteModal } from "./modals/ConfirmBulkDeleteModal.tsx"
 import { periodQueryParamsForTextSearch } from "../utils/crudPeriodUtils.ts"
 import type { StatCardDef } from "../types/crudFilters.ts"
+
+const BULK_DELETE_ROLES = new Set(["super_admin", "company_owner", "manager"])
 
 interface CRUDPageProps<T> {
   title: string
@@ -73,6 +77,8 @@ export function CRUDPage<T extends { id: string }>({
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [selectedRows, setSelectedRows] = useState<string[]>([])
   const [isLoading, setIsLoading] = useState(false)
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false)
+  const canBulkDelete = BULK_DELETE_ROLES.has(getRole() || "")
   const [stats, setStats] = useState({
     total: 0,
     total_amount: 0,
@@ -100,9 +106,15 @@ export function CRUDPage<T extends { id: string }>({
   const statCards: StatCardDef[] = useMemo(
     () =>
       filterConfig.statCards.map((card) => {
-        if (card.id === "total") return { ...card, value: stats.total }
-        if (card.id === "paid") return { ...card, value: stats.paid }
-        if (card.id === "pending") return { ...card, value: stats.pending }
+        if (card.id === "total") {
+          return { ...card, value: stats.total, subValue: formatCompactPkr(stats.total_amount) }
+        }
+        if (card.id === "paid") {
+          return { ...card, value: stats.paid, subValue: formatCompactPkr(stats.paid_amount) }
+        }
+        if (card.id === "pending") {
+          return { ...card, value: stats.pending, subValue: formatCompactPkr(stats.pending_amount) }
+        }
         return { ...card, value: 0 }
       }),
     [filterConfig.statCards, stats],
@@ -272,6 +284,51 @@ export function CRUDPage<T extends { id: string }>({
       console.error("Delete operation failed", error)
       const errorMessage = getOperationErrorMessage(error, title, "delete")
       toast.error(errorMessage || `Failed to delete ${title.toLowerCase()}`)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const paidSelectedCount = useMemo(() => {
+    const selected = new Set(selectedRows)
+    return data.filter((row: any) => {
+      if (!selected.has(row.id)) return false
+      const status = String(row.status || "").toLowerCase()
+      return status === "paid" || status === "partially_paid"
+    }).length
+  }, [data, selectedRows])
+
+  const handleBulkDelete = async () => {
+    if (selectedRows.length === 0 || !canBulkDelete) return
+    try {
+      setIsLoading(true)
+      const token = getToken()
+      const res = await axiosInstance.post(
+        `/${endpoint}/bulk-delete`,
+        { ids: selectedRows },
+        { headers: { Authorization: `Bearer ${token}` } },
+      )
+      const body = res.data || {}
+      const deleted = body.total_deleted ?? 0
+      const failed = body.total_failed ?? 0
+      if (failed > 0 && deleted > 0) {
+        toast.success(`Deleted ${deleted} of ${deleted + failed}. ${failed} failed.`)
+      } else if (failed > 0) {
+        toast.error(`Failed to delete ${failed} ${title.toLowerCase()}(s)`)
+      } else {
+        toast.success(`${deleted} ${title.toLowerCase()}${deleted === 1 ? "" : "s"} deleted`)
+      }
+      setBulkDeleteOpen(false)
+      setSelectedRows([])
+      await fetchData()
+      await fetchStats()
+    } catch (error: any) {
+      console.error("Bulk delete failed", error)
+      toast.error(
+        error?.response?.data?.message ||
+          getOperationErrorMessage(error, title, "delete") ||
+          `Failed to delete ${title.toLowerCase()}s`,
+      )
     } finally {
       setIsLoading(false)
     }
@@ -640,6 +697,24 @@ Thank you for choosing ${compName}!`
                 onSetPeriod={periodFilter.setPeriod}
                 onSetPeriodAll={periodFilter.setAll}
               />
+
+              {selectedRows.length > 0 && canBulkDelete && (
+                <div className="bg-electric-blue/5 border border-electric-blue/20 rounded-lg p-3 mt-3 flex flex-wrap items-center justify-between gap-3">
+                  <span className="text-sm text-deep-ocean font-medium">
+                    {selectedRows.length} {title.toLowerCase()}
+                    {selectedRows.length > 1 ? "s" : ""} selected
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setBulkDeleteOpen(true)}
+                    disabled={isLoading}
+                    className="h-9 px-3 text-sm font-medium bg-coral-red text-white rounded-md hover:bg-coral-red/90 disabled:opacity-50 transition-colors inline-flex items-center gap-1.5"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    Delete ({selectedRows.length})
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Table Section */}
@@ -742,6 +817,20 @@ Thank you for choosing ${compName}!`
           fetchData()
           fetchStats()
         }}
+      />
+
+      <ConfirmBulkDeleteModal
+        isVisible={bulkDeleteOpen}
+        onClose={() => setBulkDeleteOpen(false)}
+        onConfirm={handleBulkDelete}
+        count={selectedRows.length}
+        entityLabel={title.toLowerCase()}
+        warning={
+          paidSelectedCount > 0
+            ? `${paidSelectedCount} selected invoice(s) are paid or partially paid. Linked payments will also be removed.`
+            : null
+        }
+        isLoading={isLoading}
       />
     </div>
   )

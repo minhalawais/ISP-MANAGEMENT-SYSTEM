@@ -91,6 +91,7 @@ interface Customer {
   agreement_document?: string
   discount_amount?: string
   installation_date: string
+  due_date?: string
   recharge_date?: string
   connection_commission_amount?: string | number
 }
@@ -1406,9 +1407,9 @@ export function CustomerForm({
           />
           <InputField
             label="Due Date"
-            name="recharge_date"
+            name="due_date"
             type="date"
-            value={formData.recharge_date || ""}
+            value={formData.due_date || ""}
             onChange={memoizedHandleInputChange}
             icon={<Calendar className="h-5 w-5 text-slate-gray/70" />}
             {...inputFieldProps}

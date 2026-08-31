@@ -22,10 +22,9 @@ interface DashboardStats {
   open_complaints: number
   managed_customers: number
   total_managed_customers: number
-  current_balance: number
+  hold_money: number
   todays_collections: number
   pending_recoveries: number
-  month_earnings: number
 }
 
 interface PerformanceMetrics {
@@ -85,11 +84,11 @@ export function PortalDashboard() {
     { key: "open_complaints", label: "Open complaints", value: stats?.open_complaints || 0, icon: AlertCircle, tone: "danger" },
     { key: "active_customers", label: "Active customers", value: stats?.managed_customers || 0, icon: Users, tone: "accent" },
     {
-      key: "current_balance",
-      label: "Current balance",
-      value: `PKR ${(stats?.current_balance || 0).toLocaleString()}`,
+      key: "hold_money",
+      label: "Hold money",
+      value: `PKR ${(stats?.hold_money || 0).toLocaleString()}`,
       icon: Wallet,
-      tone: "default",
+      tone: stats?.hold_money ? "warning" : "default",
     },
     {
       key: "todays_collections",
@@ -104,13 +103,6 @@ export function PortalDashboard() {
       value: stats?.pending_recoveries || 0,
       icon: RefreshCw,
       tone: stats?.pending_recoveries ? "warning" : "default",
-    },
-    {
-      key: "month_earnings",
-      label: "This month's earnings",
-      value: `PKR ${(stats?.month_earnings || 0).toLocaleString()}`,
-      icon: Award,
-      tone: "success",
     },
   ]
 

@@ -176,7 +176,10 @@ export function useImageViewer() {
     setImageUrl(null)
 
     try {
-      const response = await axiosInstance.get(fetchUrl, { responseType: "blob" })
+      const response = await axiosInstance.get(fetchUrl, {
+        responseType: "blob",
+        skipErrorToast: true,
+      })
       const url = URL.createObjectURL(response.data)
       setImageUrl(url)
     } catch (error) {

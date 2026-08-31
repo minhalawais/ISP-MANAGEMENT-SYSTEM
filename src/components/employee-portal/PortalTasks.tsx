@@ -5,7 +5,10 @@ import { useState, useEffect } from "react"
 import { Link } from "react-router-dom"
 import { getToken } from "../../utils/auth.ts"
 import axiosInstance from "../../utils/axiosConfig.ts"
-import { toast } from "../../utils/notify.ts";
+import { toast } from "../../utils/notify.ts"
+import { createFormDataRequestConfig } from "../../utils/crudSubmit.ts"
+import { isAllowedResolutionProofImage } from "../../utils/customerPortalComplaint.ts"
+import { ComplaintFilePreview } from "../complaint/ComplaintFilePreview.tsx"
 import {
   ClipboardList,
   Clock,
@@ -21,7 +24,18 @@ import {
 import { PortalStatStrip, type PortalStatItem } from "./shared/PortalStatStrip.tsx"
 import { PortalSegmentedControl } from "./shared/PortalSegmentedControl.tsx"
 import { PortalSheet } from "./shared/PortalSheet.tsx"
-import { PortalStatusPill, portalStatusAvatar } from "./shared/PortalStatusPill.tsx"
+import {
+  PortalStatusPill,
+  portalStatusAvatar,
+  portalStatusLabel,
+} from "./shared/PortalStatusPill.tsx"
+
+const statusListClass: Record<string, string> = {
+  pending: "bg-golden-amber/10 text-golden-amber",
+  in_progress: "bg-electric-blue/10 text-electric-blue",
+  completed: "bg-emerald-green/10 text-emerald-green",
+  cancelled: "bg-slate-gray/10 text-slate-gray",
+}
 
 interface TaskAssignee {
   id: string
@@ -73,6 +87,11 @@ const FILTER_OPTIONS = [
   { value: "completed", label: "Completed" },
 ]
 
+function isStoredProofFile(path: string | null | undefined): boolean {
+  if (!path) return false
+  return !path.startsWith("http://") && !path.startsWith("https://")
+}
+
 export function PortalTasks() {
   const [tasks, setTasks] = useState<Task[]>([])
   const [loading, setLoading] = useState(true)
@@ -82,12 +101,19 @@ export function PortalTasks() {
   const [completionForm, setCompletionForm] = useState({
     status: "",
     completion_notes: "",
-    completion_proof: "",
   })
+  const [proofFile, setProofFile] = useState<File | null>(null)
+  const [proofPreview, setProofPreview] = useState<string | null>(null)
 
   useEffect(() => {
     fetchTasks()
   }, [filter])
+
+  useEffect(() => {
+    return () => {
+      if (proofPreview) URL.revokeObjectURL(proofPreview)
+    }
+  }, [proofPreview])
 
   const fetchTasks = async () => {
     setLoading(true)
@@ -106,6 +132,27 @@ export function PortalTasks() {
     }
   }
 
+  const clearProofFile = () => {
+    if (proofPreview) URL.revokeObjectURL(proofPreview)
+    setProofFile(null)
+    setProofPreview(null)
+  }
+
+  const handleProofFileChange = (file: File | null) => {
+    if (proofPreview) URL.revokeObjectURL(proofPreview)
+    if (!file) {
+      setProofFile(null)
+      setProofPreview(null)
+      return
+    }
+    if (!isAllowedResolutionProofImage(file.name)) {
+      toast.error("Proof must be a PNG, JPG, JPEG, GIF, or WebP image")
+      return
+    }
+    setProofFile(file)
+    setProofPreview(URL.createObjectURL(file))
+  }
+
   const handleStatusUpdate = async () => {
     if (!selectedTask || !completionForm.status) return
     if (!selectedTask.can_update) {
@@ -119,16 +166,30 @@ export function PortalTasks() {
     setUpdating(true)
     try {
       const token = getToken()
-      await axiosInstance.put(
-        `/employee-portal/tasks/${selectedTask.id}/status`,
-        {
-          status: completionForm.status,
-          completion_notes: completionForm.completion_notes || null,
-          completion_proof: completionForm.completion_proof || null,
-        },
-        { headers: { Authorization: `Bearer ${token}` } }
-      )
+      if (proofFile) {
+        const body = new FormData()
+        body.append("status", completionForm.status)
+        if (completionForm.completion_notes) {
+          body.append("completion_notes", completionForm.completion_notes)
+        }
+        body.append("completion_proof", proofFile, proofFile.name)
+        await axiosInstance.put(
+          `/employee-portal/tasks/${selectedTask.id}/status`,
+          body,
+          createFormDataRequestConfig(token)
+        )
+      } else {
+        await axiosInstance.put(
+          `/employee-portal/tasks/${selectedTask.id}/status`,
+          {
+            status: completionForm.status,
+            completion_notes: completionForm.completion_notes || null,
+          },
+          { headers: { Authorization: `Bearer ${token}` } }
+        )
+      }
       toast.success("Task updated successfully!")
+      clearProofFile()
       setSelectedTask(null)
       fetchTasks()
     } catch (error: any) {
@@ -139,12 +200,17 @@ export function PortalTasks() {
   }
 
   const openTaskModal = (task: Task) => {
+    clearProofFile()
     setSelectedTask(task)
     setCompletionForm({
       status: task.status,
       completion_notes: task.completion_notes || "",
-      completion_proof: task.completion_proof || "",
     })
+  }
+
+  const closeTaskModal = () => {
+    clearProofFile()
+    setSelectedTask(null)
   }
 
   const isOverdue = (dueDate: string | null) => {
@@ -168,6 +234,12 @@ export function PortalTasks() {
 
   const overdueCount = tasks.filter((t) => isOverdue(t.due_date) && t.status !== "completed").length
 
+  // All = active work only; completed tasks live under the Completed tab
+  const listTasks =
+    filter === "all"
+      ? tasks.filter((t) => t.status !== "completed" && t.status !== "cancelled")
+      : tasks
+
   const statItems: PortalStatItem[] = [
     { key: "pending", label: "Pending", value: tasks.filter((t) => t.status === "pending").length, icon: Clock, tone: "warning" },
     { key: "in_progress", label: "In progress", value: tasks.filter((t) => t.status === "in_progress").length, icon: ClipboardList, tone: "accent" },
@@ -187,7 +259,7 @@ export function PortalTasks() {
   const detailFooter = selectedTask && (
     <>
       <button
-        onClick={() => setSelectedTask(null)}
+        onClick={closeTaskModal}
         className="h-9 px-4 rounded-lg border border-gray-300 text-sm font-medium hover:bg-gray-100 transition-colors"
       >
         Close
@@ -344,6 +416,16 @@ export function PortalTasks() {
         </div>
       )}
 
+      {isStoredProofFile(selectedTask.completion_proof) && (
+        <div className="border-t border-gray-100 pt-3">
+          <ComplaintFilePreview
+            label="Completion proof"
+            filePath={selectedTask.completion_proof!}
+            fetchUrl={`/employee-portal/tasks/${selectedTask.id}/completion-proof`}
+          />
+        </div>
+      )}
+
       {canUpdateSelected && (
         <div className="space-y-3 border-t border-gray-100 pt-3">
           <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Update task</p>
@@ -378,17 +460,40 @@ export function PortalTasks() {
               </div>
 
               <div>
-                <label className="flex items-center gap-1.5 text-xs font-medium text-gray-600">
+                <p className="flex items-center gap-1.5 text-xs font-medium text-gray-600">
                   <Image className="w-3.5 h-3.5" />
-                  Proof URL (optional)
+                  Completion proof
+                </p>
+                <label className="mt-1 flex cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-gray-300 bg-gray-50 px-3 py-4 text-center hover:bg-gray-100">
+                  {proofPreview ? (
+                    <img
+                      src={proofPreview}
+                      alt="Completion proof preview"
+                      className="mb-2 max-h-32 rounded-md object-contain"
+                    />
+                  ) : (
+                    <Image className="mb-1 h-5 w-5 text-gray-400" />
+                  )}
+                  <span className="text-xs text-gray-600">
+                    {proofFile ? proofFile.name : "Upload image (PNG, JPG, GIF, WebP)"}
+                  </span>
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/gif,image/webp"
+                    className="sr-only"
+                    aria-label="Upload completion proof"
+                    onChange={(e) => handleProofFileChange(e.target.files?.[0] || null)}
+                  />
                 </label>
-                <input
-                  type="text"
-                  value={completionForm.completion_proof}
-                  onChange={(e) => setCompletionForm({ ...completionForm, completion_proof: e.target.value })}
-                  placeholder="https://..."
-                  className="mt-1 w-full h-9 px-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-portal-accent/40 focus:border-portal-accent"
-                />
+                {proofFile && (
+                  <button
+                    type="button"
+                    onClick={clearProofFile}
+                    className="mt-1 text-xs text-gray-500 hover:text-gray-700"
+                  >
+                    Remove image
+                  </button>
+                )}
               </div>
             </>
           )}
@@ -404,14 +509,14 @@ export function PortalTasks() {
 
         <PortalSegmentedControl options={FILTER_OPTIONS} value={filter} onChange={setFilter} />
 
-        {tasks.length === 0 ? (
+        {listTasks.length === 0 ? (
           <div className="text-center py-12 bg-white rounded-xl border border-gray-100 shadow-sm">
             <ClipboardList className="w-10 h-10 text-gray-300 mx-auto mb-3" />
             <p className="text-sm text-gray-500">No tasks found</p>
           </div>
         ) : (
           <div className="rounded-xl border border-gray-100 bg-white shadow-sm divide-y divide-gray-100 overflow-hidden">
-            {tasks.map((task) => {
+            {listTasks.map((task) => {
               const avatar = portalStatusAvatar(task.status)
               const overdue = isOverdue(task.due_date) && task.status !== "completed"
               const isSelected = selectedTask?.id === task.id
@@ -437,10 +542,10 @@ export function PortalTasks() {
                       </p>
                       <span
                         className={`shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-medium ${
-                          priorityConfig[task.priority] || priorityConfig.medium
+                          statusListClass[task.status] || statusListClass.pending
                         }`}
                       >
-                        {task.priority}
+                        {portalStatusLabel(task.status)}
                       </span>
                       {task.is_assignee && (
                         <span className="shrink-0 rounded-full bg-electric-blue/10 px-1.5 py-0.5 text-[10px] font-medium text-electric-blue">
@@ -502,7 +607,7 @@ export function PortalTasks() {
 
       <PortalSheet
         open={!!selectedTask}
-        onClose={() => setSelectedTask(null)}
+        onClose={closeTaskModal}
         title={detailTitle}
         subtitle={detailSubtitle}
         footer={detailFooter}

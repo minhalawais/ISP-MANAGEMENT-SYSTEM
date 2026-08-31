@@ -3,10 +3,10 @@ import { motion } from "framer-motion"
 import { DEFAULT_INSTALLATION_IMAGE } from "../fallbackContent.ts"
 
 const STEPS = [
-  { title: "Check your location", description: "Choose your area and share the exact street or society." },
-  { title: "Review available plans", description: "Compare the packages and charges available at that location." },
-  { title: "Confirm the installation", description: "The team confirms wiring, equipment, timing and any one-time cost." },
-  { title: "Get connected", description: "A technician installs and tests the connection before handover." },
+  { title: "Check availability", description: "Share your area and exact address for a coverage check." },
+  { title: "Review available packages", description: "Compare the packages offered at that location." },
+  { title: "Confirm the requirements", description: "Confirm applicable charges, equipment and installation requirements." },
+  { title: "Schedule your connection", description: "Arrange a suitable connection date with the service team." },
 ]
 
 const ProcessRail: React.FC = () => (
@@ -34,7 +34,7 @@ const ProcessRail: React.FC = () => (
         </div>
       </div>
       <div className="relative aspect-[4/3] overflow-hidden rounded-lg bg-[#dfe8e4]">
-        <img src={DEFAULT_INSTALLATION_IMAGE} alt="A local technician testing a home fiber connection" className="h-full w-full object-cover" loading="lazy" />
+        <img src={DEFAULT_INSTALLATION_IMAGE} alt="Internet connection equipment being prepared for installation" className="h-full w-full object-cover" loading="lazy" />
       </div>
     </div>
   </section>

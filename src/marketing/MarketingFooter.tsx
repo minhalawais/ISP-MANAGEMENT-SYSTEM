@@ -4,6 +4,7 @@ import { Facebook, Instagram, Mail, MapPin, MessageCircle, Phone } from "lucide-
 import { useMarketingSite } from "./context/MarketingSiteContext.tsx"
 import { buildMailtoLink, buildTelLink, buildWhatsAppLink } from "./utils.ts"
 import { getAssetUrl } from "../utils/auth.ts"
+import { defaultFooterTagline } from "./fallbackContent.ts"
 
 const MarketingFooter: React.FC = () => {
   const site = useMarketingSite()
@@ -13,10 +14,11 @@ const MarketingFooter: React.FC = () => {
   const mailtoLink = buildMailtoLink(site.email)
   const year = new Date().getFullYear()
   const logoSrc = getAssetUrl(site.logo_url)
+  const hasBusinessPlans = site.plans.some((plan) => plan.customer_type === "business")
   const footerLinks = [
     { to: "/plans", label: "Packages" },
     { to: "/coverage", label: "Coverage" },
-    ...(site.website_content?.about_text?.trim() || site.website_content?.established_year ? [{ to: "/about", label: "About" }] : []),
+    { to: "/about", label: "About" },
     { to: "/faq", label: "FAQ" },
     { to: "/contact", label: "Contact" },
   ]
@@ -36,7 +38,7 @@ const MarketingFooter: React.FC = () => {
             <span className="mk-display text-[15px] font-semibold">{site.name}</span>
           </div>
           <p className="text-sm text-[var(--mk-ink-dim)] max-w-sm leading-relaxed">
-            {site.tagline || "Reliable internet service for homes and businesses."}
+            {site.tagline || defaultFooterTagline(site.name, hasBusinessPlans)}
           </p>
           <div className="flex items-center gap-3 mt-4">
             {socials.facebook && (

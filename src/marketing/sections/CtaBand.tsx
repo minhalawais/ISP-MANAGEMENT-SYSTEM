@@ -1,5 +1,6 @@
 import React from "react"
 import { ArrowRight } from "lucide-react"
+import { Link } from "react-router-dom"
 import { useMarketingSite } from "../context/MarketingSiteContext.tsx"
 import { buildWhatsAppLink } from "../utils.ts"
 
@@ -28,6 +29,12 @@ const CtaBand: React.FC = () => {
             Start on WhatsApp
             <ArrowRight className="h-4 w-4" />
           </a>
+        )}
+        {!whatsappLink && (site.contact_number || site.email) && (
+          <Link to="/contact" className="h-11 px-6 inline-flex items-center gap-2 rounded-md bg-white text-[var(--mk-ink)] text-sm font-semibold hover:bg-[#7ff0ae] transition-colors self-start sm:self-auto">
+            Contact the team
+            <ArrowRight className="h-4 w-4" />
+          </Link>
         )}
       </div>
     </section>

@@ -51,7 +51,8 @@ const TONE_STYLES: Record<
   },
 }
 
-const MOBILE_COLS: Record<2 | 3, string> = {
+const MOBILE_COLS: Record<1 | 2 | 3, string> = {
+  1: "grid-cols-1",
   2: "grid-cols-2",
   3: "grid-cols-3",
 }
@@ -65,7 +66,7 @@ const DESKTOP_COLS: Record<2 | 3 | 4 | 6, string> = {
 
 interface PortalStatStripProps {
   items: PortalStatItem[]
-  columnsMobile?: 2 | 3
+  columnsMobile?: 1 | 2 | 3
   columnsDesktop?: 2 | 3 | 4 | 6
   className?: string
 }

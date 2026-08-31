@@ -23,7 +23,11 @@ const ContactPage: React.FC = () => {
 
   return (
     <>
-      <PageHeader eyebrow="Contact" title="Talk to our local team" description="Share your area and question, then continue the conversation on WhatsApp." />
+      <PageHeader
+        eyebrow="Contact"
+        title="Talk to our service team"
+        description={whatsappLink ? "Share your area and question, then continue the conversation on WhatsApp." : "Share your area and question, then continue through the available contact channel."}
+      />
       <section className="bg-[var(--mk-canvas)]">
         <div className="mk-shell px-5 sm:px-8 py-16 sm:py-20 grid grid-cols-1 lg:grid-cols-3 gap-10">
           <div className="lg:col-span-2">
@@ -47,10 +51,14 @@ const ContactPage: React.FC = () => {
               </div>
               <div>
                 <label className="block text-sm font-medium text-[var(--mk-ink)] mb-1.5">Area</label>
-                <select value={area} onChange={(e) => setArea(e.target.value)} className="w-full h-11 px-4 rounded-md border border-[var(--mk-hairline-strong)] bg-[var(--mk-canvas)] text-sm focus:outline-none focus:border-[var(--mk-accent)]">
-                  <option value="">Select your area</option>
-                  {site.areas.map((item) => <option key={item} value={item}>{item}</option>)}
-                </select>
+                {site.areas.length > 0 ? (
+                  <select value={area} onChange={(e) => setArea(e.target.value)} className="w-full h-11 px-4 rounded-md border border-[var(--mk-hairline-strong)] bg-[var(--mk-canvas)] text-sm focus:outline-none focus:border-[var(--mk-accent)]">
+                    <option value="">Select your area</option>
+                    {site.areas.map((item) => <option key={item} value={item}>{item}</option>)}
+                  </select>
+                ) : (
+                  <input type="text" value={area} onChange={(e) => setArea(e.target.value)} placeholder="Your area or locality" className="w-full h-11 px-4 rounded-md border border-[var(--mk-hairline-strong)] bg-[var(--mk-canvas)] text-sm focus:outline-none focus:border-[var(--mk-accent)]" />
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-[var(--mk-ink)] mb-1.5">Message</label>

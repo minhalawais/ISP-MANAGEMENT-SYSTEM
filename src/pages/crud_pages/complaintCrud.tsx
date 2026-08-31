@@ -1,14 +1,17 @@
 "use client"
 
 import type React from "react"
-import { useMemo, useEffect, useState } from "react"
+import { useMemo, useEffect, useState, useCallback } from "react"
 import type { ColumnDef } from "@tanstack/react-table"
-import { Clock, MessageSquare, CheckCircle2, XCircle } from "lucide-react"
+import { Clock, MessageSquare, CheckCircle2, XCircle, RefreshCw } from "lucide-react"
 import { CRUDPage } from "../../components/complaintCrudPage.tsx"
 import { ComplaintForm } from "../../components/forms/complaintForm.tsx"
 import { ComplaintViewModal } from "../../components/modals/ComplaintViewModal.tsx"
 import { useNavigate } from "react-router-dom"
 import { useCompany } from "../../context/CompanyContext.tsx"
+import { getToken } from "../../utils/auth.ts"
+import axiosInstance from "../../utils/axiosConfig.ts"
+import { toast } from "../../utils/notify.ts"
 
 interface Complaint {
   id: string
@@ -48,10 +51,47 @@ const ComplaintManagement: React.FC = () => {
   const navigate = useNavigate()
   const { setPageTitle } = useCompany()
   const [viewComplaintId, setViewComplaintId] = useState<string | null>(null)
+  const [collections, setCollections] = useState<any[]>([])
+  const [collectionsLoading, setCollectionsLoading] = useState(false)
+  const [refreshKey, setRefreshKey] = useState(0)
 
   useEffect(() => {
     setPageTitle("Complaint Management")
   }, [setPageTitle])
+
+  const loadCollections = useCallback(async () => {
+    setCollectionsLoading(true)
+    try {
+      const token = getToken()
+      const res = await axiosInstance.get("/complaints/collections?pending=true", {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      setCollections(Array.isArray(res.data) ? res.data : [])
+    } catch {
+      setCollections([])
+    } finally {
+      setCollectionsLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    loadCollections()
+  }, [loadCollections, refreshKey])
+
+  const settleCollection = async (paymentId: string) => {
+    try {
+      const token = getToken()
+      await axiosInstance.post(
+        `/payments/${paymentId}/settle-complaint-cash`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      )
+      toast.success("Collection settled")
+      loadCollections()
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || "Settle failed")
+    }
+  }
 
   const columns = useMemo<ColumnDef<Complaint>[]>(
     () => [
@@ -158,16 +198,76 @@ const ComplaintManagement: React.FC = () => {
   }
 
   return (
-    <>
+    <div className="relative">
       <CRUDPage<Complaint>
+        key={refreshKey}
         title="Complaint"
         endpoint="complaints"
         columns={columns}
         FormComponent={ComplaintForm}
         onAddNew={handleAddNew}
       />
-      <ComplaintViewModal complaintId={viewComplaintId} onClose={() => setViewComplaintId(null)} />
-    </>
+      <ComplaintViewModal
+        complaintId={viewComplaintId}
+        onClose={() => setViewComplaintId(null)}
+        onResolved={() => setRefreshKey((k) => k + 1)}
+      />
+
+      <div className="fixed bottom-4 right-4 z-40 w-full max-w-lg max-h-[40vh] overflow-hidden bg-white border border-slate-200 rounded-xl shadow-lg flex flex-col">
+        <div className="flex items-center justify-between px-4 py-2.5 border-b border-slate-100 bg-slate-50">
+          <h2 className="text-sm font-semibold text-deep-ocean">Complaint cash collections</h2>
+          <button
+            type="button"
+            onClick={loadCollections}
+            className="h-8 w-8 inline-flex items-center justify-center rounded-md border border-slate-200"
+            title="Refresh"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${collectionsLoading ? "animate-spin" : ""}`} />
+          </button>
+        </div>
+        <div className="overflow-y-auto flex-1 text-sm">
+          {collectionsLoading && collections.length === 0 ? (
+            <p className="p-4 text-slate-500 text-xs">Loading…</p>
+          ) : collections.length === 0 ? (
+            <p className="p-4 text-slate-500 text-xs">No pending complaint collections</p>
+          ) : (
+            <table className="min-w-full">
+              <thead className="bg-white sticky top-0 text-xs text-slate-500">
+                <tr>
+                  <th className="text-left px-3 py-2 font-medium">Ticket</th>
+                  <th className="text-left px-3 py-2 font-medium">Employee</th>
+                  <th className="text-right px-3 py-2 font-medium">Amount</th>
+                  <th className="px-3 py-2" />
+                </tr>
+              </thead>
+              <tbody>
+                {collections.map((c) => (
+                  <tr key={c.id} className="border-t border-slate-100">
+                    <td className="px-3 py-2 text-xs">
+                      {c.ticket_number || "—"}
+                      <div className="text-slate-400">{c.invoice_number}</div>
+                    </td>
+                    <td className="px-3 py-2 text-xs">{c.received_by_name || "—"}</td>
+                    <td className="px-3 py-2 text-xs text-right tabular-nums">
+                      Rs {Number(c.amount || 0).toLocaleString()}
+                    </td>
+                    <td className="px-3 py-2 text-right">
+                      <button
+                        type="button"
+                        onClick={() => settleCollection(c.payment_id || c.id)}
+                        className="h-8 px-2 text-xs rounded-md bg-electric-blue text-white"
+                      >
+                        Settle
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
+    </div>
   )
 }
 

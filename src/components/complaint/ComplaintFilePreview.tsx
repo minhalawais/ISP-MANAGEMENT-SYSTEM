@@ -1,8 +1,9 @@
 "use client"
 
 import { useState } from "react"
+import type { AxiosInstance } from "axios"
 import { Paperclip } from "lucide-react"
-import { toast } from "../../utils/notify.ts";
+import { toast } from "../../utils/notify.ts"
 import axiosInstance from "../../utils/axiosConfig.ts"
 import { useAuthenticatedBlobUrl } from "../../hooks/useAuthenticatedBlobUrl.ts"
 import { isComplaintImageFile } from "../../utils/customerPortalComplaint.ts"
@@ -11,8 +12,15 @@ function fileNameFromPath(path: string) {
   return path.split(/[\\/]/).pop() || "file"
 }
 
-async function openBlobFromUrl(fetchUrl: string, downloadName: string) {
-  const response = await axiosInstance.get(fetchUrl, { responseType: "blob" })
+async function openBlobFromUrl(
+  fetchUrl: string,
+  downloadName: string,
+  client: AxiosInstance
+) {
+  const response = await client.get(fetchUrl, {
+    responseType: "blob",
+    skipErrorToast: true,
+  } as any)
   const url = window.URL.createObjectURL(response.data)
   const link = document.createElement("a")
   link.href = url
@@ -30,14 +38,19 @@ export function ComplaintFilePreview({
   filePath,
   fetchUrl,
   actionClassName = "text-sky-700",
+  client = axiosInstance,
 }: {
   label: string
   filePath: string
   fetchUrl: string
   actionClassName?: string
+  client?: AxiosInstance
 }) {
   const isImage = isComplaintImageFile(filePath)
-  const { objectUrl, loading, error } = useAuthenticatedBlobUrl(isImage ? fetchUrl : null)
+  const { objectUrl, loading, error } = useAuthenticatedBlobUrl(
+    isImage ? fetchUrl : null,
+    client
+  )
   const [downloading, setDownloading] = useState(false)
   const downloadName = fileNameFromPath(filePath)
 
@@ -55,7 +68,7 @@ export function ComplaintFilePreview({
         document.body.removeChild(link)
         return
       }
-      await openBlobFromUrl(fetchUrl, downloadName)
+      await openBlobFromUrl(fetchUrl, downloadName, client)
     } catch {
       toast.error("Failed to download file")
     } finally {

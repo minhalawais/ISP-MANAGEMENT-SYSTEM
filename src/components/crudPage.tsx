@@ -46,12 +46,15 @@ interface CRUDPageProps<T> {
     formData: Partial<T>
     handleInputChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => void
     handleFileChange?: (name: string, file: File | null) => void
+    setFormField?: (name: string, value: unknown) => void
     isEditing: boolean
     validateBeforeSubmit?: (formData: Partial<T>) => string | null
     onValidationStateChange?: (state: AsyncValidationState) => void
   }>
   onDataChange?: () => void
   validateBeforeSubmit?: (formData: Partial<T>) => string | null
+  /** Return true if create was handled (skip default POST /endpoint/add). */
+  onCreateSubmit?: (formData: Partial<T>) => Promise<boolean>
   validateFiles?: (files: Record<string, File>) => string | null
   requireAsyncValidation?: boolean
   useFormData?: boolean  // Enable multipart/form-data for file uploads
@@ -73,6 +76,7 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
   FormComponent,
   onDataChange,
   validateBeforeSubmit,
+  onCreateSubmit,
   validateFiles,
   requireAsyncValidation = false,
   useFormData = false,
@@ -317,6 +321,16 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
       if (editingItem) {
         response = await axiosInstance.put(`/${endpoint}/update/${editingItem.id}`, submitData, requestConfig)
         toast.success(`${title} updated successfully`)
+      } else if (onCreateSubmit) {
+        const handled = await onCreateSubmit(formData)
+        if (!handled) {
+          response = await axiosInstance.post(`/${endpoint}/add`, submitData, requestConfig)
+          toast.success(`${title} added successfully`)
+          if (response.data.credentials) {
+            setNewEmployeeCredentials(response.data.credentials)
+            setShowCredentialsModal(true)
+          }
+        }
       } else {
         response = await axiosInstance.post(`/${endpoint}/add`, submitData, requestConfig)
         toast.success(`${title} added successfully`)
@@ -358,6 +372,10 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
+    setFormData((prev) => ({ ...prev, [name]: value }))
+  }
+
+  const setFormField = (name: string, value: unknown) => {
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
@@ -548,6 +566,7 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
             formData={formData}
             handleInputChange={handleInputChange}
             handleFileChange={handleFileChange}
+            setFormField={setFormField}
             isEditing={!!editingItem}
             onValidationStateChange={setAsyncValidation}
           />

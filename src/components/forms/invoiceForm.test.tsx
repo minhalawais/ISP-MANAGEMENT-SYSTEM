@@ -124,6 +124,7 @@ describe("InvoiceForm multiline builder", () => {
               internet_id: "t1",
               service_plan_price: 3500,
               discount_amount: 150,
+              installation_date: "2024-03-05",
               packages: [
                 {
                   id: "pkg-1",
@@ -261,8 +262,8 @@ describe("InvoiceForm multiline builder", () => {
     await waitFor(() => {
       const dueCalls = handleInputChange.mock.calls.filter((c) => c[0]?.target?.name === "due_date")
       expect(dueCalls.length).toBeGreaterThan(0)
-      // March ends on 31st; due = end + 5 days → April 5
-      expect(dueCalls[dueCalls.length - 1][0].target.value).toBe(`${year}-04-05`)
+      // No customer selected -> fallback to the 5th of the billing month.
+      expect(dueCalls[dueCalls.length - 1][0].target.value).toBe(`${year}-03-05`)
 
       const linesCalls = handleInputChange.mock.calls.filter((c) => c[0]?.target?.name === "lines")
       expect(linesCalls.length).toBeGreaterThan(0)

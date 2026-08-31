@@ -21,16 +21,20 @@ import { MODAL_CANCEL_BTN, MODAL_FOOTER, MODAL_PRIMARY_BTN } from "./ui/modalSty
 import { Topbar } from "./topNavbar.tsx"
 import { useOptionalAdminChrome } from "../context/AdminLayoutContext.tsx"
 import { Sidebar } from "./sideNavbar.tsx"
-import { getToken } from "../utils/auth.ts"
+import { getToken, getRole } from "../utils/auth.ts"
 import { toast } from "../utils/notify.ts";
 import axiosInstance from "../utils/axiosConfig.ts"
+import { formatCompactPkr } from "../utils/formatCompactPkr.ts"
 import { CRUD_FILTER_CONFIGS } from "../config/crudFilterConfigs.ts"
 import { useCrudTableFilters } from "../hooks/useCrudTableFilters.ts"
 import { useCrudPeriodFilter } from "../hooks/useCrudPeriodFilter.ts"
 import { getCrudPeriodConfig } from "../config/crudPeriodConfigs.ts"
 import { CrudStatsSection } from "./crud/CrudStatsSection.tsx"
+import { ConfirmBulkDeleteModal } from "./modals/ConfirmBulkDeleteModal.tsx"
 import { periodQueryParamsForTextSearch } from "../utils/crudPeriodUtils.ts"
 import type { StatCardDef } from "../types/crudFilters.ts"
+
+const BULK_DELETE_ROLES = new Set(["super_admin", "company_owner", "manager"])
 
 interface CRUDPageProps<T> {
   title: string
@@ -47,7 +51,17 @@ interface CRUDPageProps<T> {
   refreshTrigger?: number
 }
 
-type Summary = { total: number; active: number; pending: number; totalAmount: number }
+type Summary = {
+  total: number
+  active: number
+  pending: number
+  totalAmount: number
+  activeAmount: number
+  pendingAmount: number
+  totalInvoices: number
+  activeInvoices: number
+  pendingInvoices: number
+}
 
 export function CRUDPage<T extends { id: string; is_active?: boolean }>({
   title,
@@ -66,6 +80,8 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [selectedRows, setSelectedRows] = useState<string[]>([])
   const [isLoading, setIsLoading] = useState(false)
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false)
+  const canBulkDelete = BULK_DELETE_ROLES.has(getRole() || "")
 
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 20 })
   const [pageCount, setPageCount] = useState<number>(0)
@@ -73,7 +89,17 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
     { id: "created_at", desc: true },
   ])
   const [globalSearch, setGlobalSearch] = useState("")
-  const [stats, setStats] = useState<Summary>({ total: 0, active: 0, pending: 0, totalAmount: 0 })
+  const [stats, setStats] = useState<Summary>({
+    total: 0,
+    active: 0,
+    pending: 0,
+    totalAmount: 0,
+    activeAmount: 0,
+    pendingAmount: 0,
+    totalInvoices: 0,
+    activeInvoices: 0,
+    pendingInvoices: 0,
+  })
 
   const filterConfig = CRUD_FILTER_CONFIGS.payment
   const periodConfig = getCrudPeriodConfig("payment")
@@ -89,10 +115,27 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
   const statCards: StatCardDef[] = useMemo(
     () =>
       filterConfig.statCards.map((card) => {
-        if (card.id === "total") return { ...card, value: stats.total }
-        if (card.id === "active") return { ...card, value: stats.active }
-        if (card.id === "pending") return { ...card, value: stats.pending }
-        if (card.id === "amount") return { ...card, value: `PKR ${stats.totalAmount.toLocaleString()}`, clickable: false }
+        if (card.id === "total") {
+          return {
+            ...card,
+            value: stats.total,
+            subValue: formatCompactPkr(stats.totalAmount),
+          }
+        }
+        if (card.id === "active") {
+          return {
+            ...card,
+            value: stats.active,
+            subValue: formatCompactPkr(stats.activeAmount),
+          }
+        }
+        if (card.id === "pending") {
+          return {
+            ...card,
+            value: stats.pending,
+            subValue: formatCompactPkr(stats.pendingAmount),
+          }
+        }
         return { ...card, value: 0 }
       }),
     [filterConfig.statCards, stats],
@@ -105,12 +148,17 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
         headers: { Authorization: `Bearer ${token}` },
         params: periodFilter.queryParams,
       })
-      const s = res.data as Summary
+      const s = res.data as Partial<Summary>
       setStats({
         total: s.total || 0,
         active: s.active || 0,
         pending: s.pending || 0,
         totalAmount: s.totalAmount || 0,
+        activeAmount: s.activeAmount || 0,
+        pendingAmount: s.pendingAmount || 0,
+        totalInvoices: s.totalInvoices || 0,
+        activeInvoices: s.activeInvoices || 0,
+        pendingInvoices: s.pendingInvoices || 0,
       })
     } catch (e) {
       // Fallback silently; don't block page
@@ -206,6 +254,38 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
     } catch (error) {
       console.error(`Failed to update ${title} status`, error)
       toast.error(`Failed to update ${title} status`)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleBulkDelete = async () => {
+    if (selectedRows.length === 0 || !canBulkDelete) return
+    try {
+      setIsLoading(true)
+      const token = getToken()
+      const res = await axiosInstance.post(
+        `/${endpoint}/bulk-delete`,
+        { ids: selectedRows },
+        { headers: { Authorization: `Bearer ${token}` } },
+      )
+      const body = res.data || {}
+      const deleted = body.total_deleted ?? 0
+      const failed = body.total_failed ?? 0
+      if (failed > 0 && deleted > 0) {
+        toast.success(`Deleted ${deleted} of ${deleted + failed}. ${failed} failed.`)
+      } else if (failed > 0) {
+        toast.error(`Failed to delete ${failed} ${title.toLowerCase()}(s)`)
+      } else {
+        toast.success(`${deleted} ${title.toLowerCase()}${deleted === 1 ? "" : "s"} deleted`)
+      }
+      setBulkDeleteOpen(false)
+      setSelectedRows([])
+      await fetchPage()
+      await fetchSummary()
+    } catch (error: any) {
+      console.error("Bulk delete failed", error)
+      toast.error(error?.response?.data?.message || `Failed to delete ${title.toLowerCase()}s`)
     } finally {
       setIsLoading(false)
     }
@@ -479,7 +559,7 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
               {selectedRows.length > 0 && (
                 <div className="bg-electric-blue/5 border border-electric-blue/20 rounded-lg p-3 mb-3 flex flex-wrap items-center justify-between gap-3">
                   <div className="flex items-center gap-2">
-                    <span className="text-deep-ocean font-medium">
+                    <span className="text-sm text-deep-ocean font-medium">
                       {selectedRows.length} {title.toLowerCase()}
                       {selectedRows.length > 1 ? "s" : ""} selected
                     </span>
@@ -488,17 +568,28 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
                     <button
                       onClick={() => handleBulkStatusChange(true)}
                       disabled={selectedRows.length === 0 || isLoading}
-                      className="px-4 py-2 text-sm font-medium bg-emerald-green text-white rounded-md hover:bg-emerald-green/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-green disabled:opacity-50 transition-colors flex items-center gap-1.5"
+                      className="h-9 px-3 text-sm font-medium bg-emerald-green text-white rounded-md hover:bg-emerald-green/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-green disabled:opacity-50 transition-colors flex items-center gap-1.5"
                     >
                       <CheckCircle2 className="h-4 w-4" /> Activate
                     </button>
                     <button
                       onClick={() => handleBulkStatusChange(false)}
                       disabled={selectedRows.length === 0 || isLoading}
-                      className="px-4 py-2 text-sm font-medium bg-coral-red text-white rounded-md hover:bg-coral-red/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-coral-red disabled:opacity-50 transition-colors flex items-center gap-1.5"
+                      className="h-9 px-3 text-sm font-medium bg-slate-gray text-white rounded-md hover:bg-slate-gray/80 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-gray disabled:opacity-50 transition-colors flex items-center gap-1.5"
                     >
                       <XCircle className="h-4 w-4" /> Deactivate
                     </button>
+                    {canBulkDelete && (
+                      <button
+                        type="button"
+                        onClick={() => setBulkDeleteOpen(true)}
+                        disabled={selectedRows.length === 0 || isLoading}
+                        className="h-9 px-3 text-sm font-medium bg-coral-red text-white rounded-md hover:bg-coral-red/90 disabled:opacity-50 transition-colors inline-flex items-center gap-1.5"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        Delete ({selectedRows.length})
+                      </button>
+                    )}
                   </div>
                 </div>
               )}
@@ -597,6 +688,16 @@ export function CRUDPage<T extends { id: string; is_active?: boolean }>({
           </div>
         </form>
       </Modal>
+
+      <ConfirmBulkDeleteModal
+        isVisible={bulkDeleteOpen}
+        onClose={() => setBulkDeleteOpen(false)}
+        onConfirm={handleBulkDelete}
+        count={selectedRows.length}
+        entityLabel={title.toLowerCase()}
+        warning="Deleting payments updates linked invoice status and may reverse bank balances for paid bank transfers."
+        isLoading={isLoading}
+      />
     </div>
   )
 }

@@ -1,0 +1,13 @@
+---
+description: Store SQL DB migrations under scripts/migrations
+alwaysApply: true
+---
+
+# Database migrations location
+
+- Put **all new** dated SQL migrations in `scripts/migrations/`.
+- Do **not** add `YYYY-MM-DD_*.sql` files to `scripts/` root.
+- Naming: `YYYY-MM-DD_short_snake_description.sql`
+- Prefer idempotent SQL (`IF NOT EXISTS` / safe re-runs).
+- Keep non-migration utilities (`migrate-toasts.js`, etc.) in `scripts/` root.
+- See `scripts/migrations/README.md`.

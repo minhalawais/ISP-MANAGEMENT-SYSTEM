@@ -45,6 +45,13 @@ axiosInstance.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`;
     }
 
+    // Browser address-bar host (vendor domains). Needed when API lives on a
+    // different host (e.g. nexus.mbanet.com.pk) so login/host allowlist can
+    // resolve the real site. Prefer X-Forwarded-Host when nginx same-origin.
+    if (typeof window !== "undefined" && window.location?.hostname) {
+      config.headers["X-Site-Host"] = window.location.hostname;
+    }
+
     if (typeof FormData !== "undefined" && config.data instanceof FormData) {
       if (typeof config.headers?.delete === "function") {
         config.headers.delete("Content-Type");
@@ -80,6 +87,12 @@ axiosInstance.interceptors.response.use(
     const originalRequest = error.config;
 
     if (error.response?.status === 401 && !originalRequest._retry) {
+      const reqUrl = String(originalRequest?.url || "")
+      // Failed login/refresh must not trigger "Session expired" redirect noise
+      if (reqUrl.includes("/auth/login") || reqUrl.includes("auth/login")) {
+        return Promise.reject(error)
+      }
+
       if (isRefreshing) {
         // Add request to queue
         return new Promise((resolve, reject) => {
@@ -155,12 +168,20 @@ const handleUnauthorized = () => {
 
 // Helper function for error handling
 const handleError = (error: any) => {
-  const { response } = error;
+  const { response, config } = error;
 
   if (response?.status === 403) {
     toast.error(formatApiError(error, "You don't have permission to perform this action."));
   } else if (response?.status === 404) {
-    toast.error(formatApiError(error, "The requested resource was not found."));
+    // Optional media/docs often 404 when the DB path exists but the file is gone —
+    // don't spam the page with "resource was not found" toasts.
+    const url = String(config?.url || "");
+    const isOptionalMedia =
+      config?.responseType === "blob" ||
+      /\/(cnic-[\w-]*image|[\w-]*-proof|attachment|favicon|uploads\/)/i.test(url);
+    if (!isOptionalMedia) {
+      toast.error(formatApiError(error, "The requested resource was not found."));
+    }
   } else if (response?.status === 429) {
     toast.error(formatApiError(error, "Too many requests. Please try again later."));
   } else if (response?.status >= 500) {

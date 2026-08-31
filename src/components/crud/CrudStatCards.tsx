@@ -87,6 +87,11 @@ export function CrudStatCards({ cards, activeStatId, onStatClick }: CrudStatCard
               <div>
                 <p className="text-slate-gray text-xs">{card.label}</p>
                 <h3 className={`text-xl font-bold mt-0.5 ${styles.value}`}>{card.value}</h3>
+                {card.subValue ? (
+                  <p className={`text-xs font-medium mt-0.5 tabular-nums ${styles.value} opacity-80`}>
+                    {card.subValue}
+                  </p>
+                ) : null}
               </div>
               <div className={`${styles.iconBg} p-2 rounded-full`}>
                 <card.icon className={`h-4 w-4 ${styles.icon}`} />

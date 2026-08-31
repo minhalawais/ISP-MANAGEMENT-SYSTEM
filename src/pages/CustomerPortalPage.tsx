@@ -12,7 +12,6 @@ import {
   getCustomerPortalPendingPassword,
   clearCustomerPortalPendingPassword,
 } from "../utils/customerPortalAuth.ts"
-import { DomainLoginLogo } from "../components/DomainLoginLogo.tsx"
 import {
   validatePortalComplaintDescription,
   validatePortalComplaintCategory,
@@ -21,38 +20,31 @@ import {
   getComplaintCategoryLabel,
 } from "../utils/customerPortalComplaint.ts"
 import {
-  User,
   CreditCard,
   FileText,
-  Phone,
-  Mail,
-  MapPin,
-  Wifi,
-  Calendar,
   AlertCircle,
   DollarSign,
   Package,
-  Shield,
-  Globe,
-  IdCard,
-  LogOut,
+  Calendar,
   CheckCircle,
-  Clock,
-  XCircle,
   ExternalLink,
   X,
   Image,
   Receipt,
   Building,
   Hash,
-  Lock,
-  Eye,
-  EyeOff,
-  LogIn,
-  Plus,
   Paperclip,
   Send,
+  User,
+  ChevronRight,
 } from "lucide-react"
+import { CustomerPortalProfileSection } from "../components/CustomerPortalProfileSection.tsx"
+import { CustomerPortalShell } from "../components/customer-portal/CustomerPortalShell.tsx"
+import { CustomerPortalAuthCard } from "../components/customer-portal/CustomerPortalAuthCard.tsx"
+import { CustomerPortalComplaintDetailModal } from "../components/customer-portal/CustomerPortalComplaintDetailModal.tsx"
+import { PortalStatStrip, type PortalStatItem } from "../components/employee-portal/shared/PortalStatStrip.tsx"
+import { PortalStatusPill } from "../components/employee-portal/shared/PortalStatusPill.tsx"
+import { CustomerPortalTabs } from "../components/customer-portal/CustomerPortalTabs.tsx"
 
 interface CustomerData {
   customer: {
@@ -64,6 +56,7 @@ interface CustomerData {
     phone_2: string | null
     cnic: string
     installation_address: string
+    gps_coordinates?: string | null
     area: string | null
     sub_zone: string | null
     isp: string | null
@@ -124,20 +117,14 @@ interface CustomerData {
   }
 }
 
-type Payment = CustomerData['payments'][0]
+type Payment = CustomerData["payments"][0]
 
-const statusConfig: Record<string, { bg: string; text: string; icon: React.ElementType }> = {
-  paid: { bg: "bg-emerald-50", text: "text-emerald-700", icon: CheckCircle },
-  pending: { bg: "bg-amber-50", text: "text-amber-700", icon: Clock },
-  overdue: { bg: "bg-red-50", text: "text-red-700", icon: XCircle },
-  draft: { bg: "bg-gray-100", text: "text-gray-600", icon: Clock },
-  verified: { bg: "bg-emerald-50", text: "text-emerald-700", icon: CheckCircle },
-  open: { bg: "bg-red-50", text: "text-red-700", icon: AlertCircle },
-  in_progress: { bg: "bg-blue-50", text: "text-blue-700", icon: Clock },
-  resolved: { bg: "bg-emerald-50", text: "text-emerald-700", icon: CheckCircle },
-  closed: { bg: "bg-gray-100", text: "text-gray-600", icon: CheckCircle },
-  failed: { bg: "bg-red-50", text: "text-red-700", icon: XCircle },
-}
+const TAB_OPTIONS = [
+  { value: "overview", label: "Overview", icon: User },
+  { value: "invoices", label: "Invoices", icon: FileText },
+  { value: "payments", label: "Payments", icon: CreditCard },
+  { value: "complaints", label: "Complaints", icon: AlertCircle },
+]
 
 export default function CustomerPortalPage() {
   const [cnic, setCnic] = useState("")
@@ -154,6 +141,7 @@ export default function CustomerPortalPage() {
   const [activeTab, setActiveTab] = useState<string>("overview")
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null)
   const [showComplaintModal, setShowComplaintModal] = useState(false)
+  const [viewComplaintId, setViewComplaintId] = useState<string | null>(null)
   const [complaintDescription, setComplaintDescription] = useState("")
   const [complaintCategory, setComplaintCategory] = useState("")
   const [complaintFile, setComplaintFile] = useState<File | null>(null)
@@ -287,7 +275,7 @@ export default function CustomerPortalPage() {
   }
 
   const handleViewInvoice = (invoiceId: string) => {
-    window.open(`/public/invoice/${invoiceId}`, '_blank')
+    window.open(`/public/invoice/${invoiceId}`, "_blank")
   }
 
   const openComplaintModal = () => {
@@ -352,658 +340,325 @@ export default function CustomerPortalPage() {
     }
   }
 
-  // Auth screens (login or forced password change)
   if (!data) {
     if (initializing) {
       return (
-        <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#F1F0E8' }}>
-          <div className="w-8 h-8 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
+        <div className="flex min-h-screen items-center justify-center bg-[#F4F7FA]">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-300 border-t-portal-primary" />
         </div>
       )
     }
 
-    const isChangePassword = mustChangePassword
-
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#F1F0E8' }}>
-        <div className="max-w-md w-full mx-4">
-          <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
-            <div className="px-8 pt-8 pb-6 text-center" style={{ backgroundColor: '#89A8B2' }}>
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-white/20 rounded-2xl mb-4">
-                {isChangePassword ? <Lock className="w-8 h-8 text-white" /> : <User className="w-8 h-8 text-white" />}
-              </div>
-              <h1 className="text-2xl font-bold text-white">Customer Portal</h1>
-              <p className="text-white/80 text-sm mt-1">
-                {isChangePassword ? "Set a new password to continue" : "Sign in to view your account"}
-              </p>
-            </div>
-
-            <div className="p-8">
-              <form onSubmit={isChangePassword ? handleSetPassword : handleSubmit} className="space-y-5">
-                {!isChangePassword && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">CNIC Number</label>
-                    <div className="relative">
-                      <IdCard className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                      <input
-                        type="text"
-                        value={cnic}
-                        onChange={(e) => setCnic(formatCnic(e.target.value))}
-                        className="w-full pl-11 pr-4 py-3 border border-gray-200 rounded-xl text-base font-mono tracking-wider focus:outline-none focus:ring-2 focus:border-transparent transition-all"
-                        style={{ '--tw-ring-color': '#89A8B2' } as React.CSSProperties}
-                        placeholder="0000000000000"
-                        maxLength={13}
-                      />
-                    </div>
-                    <p className="text-xs text-gray-500 mt-2 text-right">{cnic.length}/13 digits</p>
-                  </div>
-                )}
-
-                {!isChangePassword && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                      <input
-                        type={showPassword ? "text" : "password"}
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        className="w-full pl-11 pr-11 py-3 border border-gray-200 rounded-xl text-base focus:outline-none focus:ring-2 focus:border-transparent transition-all"
-                        style={{ '--tw-ring-color': '#89A8B2' } as React.CSSProperties}
-                        placeholder="Enter your password"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                      >
-                        {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {isChangePassword && (
-                  <>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">New Password</label>
-                      <div className="relative">
-                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                        <input
-                          type={showNewPassword ? "text" : "password"}
-                          value={newPassword}
-                          onChange={(e) => setNewPassword(e.target.value)}
-                          className="w-full pl-11 pr-11 py-3 border border-gray-200 rounded-xl text-base focus:outline-none focus:ring-2 focus:border-transparent transition-all"
-                          style={{ '--tw-ring-color': '#89A8B2' } as React.CSSProperties}
-                          placeholder="At least 8 characters"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowNewPassword(!showNewPassword)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                        >
-                          {showNewPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                        </button>
-                      </div>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Confirm Password</label>
-                      <div className="relative">
-                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                        <input
-                          type={showNewPassword ? "text" : "password"}
-                          value={confirmPassword}
-                          onChange={(e) => setConfirmPassword(e.target.value)}
-                          className="w-full pl-11 pr-4 py-3 border border-gray-200 rounded-xl text-base focus:outline-none focus:ring-2 focus:border-transparent transition-all"
-                          style={{ '--tw-ring-color': '#89A8B2' } as React.CSSProperties}
-                          placeholder="Re-enter new password"
-                        />
-                      </div>
-                      <p className="text-xs text-gray-500 mt-2">Use at least 8 characters.</p>
-                    </div>
-                  </>
-                )}
-
-                {error && (
-                  <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-100 rounded-xl text-red-700 text-sm">
-                    <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                    {error}
-                  </div>
-                )}
-
-                <button
-                  type="submit"
-                  disabled={loading || (!isChangePassword && cnic.length !== 13)}
-                  className="w-full py-3.5 text-white font-semibold rounded-xl transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90"
-                  style={{ backgroundColor: '#89A8B2' }}
-                >
-                  {loading ? (
-                    <>
-                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      {isChangePassword ? "Saving..." : "Signing In..."}
-                    </>
-                  ) : (
-                    <>
-                      {isChangePassword ? <Lock className="w-5 h-5" /> : <LogIn className="w-5 h-5" />}
-                      {isChangePassword ? "Save Password" : "Sign In"}
-                    </>
-                  )}
-                </button>
-
-                {isChangePassword && (
-                  <button
-                    type="button"
-                    onClick={handleLogout}
-                    className="w-full py-2.5 text-sm text-gray-500 hover:text-gray-700 transition-colors"
-                  >
-                    Sign out
-                  </button>
-                )}
-              </form>
-
-              <div className="mt-6 flex items-start gap-3 p-4 rounded-xl" style={{ backgroundColor: '#E5E1DA' }}>
-                <Shield className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: '#89A8B2' }} />
-                <div className="text-xs text-gray-600">
-                  <p className="font-medium text-gray-700 mb-1">Secure Access</p>
-                  <p>
-                    {isChangePassword
-                      ? "Choose a personal password. You will use it with your CNIC to sign in."
-                      : "CNIC and password are required. Change your password on first login."}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="text-center mt-6">
-            <div className="mx-auto max-w-xs opacity-70">
-              <DomainLoginLogo connectxClassName="mx-auto max-h-16 w-auto max-w-full object-contain" />
-            </div>
-          </div>
-        </div>
-      </div>
+      <CustomerPortalAuthCard
+        mode={mustChangePassword ? "set-password" : "login"}
+        cnic={cnic}
+        password={password}
+        showPassword={showPassword}
+        newPassword={newPassword}
+        confirmPassword={confirmPassword}
+        showNewPassword={showNewPassword}
+        loading={loading}
+        error={error}
+        onCnicChange={(v) => setCnic(formatCnic(v))}
+        onPasswordChange={setPassword}
+        onToggleShowPassword={() => setShowPassword((s) => !s)}
+        onNewPasswordChange={setNewPassword}
+        onConfirmPasswordChange={setConfirmPassword}
+        onToggleShowNewPassword={() => setShowNewPassword((s) => !s)}
+        onSubmit={mustChangePassword ? handleSetPassword : handleSubmit}
+        onSignOut={mustChangePassword ? handleLogout : undefined}
+      />
     )
   }
 
-  // Customer Profile Screen
   const customer = data.customer
-  const tabs = [
-    { id: "overview", name: "Overview", icon: User },
-    { id: "invoices", name: "Invoices", icon: FileText },
-    { id: "payments", name: "Payments", icon: CreditCard },
-    { id: "complaints", name: "Complaints", icon: AlertCircle },
+
+  const statItems: PortalStatItem[] = [
+    {
+      key: "due",
+      label: "Total due",
+      value: `PKR ${data.summary.total_due.toLocaleString()}`,
+      icon: DollarSign,
+      tone: data.summary.total_due > 0 ? "warning" : "default",
+    },
+    {
+      key: "invoices",
+      label: "Invoices",
+      value: data.summary.invoice_count,
+      icon: FileText,
+      tone: "accent",
+    },
+    {
+      key: "paid",
+      label: "Total paid",
+      value: `PKR ${data.summary.total_paid.toLocaleString()}`,
+      icon: CreditCard,
+      tone: "success",
+    },
+    {
+      key: "complaints",
+      label: "Open complaints",
+      value: data.summary.open_complaints,
+      icon: AlertCircle,
+      tone: data.summary.open_complaints > 0 ? "danger" : "default",
+    },
   ]
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#F1F0E8' }}>
-      {/* White Top Navbar with Logo */}
-      <nav className="bg-white shadow-sm border-b border-gray-100">
-        <div className="max-w-6xl mx-auto px-4 py-2 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-40 flex items-center">
-              <DomainLoginLogo
-                className="w-full"
-                connectxClassName="h-8 w-auto max-w-full object-contain"
-              />
-            </div>
-          </div>
-          <div className="flex items-center gap-2 text-xs text-gray-500">
-            <User className="w-3.5 h-3.5" />
-            <span className="font-medium">Customer Portal</span>
-          </div>
-        </div>
-      </nav>
+    <CustomerPortalShell
+      customerName={customer.name}
+      internetId={customer.internet_id}
+      isActive={customer.is_active}
+      onLodgeComplaint={openComplaintModal}
+      onLogout={handleLogout}
+    >
+      <div className="space-y-4 pb-8">
+        <PortalStatStrip items={statItems} columnsMobile={2} columnsDesktop={4} />
 
-      {/* Customer Info Bar */}
-      <div className="text-white shadow-sm" style={{ backgroundColor: '#89A8B2' }}>
-        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
-              <User className="w-6 h-6" />
-            </div>
-            <div>
-              <h1 className="font-bold text-lg">{customer.name}</h1>
-              <p className="text-sm text-white/80">{customer.internet_id}</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 sm:gap-3 flex-wrap justify-end">
-            <button
-              type="button"
-              onClick={openComplaintModal}
-              className="h-9 inline-flex items-center gap-1.5 px-3 text-sm font-medium rounded-lg bg-white text-[#89A8B2] hover:bg-white/90 transition-colors"
-            >
-              <Plus className="w-4 h-4" />
-              Lodge Complaint
-            </button>
-            <span className={`px-3 py-1.5 rounded-lg text-xs font-medium ${customer.is_active ? "bg-emerald-400/20 text-white" : "bg-red-400/20 text-white"}`}>
-              {customer.is_active ? "● Active" : "● Inactive"}
-            </span>
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-2 px-4 py-2 text-sm bg-white/10 hover:bg-white/20 rounded-xl transition-colors"
-            >
-              <LogOut className="w-4 h-4" />
-              Exit
-            </button>
-          </div>
-        </div>
-      </div>
+        <CustomerPortalTabs
+          options={TAB_OPTIONS}
+          value={activeTab}
+          onChange={setActiveTab}
+        />
 
-      <div className="max-w-6xl mx-auto px-4 py-6">
-        {/* Summary Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <div className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-sm text-gray-500 mb-1">Total Due</p>
-                <p className={`text-2xl font-bold ${data.summary.total_due > 0 ? "text-red-600" : "text-emerald-600"}`}>
-                  PKR {data.summary.total_due.toLocaleString()}
-                </p>
-              </div>
-              <div className={`p-2.5 rounded-xl ${data.summary.total_due > 0 ? "bg-red-50" : "bg-emerald-50"}`}>
-                <DollarSign className={`w-5 h-5 ${data.summary.total_due > 0 ? "text-red-500" : "text-emerald-500"}`} />
-              </div>
-            </div>
-          </div>
-          <div className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-sm text-gray-500 mb-1">Invoices</p>
-                <p className="text-2xl font-bold text-gray-900">{data.summary.invoice_count}</p>
-              </div>
-              <div className="p-2.5 rounded-xl" style={{ backgroundColor: '#E5E1DA' }}>
-                <FileText className="w-5 h-5" style={{ color: '#89A8B2' }} />
-              </div>
-            </div>
-          </div>
-          <div className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-sm text-gray-500 mb-1">Total Paid</p>
-                <p className="text-2xl font-bold text-gray-900">PKR {data.summary.total_paid.toLocaleString()}</p>
-              </div>
-              <div className="p-2.5 rounded-xl bg-emerald-50">
-                <CreditCard className="w-5 h-5 text-emerald-500" />
-              </div>
-            </div>
-          </div>
-          <div className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-sm text-gray-500 mb-1">Open Complaints</p>
-                <p className="text-2xl font-bold text-gray-900">{data.summary.open_complaints}</p>
-              </div>
-              <div className={`p-2.5 rounded-xl ${data.summary.open_complaints > 0 ? "bg-amber-50" : "bg-gray-50"}`}>
-                <AlertCircle className={`w-5 h-5 ${data.summary.open_complaints > 0 ? "text-amber-500" : "text-gray-400"}`} />
-              </div>
-            </div>
-          </div>
-        </div>
+        {activeTab === "overview" && (
+          <div className="space-y-4">
+            <CustomerPortalProfileSection
+              customer={customer}
+              onSaved={(payload) => applyProfileData(payload as CustomerData)}
+            />
 
-        {/* Tab Navigation */}
-        <div className="flex gap-1 mb-6 p-1 bg-white rounded-xl border border-gray-100 shadow-sm overflow-x-auto">
-          {tabs.map((tab) => {
-            const Icon = tab.icon
-            const isActive = activeTab === tab.id
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-medium text-sm transition-all whitespace-nowrap ${
-                  isActive
-                    ? "text-white"
-                    : "text-gray-600 hover:bg-gray-50"
-                }`}
-                style={isActive ? { backgroundColor: '#89A8B2' } : {}}
-              >
-                <Icon className="w-4 h-4" />
-                {tab.name}
-              </button>
-            )
-          })}
-        </div>
-
-        {/* Tab Content */}
-        <div className="pb-8">
-          {activeTab === "overview" && (
-            <div className="grid lg:grid-cols-2 gap-6">
-              {/* Personal Info */}
-              <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-                <div className="px-6 py-4 border-b border-gray-100" style={{ backgroundColor: '#B3C8CF20' }}>
-                  <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-                    <User className="w-4 h-4" style={{ color: '#89A8B2' }} />
-                    Personal Information
-                  </h3>
-                </div>
-                <div className="p-6 space-y-4">
-                  <div className="flex items-center justify-between py-2 border-b border-gray-50">
-                    <span className="text-sm text-gray-500 flex items-center gap-2">
-                      <Globe className="w-4 h-4" />
-                      Internet ID
-                    </span>
-                    <span className="font-semibold" style={{ color: '#89A8B2' }}>{customer.internet_id}</span>
-                  </div>
-                  <div className="flex items-center justify-between py-2 border-b border-gray-50">
-                    <span className="text-sm text-gray-500 flex items-center gap-2">
-                      <Mail className="w-4 h-4" />
-                      Email
-                    </span>
-                    <span className="font-medium text-gray-900">{customer.email}</span>
-                  </div>
-                  <div className="flex items-center justify-between py-2 border-b border-gray-50">
-                    <span className="text-sm text-gray-500 flex items-center gap-2">
-                      <Phone className="w-4 h-4" />
-                      Phone
-                    </span>
-                    <span className="font-medium text-gray-900">{customer.phone_1}</span>
-                  </div>
-                  {customer.phone_2 && (
-                    <div className="flex items-center justify-between py-2 border-b border-gray-50">
-                      <span className="text-sm text-gray-500 flex items-center gap-2">
-                        <Phone className="w-4 h-4" />
-                        Phone 2
-                      </span>
-                      <span className="font-medium text-gray-900">{customer.phone_2}</span>
-                    </div>
-                  )}
-                  <div className="flex items-center justify-between py-2">
-                    <span className="text-sm text-gray-500 flex items-center gap-2">
-                      <IdCard className="w-4 h-4" />
-                      CNIC
-                    </span>
-                    <span className="font-medium font-mono text-gray-900">{customer.cnic}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Connection Info */}
-              <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-                <div className="px-6 py-4 border-b border-gray-100" style={{ backgroundColor: '#B3C8CF20' }}>
-                  <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-                    <Wifi className="w-4 h-4" style={{ color: '#89A8B2' }} />
-                    Connection Details
-                  </h3>
-                </div>
-                <div className="p-6 space-y-4">
-                  <div className="py-2 border-b border-gray-50">
-                    <span className="text-sm text-gray-500 flex items-center gap-2 mb-1">
-                      <MapPin className="w-4 h-4" />
-                      Address
-                    </span>
-                    <p className="font-medium text-gray-900">{customer.installation_address}</p>
-                  </div>
-                  <div className="flex items-center justify-between py-2 border-b border-gray-50">
-                    <span className="text-sm text-gray-500">Area</span>
-                    <span className="font-medium text-gray-900">{customer.area}{customer.sub_zone ? ` / ${customer.sub_zone}` : ""}</span>
-                  </div>
-                  <div className="flex items-center justify-between py-2 border-b border-gray-50">
-                    <span className="text-sm text-gray-500">ISP</span>
-                    <span className="font-medium text-gray-900">{customer.isp || "—"}</span>
-                  </div>
-                  <div className="flex items-center justify-between py-2 border-b border-gray-50">
-                    <span className="text-sm text-gray-500">Connection Type</span>
-                    <span className="font-medium text-gray-900 capitalize">{customer.connection_type || "—"}</span>
-                  </div>
-                  <div className="flex items-center justify-between py-2">
-                    <span className="text-sm text-gray-500 flex items-center gap-2">
-                      <Calendar className="w-4 h-4" />
-                      Installation Date
-                    </span>
-                    <span className="font-medium text-gray-900">{customer.installation_date ? new Date(customer.installation_date).toLocaleDateString() : "—"}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Active Packages */}
-              <div className="lg:col-span-2 bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-                <div className="px-6 py-4 border-b border-gray-100" style={{ backgroundColor: '#B3C8CF20' }}>
-                  <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-                    <Package className="w-4 h-4" style={{ color: '#89A8B2' }} />
-                    Active Packages
-                  </h3>
-                </div>
-                <div className="p-6">
-                  {data.packages.length === 0 ? (
-                    <p className="text-gray-500 text-center py-4">No active packages</p>
-                  ) : (
-                    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {data.packages.map((pkg, idx) => (
-                        <div 
-                          key={idx} 
-                          className="p-4 rounded-xl border"
-                          style={{ backgroundColor: '#E5E1DA30', borderColor: '#B3C8CF50' }}
-                        >
-                          <h4 className="font-semibold text-gray-900">{pkg.name}</h4>
-                          <p className="text-2xl font-bold mt-2" style={{ color: '#89A8B2' }}>
-                            PKR {pkg.price.toLocaleString()}
-                            <span className="text-sm font-normal text-gray-500">/mo</span>
-                          </p>
-                          {pkg.speed_mbps && <p className="text-sm text-gray-600 mt-1">{pkg.speed_mbps} Mbps</p>}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {activeTab === "invoices" && (
-            <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-100" style={{ backgroundColor: '#B3C8CF20' }}>
-                <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-                  <FileText className="w-4 h-4" style={{ color: '#89A8B2' }} />
-                  Recent Invoices
+            <div className="overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm">
+              <div className="border-b border-gray-100 bg-portal-tint px-4 py-3">
+                <h3 className="flex items-center gap-2 text-sm font-semibold text-deep-ocean">
+                  <Package className="h-4 w-4 text-portal-primary" />
+                  Active packages
                 </h3>
               </div>
-              {data.invoices.length === 0 ? (
-                <div className="p-12 text-center text-gray-500">No invoices found</div>
-              ) : (
-                <div className="divide-y divide-gray-50">
-                  {data.invoices.map((invoice) => {
-                    const status = statusConfig[invoice.status] || statusConfig.pending
-                    const StatusIcon = status.icon
-                    return (
-                      <div key={invoice.id} className="p-4 hover:bg-gray-50/50 transition-colors">
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                          <div className="flex items-center gap-3">
-                            <div className={`p-2 rounded-lg ${status.bg}`}>
-                              <StatusIcon className={`w-4 h-4 ${status.text}`} />
-                            </div>
-                            <div>
-                              <p className="font-semibold text-gray-900">{invoice.invoice_number}</p>
-                              <p className="text-sm text-gray-500">
-                                Due: {invoice.due_date ? new Date(invoice.due_date).toLocaleDateString() : "—"}
-                                {invoice.invoice_type && (
-                                  <span className="ml-2 capitalize text-gray-400">
-                                    · {(invoice.invoice_type === "mixed" && invoice.charge_types?.length
-                                      ? invoice.charge_types.join(" + ")
-                                      : invoice.invoice_type
-                                    ).replace(/_/g, " ")}
-                                  </span>
-                                )}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-3">
-                            <div className="text-right">
-                              <p className="font-bold text-gray-900">PKR {invoice.total_amount.toLocaleString()}</p>
-                              {invoice.remaining > 0 && (
-                                <p className="text-sm text-red-600">Due: PKR {invoice.remaining.toLocaleString()}</p>
-                              )}
-                            </div>
-                            <span className={`px-3 py-1 rounded-lg text-xs font-medium ${status.bg} ${status.text}`}>
-                              {invoice.status}
-                            </span>
-                            <button
-                              onClick={() => handleViewInvoice(invoice.id)}
-                              className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors hover:opacity-80"
-                              style={{ backgroundColor: '#89A8B2', color: 'white' }}
-                            >
-                              <ExternalLink className="w-3.5 h-3.5" />
-                              View
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
-            </div>
-          )}
-
-          {activeTab === "payments" && (
-            <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-100" style={{ backgroundColor: '#B3C8CF20' }}>
-                <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-                  <CreditCard className="w-4 h-4" style={{ color: '#89A8B2' }} />
-                  Recent Payments
-                </h3>
-              </div>
-              {data.payments.length === 0 ? (
-                <div className="p-12 text-center text-gray-500">No payments found</div>
-              ) : (
-                <div className="divide-y divide-gray-50">
-                  {data.payments.map((payment) => {
-                    const status = statusConfig[payment.status] || statusConfig.pending
-                    const StatusIcon = status.icon
-                    return (
-                      <div 
-                        key={payment.id} 
-                        className="p-4 hover:bg-gray-50/50 transition-colors cursor-pointer"
-                        onClick={() => setSelectedPayment(payment)}
+              <div className="p-4">
+                {data.packages.length === 0 ? (
+                  <p className="py-4 text-center text-sm text-slate-gray">No active packages</p>
+                ) : (
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    {data.packages.map((pkg, idx) => (
+                      <div
+                        key={idx}
+                        className="rounded-xl border border-electric-blue/15 bg-portal-tint/60 p-4"
                       >
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                          <div className="flex items-center gap-3">
-                            <div className={`p-2 rounded-lg ${status.bg}`}>
-                              <StatusIcon className={`w-4 h-4 ${status.text}`} />
-                            </div>
-                            <div>
-                              <p className="font-semibold text-gray-900">PKR {payment.amount.toLocaleString()}</p>
-                              <p className="text-sm text-gray-500">
-                                {payment.payment_date ? new Date(payment.payment_date).toLocaleDateString() : "—"}
-                                {payment.invoice_number && <span> • {payment.invoice_number}</span>}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-3">
-                            <span className="text-sm text-gray-600 capitalize bg-gray-100 px-3 py-1 rounded-lg">{payment.payment_method}</span>
-                            <span className={`px-3 py-1 rounded-lg text-xs font-medium ${status.bg} ${status.text}`}>
-                              {payment.status}
-                            </span>
-                          </div>
-                        </div>
+                        <h4 className="text-sm font-semibold text-gray-900">{pkg.name}</h4>
+                        <p className="mt-1 text-lg font-bold tabular-nums text-portal-primary">
+                          PKR {pkg.price.toLocaleString()}
+                          <span className="text-xs font-normal text-slate-gray">/mo</span>
+                        </p>
+                        {pkg.speed_mbps != null && (
+                          <p className="mt-1 text-xs text-slate-gray">{pkg.speed_mbps} Mbps</p>
+                        )}
                       </div>
-                    )
-                  })}
-                </div>
-              )}
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
-          )}
+          </div>
+        )}
 
-          {activeTab === "complaints" && (
-            <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3" style={{ backgroundColor: '#B3C8CF20' }}>
-                <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4" style={{ color: '#89A8B2' }} />
-                  Complaint History
-                </h3>
+        {activeTab === "invoices" && (
+          <div className="overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm">
+            <div className="border-b border-gray-100 bg-portal-tint px-4 py-3">
+              <h3 className="flex items-center gap-2 text-sm font-semibold text-deep-ocean">
+                <FileText className="h-4 w-4 text-portal-primary" />
+                Recent invoices
+              </h3>
+            </div>
+            {data.invoices.length === 0 ? (
+              <div className="p-10 text-center text-sm text-slate-gray">No invoices found</div>
+            ) : (
+              <div className="divide-y divide-gray-100">
+                {data.invoices.map((invoice) => (
+                  <div
+                    key={invoice.id}
+                    className="flex items-center gap-3 px-3 py-2.5 transition-colors hover:bg-gray-50"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <p className="truncate text-sm font-semibold text-gray-900">
+                          {invoice.invoice_number}
+                        </p>
+                        <PortalStatusPill status={invoice.status} />
+                      </div>
+                      <p className="mt-0.5 truncate text-xs text-slate-gray">
+                        Due:{" "}
+                        {invoice.due_date ? new Date(invoice.due_date).toLocaleDateString() : "—"}
+                        {invoice.invoice_type && (
+                          <span className="capitalize text-gray-400">
+                            {" "}
+                            ·{" "}
+                            {(invoice.invoice_type === "mixed" && invoice.charge_types?.length
+                              ? invoice.charge_types.join(" + ")
+                              : invoice.invoice_type
+                            ).replace(/_/g, " ")}
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <p className="text-sm font-semibold tabular-nums text-gray-900">
+                        PKR {invoice.total_amount.toLocaleString()}
+                      </p>
+                      {invoice.remaining > 0 && (
+                        <p className="text-xs tabular-nums text-coral-red">
+                          Due: PKR {invoice.remaining.toLocaleString()}
+                        </p>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleViewInvoice(invoice.id)}
+                      className="inline-flex h-8 shrink-0 items-center gap-1 rounded-lg bg-portal-primary px-2.5 text-xs font-medium text-white hover:bg-portal-primary-dark"
+                    >
+                      <ExternalLink className="h-3.5 w-3.5" />
+                      View
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === "payments" && (
+          <div className="overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm">
+            <div className="border-b border-gray-100 bg-portal-tint px-4 py-3">
+              <h3 className="flex items-center gap-2 text-sm font-semibold text-deep-ocean">
+                <CreditCard className="h-4 w-4 text-portal-primary" />
+                Recent payments
+              </h3>
+            </div>
+            {data.payments.length === 0 ? (
+              <div className="p-10 text-center text-sm text-slate-gray">No payments found</div>
+            ) : (
+              <div className="divide-y divide-gray-100">
+                {data.payments.map((payment) => (
+                  <button
+                    key={payment.id}
+                    type="button"
+                    onClick={() => setSelectedPayment(payment)}
+                    className="flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors hover:bg-gray-50"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <p className="text-sm font-semibold tabular-nums text-gray-900">
+                          PKR {payment.amount.toLocaleString()}
+                        </p>
+                        <PortalStatusPill status={payment.status} />
+                      </div>
+                      <p className="mt-0.5 truncate text-xs text-slate-gray">
+                        {payment.payment_date
+                          ? new Date(payment.payment_date).toLocaleDateString()
+                          : "—"}
+                        {payment.invoice_number && <span> · {payment.invoice_number}</span>}
+                        <span className="capitalize"> · {payment.payment_method}</span>
+                      </p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === "complaints" && (
+          <div className="overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm">
+            <div className="border-b border-gray-100 bg-portal-tint px-4 py-3">
+              <h3 className="flex items-center gap-2 text-sm font-semibold text-deep-ocean">
+                <AlertCircle className="h-4 w-4 text-portal-primary" />
+                Complaint history
+              </h3>
+            </div>
+            {data.complaints.length === 0 ? (
+              <div className="p-10 text-center text-sm text-slate-gray">
+                <p>No complaints found</p>
                 <button
                   type="button"
                   onClick={openComplaintModal}
-                  className="h-9 inline-flex items-center justify-center gap-1.5 px-3 text-sm font-medium text-white rounded-lg hover:opacity-90 transition-opacity"
-                  style={{ backgroundColor: '#89A8B2' }}
+                  className="mt-2 text-sm font-medium text-electric-blue hover:underline"
                 >
-                  <Plus className="w-4 h-4" />
-                  Lodge Complaint
+                  Lodge a complaint
                 </button>
               </div>
-              {data.complaints.length === 0 ? (
-                <div className="p-12 text-center text-gray-500">
-                  <p className="mb-4">No complaints found</p>
+            ) : (
+              <div className="divide-y divide-gray-100">
+                {data.complaints.map((complaint) => (
                   <button
+                    key={complaint.id}
                     type="button"
-                    onClick={openComplaintModal}
-                    className="h-9 inline-flex items-center gap-1.5 px-3 text-sm font-medium text-white rounded-lg"
-                    style={{ backgroundColor: '#89A8B2' }}
+                    onClick={() => setViewComplaintId(complaint.id)}
+                    className="flex w-full items-start gap-3 px-3 py-2.5 text-left transition-colors hover:bg-portal-tint/70"
                   >
-                    <Plus className="w-4 h-4" />
-                    Lodge your first complaint
-                  </button>
-                </div>
-              ) : (
-                <div className="divide-y divide-gray-50">
-                  {data.complaints.map((complaint) => {
-                    const status = statusConfig[complaint.status] || statusConfig.pending
-                    const StatusIcon = status.icon
-                    return (
-                      <div key={complaint.id} className="p-4 hover:bg-gray-50/50 transition-colors">
-                        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
-                          <div className="flex gap-3">
-                            <div className={`p-2 rounded-lg ${status.bg} h-fit`}>
-                              <StatusIcon className={`w-4 h-4 ${status.text}`} />
-                            </div>
-                            <div>
-                              <p className="font-semibold text-gray-900">#{complaint.ticket_number}</p>
-                              <p className="text-xs text-gray-500 mt-0.5">
-                                {complaint.category_label || getComplaintCategoryLabel(complaint.category)}
-                              </p>
-                              <p className="text-sm text-gray-700 mt-1 max-w-md">{complaint.description}</p>
-                              <p className="text-xs text-gray-500 mt-2">
-                                Opened: {complaint.created_at ? new Date(complaint.created_at).toLocaleDateString() : "—"}
-                                {complaint.resolved_at && ` • Closed: ${new Date(complaint.resolved_at).toLocaleDateString()}`}
-                              </p>
-                            </div>
-                          </div>
-                          <span className={`px-3 py-1 rounded-lg text-xs font-medium flex-shrink-0 ${status.bg} ${status.text}`}>
-                            {complaint.status.replace("_", " ")}
-                          </span>
-                        </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <p className="text-sm font-semibold text-gray-900">
+                          #{complaint.ticket_number}
+                        </p>
+                        <PortalStatusPill status={complaint.status} />
                       </div>
-                    )
-                  })}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+                      <p className="mt-0.5 text-xs text-slate-gray">
+                        {complaint.category_label || getComplaintCategoryLabel(complaint.category)}
+                      </p>
+                      <p className="mt-1 line-clamp-2 text-sm text-gray-700">
+                        {complaint.description}
+                      </p>
+                      <p className="mt-1 text-[11px] text-gray-400">
+                        Opened:{" "}
+                        {complaint.created_at
+                          ? new Date(complaint.created_at).toLocaleDateString()
+                          : "—"}
+                        {complaint.resolved_at &&
+                          ` · Closed: ${new Date(complaint.resolved_at).toLocaleDateString()}`}
+                      </p>
+                    </div>
+                    <ChevronRight className="mt-1 h-4 w-4 shrink-0 text-slate-gray" />
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* Lodge Complaint Modal */}
       {showComplaintModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
-            <div className="flex items-center justify-between p-5 border-b border-gray-100" style={{ backgroundColor: '#89A8B2' }}>
-              <div className="flex items-center gap-3">
-                <AlertCircle className="w-5 h-5 text-white" />
-                <div>
-                  <h3 className="text-lg font-semibold text-white">Lodge Complaint</h3>
-                  <p className="text-xs text-white/80">{customer.name} · {customer.internet_id}</p>
-                </div>
+          <div className="w-full max-w-md overflow-hidden rounded-xl border border-gray-100 bg-white shadow-lg">
+            <div className="flex items-center justify-between border-b border-gray-100 bg-portal-primary px-4 py-3">
+              <div>
+                <h3 className="text-sm font-semibold text-white">Lodge complaint</h3>
+                <p className="text-[11px] text-white/80">
+                  {customer.name} · {customer.internet_id}
+                </p>
               </div>
               <button
-                onClick={() => setShowComplaintModal(false)}
-                className="p-1.5 hover:bg-white/20 rounded-lg transition-colors"
                 type="button"
+                onClick={() => setShowComplaintModal(false)}
+                className="rounded-lg p-1.5 text-white/80 hover:bg-white/10 hover:text-white"
               >
-                <X className="w-5 h-5 text-white" />
+                <X className="h-4 w-4" />
               </button>
             </div>
 
-            <form onSubmit={handleLodgeComplaint} className="p-5 space-y-4">
-              <p className="text-xs text-gray-500">
-                Your account is already identified from your login. You do not need to enter a customer ID.
+            <form onSubmit={handleLodgeComplaint} className="space-y-3 p-4">
+              <p className="text-xs text-slate-gray">
+                Your account is identified from your login. No customer ID needed.
               </p>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  Category <span className="text-red-500">*</span>
+                <label className="mb-1 block text-xs font-medium text-slate-gray">
+                  Category <span className="text-coral-red">*</span>
                 </label>
                 <select
                   value={complaintCategory}
                   onChange={(e) => setComplaintCategory(e.target.value)}
-                  className="w-full h-10 px-3 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#89A8B2] focus:border-transparent bg-white"
+                  className="h-9 w-full rounded-lg border border-gray-200 bg-white px-3 text-sm focus:border-portal-accent focus:outline-none focus:ring-2 focus:ring-portal-accent/40"
                   required
                 >
                   <option value="">Select a category</option>
@@ -1016,28 +671,32 @@ export default function CustomerPortalPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  Describe the issue <span className="text-red-500">*</span>
+                <label className="mb-1 block text-xs font-medium text-slate-gray">
+                  Describe the issue <span className="text-coral-red">*</span>
                 </label>
                 <textarea
                   value={complaintDescription}
                   onChange={(e) => setComplaintDescription(e.target.value)}
-                  rows={5}
+                  rows={4}
                   maxLength={2000}
-                  placeholder="What problem are you facing? Include any useful details."
-                  className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#89A8B2] focus:border-transparent resize-y min-h-[120px]"
+                  placeholder="What problem are you facing?"
+                  className="min-h-[100px] w-full resize-y rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-portal-accent focus:outline-none focus:ring-2 focus:ring-portal-accent/40"
                   required
                 />
-                <p className="text-xs text-gray-400 mt-1">{complaintDescription.trim().length}/2000</p>
+                <p className="mt-1 text-[11px] text-gray-400">
+                  {complaintDescription.trim().length}/2000
+                </p>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  Attachment <span className="text-gray-400 font-normal">(optional)</span>
+                <label className="mb-1 block text-xs font-medium text-slate-gray">
+                  Attachment <span className="font-normal text-gray-400">(optional)</span>
                 </label>
-                <label className="flex items-center gap-2 h-10 px-3 border border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 text-sm text-gray-600">
-                  <Paperclip className="w-4 h-4 text-gray-400" />
-                  <span className="truncate">{complaintFile ? complaintFile.name : "PDF or image"}</span>
+                <label className="flex h-9 cursor-pointer items-center gap-2 rounded-lg border border-dashed border-gray-300 px-3 text-sm text-slate-gray hover:bg-gray-50">
+                  <Paperclip className="h-4 w-4 text-gray-400" />
+                  <span className="truncate">
+                    {complaintFile ? complaintFile.name : "PDF or image"}
+                  </span>
                   <input
                     type="file"
                     accept=".pdf,.png,.jpg,.jpeg,.gif,image/*,application/pdf"
@@ -1048,14 +707,14 @@ export default function CustomerPortalPage() {
               </div>
 
               {complaintError && (
-                <div className="flex items-start gap-2 p-3 rounded-lg bg-red-50 text-red-700 text-sm">
-                  <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                <div className="flex items-start gap-2 rounded-lg bg-coral-red/5 px-3 py-2 text-sm text-coral-red">
+                  <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
                   <span>{complaintError}</span>
                 </div>
               )}
               {complaintSuccess && (
-                <div className="flex items-start gap-2 p-3 rounded-lg bg-emerald-50 text-emerald-700 text-sm">
-                  <CheckCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                <div className="flex items-start gap-2 rounded-lg bg-emerald-green/5 px-3 py-2 text-sm text-emerald-green">
+                  <CheckCircle className="mt-0.5 h-4 w-4 shrink-0" />
                   <span>{complaintSuccess}</span>
                 </div>
               )}
@@ -1064,7 +723,7 @@ export default function CustomerPortalPage() {
                 <button
                   type="button"
                   onClick={() => setShowComplaintModal(false)}
-                  className="h-9 px-3 text-sm rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50"
+                  className="h-9 rounded-lg border border-gray-200 px-3 text-sm text-slate-gray hover:bg-gray-50"
                   disabled={complaintSubmitting}
                 >
                   {complaintSuccess ? "Close" : "Cancel"}
@@ -1073,13 +732,12 @@ export default function CustomerPortalPage() {
                   <button
                     type="submit"
                     disabled={complaintSubmitting}
-                    className="h-9 px-3 text-sm rounded-lg text-white inline-flex items-center gap-1.5 disabled:opacity-50"
-                    style={{ backgroundColor: '#89A8B2' }}
+                    className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-portal-primary px-3 text-sm font-medium text-white hover:bg-portal-primary-dark disabled:opacity-50"
                   >
                     {complaintSubmitting ? (
-                      <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
                     ) : (
-                      <Send className="w-4 h-4" />
+                      <Send className="h-4 w-4" />
                     )}
                     Submit
                   </button>
@@ -1090,116 +748,111 @@ export default function CustomerPortalPage() {
         </div>
       )}
 
-      {/* Payment Detail Modal */}
+      <CustomerPortalComplaintDetailModal
+        complaintId={viewComplaintId}
+        onClose={() => setViewComplaintId(null)}
+      />
+
       {selectedPayment && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
-            {/* Modal Header */}
-            <div className="flex items-center justify-between p-5 border-b border-gray-100" style={{ backgroundColor: '#89A8B2' }}>
-              <div className="flex items-center gap-3">
-                <CreditCard className="w-5 h-5 text-white" />
-                <h3 className="text-lg font-semibold text-white">Payment Details</h3>
+          <div className="w-full max-w-md overflow-hidden rounded-xl border border-gray-100 bg-white shadow-lg">
+            <div className="flex items-center justify-between border-b border-gray-100 bg-portal-primary px-4 py-3">
+              <div className="flex items-center gap-2">
+                <CreditCard className="h-4 w-4 text-white" />
+                <h3 className="text-sm font-semibold text-white">Payment details</h3>
               </div>
               <button
+                type="button"
                 onClick={() => setSelectedPayment(null)}
-                className="p-1.5 hover:bg-white/20 rounded-lg transition-colors"
+                className="rounded-lg p-1.5 text-white/80 hover:bg-white/10 hover:text-white"
               >
-                <X className="w-5 h-5 text-white" />
+                <X className="h-4 w-4" />
               </button>
             </div>
 
-            {/* Modal Body */}
-            <div className="p-5 space-y-4">
-              {/* Amount & Status */}
-              <div className="text-center pb-4 border-b border-gray-100">
-                <p className="text-3xl font-bold text-gray-900">PKR {selectedPayment.amount.toLocaleString()}</p>
-                <div className="mt-2">
-                  {(() => {
-                    const status = statusConfig[selectedPayment.status] || statusConfig.pending
-                    return (
-                      <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium ${status.bg} ${status.text}`}>
-                        <status.icon className="w-4 h-4" />
-                        {selectedPayment.status.charAt(0).toUpperCase() + selectedPayment.status.slice(1)}
-                      </span>
-                    )
-                  })()}
+            <div className="space-y-3 p-4">
+              <div className="border-b border-gray-100 pb-3 text-center">
+                <p className="text-2xl font-bold tabular-nums text-gray-900">
+                  PKR {selectedPayment.amount.toLocaleString()}
+                </p>
+                <div className="mt-2 flex justify-center">
+                  <PortalStatusPill status={selectedPayment.status} />
                 </div>
               </div>
 
-              {/* Details Grid */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between py-2 border-b border-gray-50">
-                  <span className="text-sm text-gray-500 flex items-center gap-2">
-                    <Calendar className="w-4 h-4" />
-                    Payment Date
+              <div className="space-y-2 text-sm">
+                <div className="flex items-center justify-between border-b border-gray-50 py-1.5">
+                  <span className="flex items-center gap-1.5 text-slate-gray">
+                    <Calendar className="h-3.5 w-3.5" /> Payment date
                   </span>
                   <span className="font-medium text-gray-900">
-                    {selectedPayment.payment_date ? new Date(selectedPayment.payment_date).toLocaleString() : "—"}
+                    {selectedPayment.payment_date
+                      ? new Date(selectedPayment.payment_date).toLocaleString()
+                      : "—"}
                   </span>
                 </div>
-
-                <div className="flex items-center justify-between py-2 border-b border-gray-50">
-                  <span className="text-sm text-gray-500 flex items-center gap-2">
-                    <CreditCard className="w-4 h-4" />
-                    Payment Method
+                <div className="flex items-center justify-between border-b border-gray-50 py-1.5">
+                  <span className="flex items-center gap-1.5 text-slate-gray">
+                    <CreditCard className="h-3.5 w-3.5" /> Method
                   </span>
-                  <span className="font-medium text-gray-900 capitalize">{selectedPayment.payment_method}</span>
+                  <span className="font-medium capitalize text-gray-900">
+                    {selectedPayment.payment_method}
+                  </span>
                 </div>
-
                 {selectedPayment.invoice_number && (
-                  <div className="flex items-center justify-between py-2 border-b border-gray-50">
-                    <span className="text-sm text-gray-500 flex items-center gap-2">
-                      <Receipt className="w-4 h-4" />
-                      Invoice
+                  <div className="flex items-center justify-between border-b border-gray-50 py-1.5">
+                    <span className="flex items-center gap-1.5 text-slate-gray">
+                      <Receipt className="h-3.5 w-3.5" /> Invoice
                     </span>
-                    <span className="font-medium text-gray-900">{selectedPayment.invoice_number}</span>
+                    <span className="font-medium text-gray-900">
+                      {selectedPayment.invoice_number}
+                    </span>
                   </div>
                 )}
-
                 {selectedPayment.bank_account && (
-                  <div className="flex items-center justify-between py-2 border-b border-gray-50">
-                    <span className="text-sm text-gray-500 flex items-center gap-2">
-                      <Building className="w-4 h-4" />
-                      Bank
+                  <div className="flex items-center justify-between border-b border-gray-50 py-1.5">
+                    <span className="flex items-center gap-1.5 text-slate-gray">
+                      <Building className="h-3.5 w-3.5" /> Bank
                     </span>
-                    <span className="font-medium text-gray-900">{selectedPayment.bank_account}</span>
+                    <span className="font-medium text-gray-900">
+                      {selectedPayment.bank_account}
+                    </span>
                   </div>
                 )}
-
                 {selectedPayment.transaction_id && (
-                  <div className="flex items-center justify-between py-2 border-b border-gray-50">
-                    <span className="text-sm text-gray-500 flex items-center gap-2">
-                      <Hash className="w-4 h-4" />
-                      Transaction ID
+                  <div className="flex items-center justify-between border-b border-gray-50 py-1.5">
+                    <span className="flex items-center gap-1.5 text-slate-gray">
+                      <Hash className="h-3.5 w-3.5" /> Transaction ID
                     </span>
-                    <span className="font-medium font-mono text-sm text-gray-900">{selectedPayment.transaction_id}</span>
+                    <span className="font-mono text-xs font-medium text-gray-900">
+                      {selectedPayment.transaction_id}
+                    </span>
                   </div>
                 )}
-
                 {selectedPayment.failure_reason && (
-                  <div className="p-3 bg-red-50 rounded-lg border border-red-100">
-                    <p className="text-sm font-medium text-red-700 mb-1">Failure Reason</p>
-                    <p className="text-sm text-red-600">{selectedPayment.failure_reason}</p>
+                  <div className="rounded-lg border border-coral-red/20 bg-coral-red/5 p-3">
+                    <p className="text-xs font-medium text-coral-red">Failure reason</p>
+                    <p className="mt-0.5 text-sm text-coral-red">{selectedPayment.failure_reason}</p>
                   </div>
                 )}
               </div>
 
-              {/* Payment Proof */}
               {selectedPayment.payment_proof && (
-                <div className="pt-3 border-t border-gray-100">
-                  <p className="text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
-                    <Image className="w-4 h-4" style={{ color: '#89A8B2' }} />
-                    Payment Proof
+                <div className="border-t border-gray-100 pt-3">
+                  <p className="mb-2 flex items-center gap-1.5 text-xs font-medium text-slate-gray">
+                    <Image className="h-3.5 w-3.5 text-portal-primary" />
+                    Payment proof
                   </p>
-                  <div className="rounded-xl overflow-hidden border border-gray-200">
-                    <img 
-                      src={selectedPayment.payment_proof} 
-                      alt="Payment Proof" 
-                      className="w-full max-h-64 object-contain bg-gray-50"
+                  <div className="overflow-hidden rounded-lg border border-gray-200">
+                    <img
+                      src={selectedPayment.payment_proof}
+                      alt="Payment proof"
+                      className="max-h-56 w-full bg-gray-50 object-contain"
                       onError={(e) => {
                         const target = e.target as HTMLImageElement
-                        target.style.display = 'none'
-                        target.parentElement!.innerHTML = '<p class="p-4 text-center text-gray-500 text-sm">Unable to load image</p>'
+                        target.style.display = "none"
+                        target.parentElement!.innerHTML =
+                          '<p class="p-4 text-center text-sm text-slate-gray">Unable to load image</p>'
                       }}
                     />
                   </div>
@@ -1207,22 +860,20 @@ export default function CustomerPortalPage() {
                     href={selectedPayment.payment_proof}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="mt-2 flex items-center justify-center gap-2 text-sm font-medium py-2 rounded-lg transition-colors"
-                    style={{ color: '#89A8B2' }}
+                    className="mt-2 flex items-center justify-center gap-1.5 py-2 text-sm font-medium text-electric-blue hover:underline"
                   >
-                    <ExternalLink className="w-4 h-4" />
-                    Open in New Tab
+                    <ExternalLink className="h-3.5 w-3.5" />
+                    Open in new tab
                   </a>
                 </div>
               )}
             </div>
 
-            {/* Modal Footer */}
-            <div className="px-5 py-4 border-t border-gray-100 bg-gray-50">
+            <div className="border-t border-gray-100 bg-gray-50 px-4 py-3">
               <button
+                type="button"
                 onClick={() => setSelectedPayment(null)}
-                className="w-full py-2.5 font-medium rounded-xl transition-colors text-white hover:opacity-90"
-                style={{ backgroundColor: '#89A8B2' }}
+                className="h-9 w-full rounded-lg bg-portal-primary text-sm font-medium text-white hover:bg-portal-primary-dark"
               >
                 Close
               </button>
@@ -1230,6 +881,6 @@ export default function CustomerPortalPage() {
           </div>
         </div>
       )}
-    </div>
+    </CustomerPortalShell>
   )
 }

@@ -71,12 +71,12 @@ const AvailabilityChecker: React.FC = () => {
                 <Search className="h-4 w-4" /> Check area
               </button>
             </form>
-          ) : (
-            whatsappLink && (
+          ) : whatsappLink ? (
               <a href={whatsappLink} target="_blank" rel="noopener noreferrer" className="h-12 px-5 rounded-md bg-white text-[var(--mk-ink)] text-sm font-semibold inline-flex items-center justify-center gap-2 justify-self-start lg:justify-self-end">
                 <MessageCircle className="h-4 w-4" /> Ask about my area
               </a>
-            )
+          ) : (
+            <p className="text-sm text-white/80 lg:text-right">Coverage is confirmed for each address. Contact details will appear here when available.</p>
           )}
         </div>
 
